@@ -4,15 +4,17 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { draftLineCount, type RecipeDraft } from '@/core/import/draft';
+import { readRecipeFile } from '@/core/import/files';
 import { parseRecipeText } from '@/core/import/text';
 import { extractRecipesFromHtml } from '@/core/import/web';
 import { formatDuration } from '@/core/recipe/durations';
 import { useDb } from '@/data/react';
 import { PageFetchError } from '@/data/services/fetch-page';
 import { fetchPage } from '@/data/services/page-fetcher';
+import { pickFile } from '@/data/services/pick-file';
 import { Button, Card, CONTENT_MAX_WIDTH, Field, Icon, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
-type Mode = 'url' | 'text';
+type Mode = 'url' | 'text' | 'file';
 
 type ImportResult = { draft: RecipeDraft } | { error: string };
 
@@ -35,7 +37,8 @@ export function ImportScreen() {
   const db = useDb();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<Mode>(params.mode === 'text' ? 'text' : 'url');
+  const [mode, setMode] = useState<Mode>(params.mode === 'text' ? 'text' : params.mode === 'file' ? 'file' : 'url');
+  const [batch, setBatch] = useState<{ format: string; drafts: RecipeDraft[]; skipped: string[] } | null>(null);
   const [url, setUrl] = useState(params.url ?? '');
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(Boolean(params.url));
@@ -94,11 +97,13 @@ export function ImportScreen() {
           options={[
             { value: 'url', label: 'Website', icon: 'globe' },
             { value: 'text', label: 'Text', icon: 'text' },
+            { value: 'file', label: 'File', icon: 'download' },
           ]}
           value={mode}
           onChange={(m) => {
             setMode(m);
             setDraft(null);
+            setBatch(null);
             setError(null);
           }}
         />
@@ -119,6 +124,32 @@ export function ImportScreen() {
             <Button title="Find recipe" icon="search" onPress={() => void fetchUrl()} loading={loading} disabled={!url.trim()} full />
             <Text variant="footnote" tone="secondary">
               Works with most recipe sites. Gather keeps the recipe and leaves the life story behind.
+            </Text>
+          </View>
+        ) : mode === 'file' ? (
+          <View style={{ gap: space.md }}>
+            <Button
+              title="Choose a file"
+              icon="download"
+              full
+              onPress={async () => {
+                setError(null);
+                setDraft(null);
+                setBatch(null);
+                const file = await pickFile();
+                if (!file) return;
+                try {
+                  const result = readRecipeFile(file.name, file.bytes);
+                  if (result.drafts.length === 0) setError('No recipes found in that file.');
+                  else if (result.drafts.length === 1 && result.skipped.length === 0) setDraft(result.drafts[0]!);
+                  else setBatch(result);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Gather couldn’t read that file.');
+                }
+              }}
+            />
+            <Text variant="footnote" tone="secondary">
+              Paprika exports (.paprikarecipes), Gather recipe files, saved web pages and plain text.
             </Text>
           </View>
         ) : (
@@ -147,6 +178,38 @@ export function ImportScreen() {
         ) : null}
 
         {draft ? <DraftPreview draft={draft} onSave={() => save(false)} onEdit={() => save(true)} radius={radius.lg} /> : null}
+
+        {batch ? (
+          <Card style={{ gap: space.md }}>
+            <Text variant="title3">
+              {batch.drafts.length} {batch.drafts.length === 1 ? 'recipe' : 'recipes'} from {batch.format}
+            </Text>
+            {batch.drafts.slice(0, 8).map((d, i) => (
+              <Text key={i} variant="subhead" numberOfLines={1}>
+                • {d.name}
+              </Text>
+            ))}
+            {batch.drafts.length > 8 ? (
+              <Text variant="footnote" tone="secondary">
+                and {batch.drafts.length - 8} more…
+              </Text>
+            ) : null}
+            {batch.skipped.length ? (
+              <Text variant="footnote" tone="danger">
+                {batch.skipped.length} could not be read.
+              </Text>
+            ) : null}
+            <Button
+              title={`Import ${batch.drafts.length} ${batch.drafts.length === 1 ? 'recipe' : 'recipes'}`}
+              icon="download"
+              onPress={() => {
+                for (const d of batch.drafts) db.recipes.createFromDraft(d);
+                router.dismissAll?.();
+                router.replace('/');
+              }}
+            />
+          </Card>
+        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

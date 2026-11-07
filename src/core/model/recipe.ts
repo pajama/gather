@@ -91,8 +91,50 @@ export function recipeFromDraft(draft: RecipeDraft, extra: Partial<Recipe> = {})
     ...(draft.notes ? { notes: draft.notes } : {}),
     ...(nutrition && Object.keys(nutrition).length ? { nutrition } : {}),
     tags: tags.slice(0, 12),
+    ...(draft.rating ? { rating: draft.rating } : {}),
     ...extra,
   });
+}
+
+const NUTRITION_BACK: Record<keyof Nutrition, string> = {
+  servingSize: 'servingSize',
+  calories: 'calories',
+  fat: 'fatContent',
+  saturatedFat: 'saturatedFatContent',
+  carbohydrates: 'carbohydrateContent',
+  fiber: 'fiberContent',
+  sugar: 'sugarContent',
+  protein: 'proteinContent',
+  cholesterol: 'cholesterolContent',
+  sodium: 'sodiumContent',
+};
+
+/** The portable form of a recipe, for sharing as a file (the inverse of recipeFromDraft). */
+export function recipeToDraft(recipe: Recipe): RecipeDraft {
+  const nutrition = recipe.nutrition
+    ? Object.fromEntries(Object.entries(recipe.nutrition).map(([k, v]) => [NUTRITION_BACK[k as keyof Nutrition], v]))
+    : undefined;
+  return {
+    name: recipe.name,
+    ...(recipe.description ? { description: recipe.description } : {}),
+    ...(recipe.sourceUrl ? { sourceUrl: recipe.sourceUrl } : {}),
+    ...(recipe.sourceName ? { sourceName: recipe.sourceName } : {}),
+    ...(recipe.author ? { author: recipe.author } : {}),
+    imageUrls: recipe.images.map((i) => i.uri).filter((uri) => !uri.startsWith('asset://')),
+    ...(recipe.servings ? { servings: recipe.servings } : {}),
+    ...(recipe.yieldText ? { yieldText: recipe.yieldText } : {}),
+    ...(recipe.prepSeconds ? { prepSeconds: recipe.prepSeconds } : {}),
+    ...(recipe.cookSeconds ? { cookSeconds: recipe.cookSeconds } : {}),
+    ...(recipe.totalSeconds ? { totalSeconds: recipe.totalSeconds } : {}),
+    ingredients: recipe.ingredients.map((s) => ({ ...(s.title ? { title: s.title } : {}), lines: s.items.map((i) => i.text) })),
+    steps: recipe.steps.map((s) => ({ ...(s.title ? { title: s.title } : {}), lines: s.items.map((i) => i.text) })),
+    ...(recipe.notes ? { notes: recipe.notes } : {}),
+    ...(nutrition ? { nutrition } : {}),
+    tags: recipe.tags,
+    categories: [],
+    cuisines: [],
+    ...(recipe.rating ? { rating: recipe.rating } : {}),
+  };
 }
 
 export function totalSeconds(recipe: Pick<Recipe, 'prepSeconds' | 'cookSeconds' | 'totalSeconds'>): number | undefined {

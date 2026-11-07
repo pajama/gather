@@ -31,6 +31,8 @@ export interface RecipeDraft {
   tags: string[];
   categories: string[];
   cuisines: string[];
+  /** 1-5 stars when the source app kept ratings. */
+  rating?: number;
 }
 
 export const NUTRITION_KEYS = [

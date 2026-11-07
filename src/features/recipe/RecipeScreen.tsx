@@ -6,11 +6,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Animated, Platform, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { coverImage, recipeToText, totalSeconds } from '@/core/model/recipe';
+import { recipeToHtml } from '@/core/export/print';
+import { toGatherFile } from '@/core/import/files';
+import { coverImage, recipeToDraft, recipeToText, totalSeconds } from '@/core/model/recipe';
 import type { Recipe, UnitPreference } from '@/core/model/types';
 import { formatDuration } from '@/core/recipe/durations';
 import { formatNumber } from '@/core/recipe/quantity';
 import { useDb, useFolders, useRecipe, useSettings } from '@/data/react';
+import { shareTextFile } from '@/data/services/pick-file';
+import { printHtml, shareHtmlAsPdf } from '@/data/services/print-recipe';
 import { useTimerHudOffset, useTimers } from '@/features/cook/timers';
 import {
   Button,
@@ -104,6 +108,16 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
     } catch {
       // Share sheets can be dismissed or unavailable on some browsers.
     }
+  };
+
+  const printable = () => {
+    const cover = coverImage(recipe);
+    return recipeToHtml(recipe, {
+      scale,
+      units,
+      accentColor: colors.accent,
+      ...(cover && /^(https?:|data:)/.test(cover) ? { imageUrl: cover } : {}),
+    });
   };
 
   const remove = () => {
@@ -400,6 +414,21 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
           <ListRow icon="checkCircle" iconColor="#2F9E5B" title="Mark as cooked" onPress={() => { db.recipes.markCooked(recipe.id); haptic('success'); setSheet(null); }} />
           <ListRow icon="copy" iconColor="#8A9A5B" title="Duplicate" onPress={() => { const copy = db.recipes.duplicate(recipe.id); setSheet(null); if (copy) router.push(`/recipe/${copy.id}`); }} />
           <ListRow icon="share" iconColor="#7C6FD6" title="Share as text" onPress={() => { setSheet(null); void share(); }} />
+          <ListRow icon="print" iconColor="#5E8BD6" title="Print" onPress={() => { setSheet(null); void printHtml(printable()); }} />
+          <ListRow
+            icon="upload"
+            iconColor="#2F9E5B"
+            title="Share as Gather file"
+            subtitle="Anyone with Gather can import it"
+            onPress={() => {
+              setSheet(null);
+              const slug = recipe.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'recipe';
+              void shareTextFile(`${slug}.gather`, JSON.stringify(toGatherFile([recipeToDraft(recipe)]), null, 2));
+            }}
+          />
+          {Platform.OS !== 'web' ? (
+            <ListRow icon="download" iconColor="#D98B00" title="Share as PDF" onPress={() => { setSheet(null); void shareHtmlAsPdf(printable(), recipe.name); }} />
+          ) : null}
         </ListSection>
         <ListSection>
           <ListRow icon="trash" iconColor={colors.danger} title="Delete recipe" destructive onPress={() => { setSheet(null); remove(); }} />

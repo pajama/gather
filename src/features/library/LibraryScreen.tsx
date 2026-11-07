@@ -200,6 +200,16 @@ export function LibraryScreen() {
             }}
           />
           <ListRow
+            icon="download"
+            iconColor="#D98B00"
+            title="From a file"
+            subtitle="Paprika export, Gather file or saved page"
+            onPress={() => {
+              setAddOpen(false);
+              router.push({ pathname: '/import', params: { mode: 'file' } });
+            }}
+          />
+          <ListRow
             icon="edit"
             iconColor="#8A9A5B"
             title="Write it yourself"

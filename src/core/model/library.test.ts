@@ -39,3 +39,24 @@ describe('queryLibrary', () => {
     expect(queryLibrary(recipes, { sort: 'quickest' }).map((r) => r.name)).toEqual(['Tomato Soup', 'Banana Bread', 'apple pie']);
   });
 });
+
+describe('recipe drafts', () => {
+  it('round-trips through the portable draft form', async () => {
+    const { recipeFromDraft, recipeToDraft } = await import('./recipe');
+    const { parseRecipeText } = await import('../import/text');
+    const original = recipeFromDraft(parseRecipeText('Scones\nServes 8\nIngredients\n2 cups flour\nFor the glaze:\n1 cup sugar\nMethod\n1. Bake 12 minutes.'), {
+      nutrition: { calories: '200 kcal' },
+      rating: 5,
+    });
+    const copy = recipeFromDraft(recipeToDraft(original));
+    expect(copy.name).toBe('Scones');
+    expect(copy.servings).toBe(8);
+    expect(copy.rating).toBe(5);
+    expect(copy.nutrition).toEqual({ calories: '200 kcal' });
+    expect(copy.ingredients.map((s) => [s.title, s.items.map((i) => i.text)])).toEqual([
+      [undefined, ['2 cups flour']],
+      ['For the glaze', ['1 cup sugar']],
+    ]);
+    expect(copy.id).not.toBe(original.id);
+  });
+});

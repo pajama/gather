@@ -10,6 +10,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatClock } from '@/core/recipe/durations';
+import { cancelTimerAlert, scheduleTimerAlert, timerFinished } from '@/data/services/timer-alerts';
 import { haptic, Icon, IconButton, Tap, Text, useTheme } from '@/ui';
 
 export interface KitchenTimer {
@@ -66,7 +67,10 @@ export function TimersProvider({ children }: { children: ReactNode }) {
         (t) => t.state === 'running' && t.endsAt !== undefined && t.endsAt <= tick && !notified.current.has(t.id),
       );
       if (finishing.length) {
-        for (const t of finishing) notified.current.add(t.id);
+        for (const t of finishing) {
+          notified.current.add(t.id);
+          timerFinished(t.id);
+        }
         haptic('success');
       }
       setNow(tick);
@@ -93,6 +97,7 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       start: (label, seconds, recipeId) => {
         const id = `timer-${Date.now()}-${counter++}`;
         haptic('medium');
+        void scheduleTimerAlert(id, label, seconds);
         setNow(Date.now());
         setTimers((list) => [
           ...list,
@@ -100,21 +105,29 @@ export function TimersProvider({ children }: { children: ReactNode }) {
         ]);
         return id;
       },
-      pause: (id) =>
+      pause: (id) => {
+        void cancelTimerAlert(id);
         setTimers((list) =>
           list.map((t) =>
             t.id === id && t.state === 'running'
               ? { ...t, state: 'paused', pausedRemaining: Math.max(0, ((t.endsAt ?? Date.now()) - Date.now()) / 1000) }
               : t,
           ),
-        ),
-      resume: (id) =>
+        );
+      },
+      resume: (id) => {
+        const timer = stored.find((t) => t.id === id);
+        if (timer?.state === 'paused') void scheduleTimerAlert(id, timer.label, timer.pausedRemaining ?? 0);
         setTimers((list) =>
           list.map((t) =>
             t.id === id && t.state === 'paused' ? { ...t, state: 'running', endsAt: Date.now() + (t.pausedRemaining ?? 0) * 1000 } : t,
           ),
-        ),
-      cancel: (id) => setTimers((list) => list.filter((t) => t.id !== id)),
+        );
+      },
+      cancel: (id) => {
+        void cancelTimerAlert(id);
+        setTimers((list) => list.filter((t) => t.id !== id));
+      },
       addTime: (id, seconds) =>
         setTimers((list) =>
           list.map((t) => {
@@ -122,11 +135,12 @@ export function TimersProvider({ children }: { children: ReactNode }) {
             if (t.state === 'paused') return { ...t, pausedRemaining: (t.pausedRemaining ?? 0) + seconds, totalSeconds: t.totalSeconds + seconds };
             notified.current.delete(t.id);
             const base = Math.max(Date.now(), t.endsAt ?? 0);
+            void scheduleTimerAlert(t.id, t.label, (base + seconds * 1000 - Date.now()) / 1000);
             return { ...t, state: 'running', endsAt: base + seconds * 1000, totalSeconds: t.totalSeconds + seconds };
           }),
         ),
     }),
-    [timers, now, remaining, hudBottom],
+    [timers, stored, now, remaining, hudBottom],
   );
 
   return (

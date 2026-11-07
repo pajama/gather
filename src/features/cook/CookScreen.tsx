@@ -12,6 +12,7 @@ import { IngredientLine, StepText, useIngredientViews } from '@/features/recipe/
 import { Button, haptic, Icon, IconButton, Sheet, Text, useTheme } from '@/ui';
 
 import { useTimerHudOffset, useTimers } from './timers';
+import { speak, stopSpeaking, useVoiceCommands, voiceCommandsSupported, type VoiceCommand } from './voice';
 
 interface FlatStep {
   id: string;
@@ -37,6 +38,7 @@ function CookMode({ recipe }: { recipe: Recipe }) {
   const [finished, setFinished] = useState(false);
   const [showIngredients, setShowIngredients] = useState(false);
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [handsFree, setHandsFree] = useState(false);
   const views = useIngredientViews(recipe, 1, 'original');
   useTimerHudOffset(insets.bottom + 96);
   const targets = useMemo(() => [...views.values()].map((v) => ({ id: v.ingredient.id, name: v.parsedName })), [views]);
@@ -86,6 +88,37 @@ function CookMode({ recipe }: { recipe: Recipe }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [index, count, goTo, finish]);
 
+  const startStepTimer = useCallback(
+    (stepIndex: number) => {
+      const step = steps[stepIndex];
+      const first = step ? findDurations(step.text)[0] : undefined;
+      if (first) timers.start(`${recipe.name}: step ${stepIndex + 1}`, first.maxSeconds ?? first.seconds, recipe.id);
+    },
+    [steps, timers, recipe.name, recipe.id],
+  );
+
+  const onVoice = useCallback(
+    (command: VoiceCommand) => {
+      if (command === 'next') {
+        if (index >= count - 1) finish();
+        else goTo(index + 1);
+      } else if (command === 'back') goTo(index - 1);
+      else if (command === 'repeat' && steps[index]) speak(steps[index].text);
+      else if (command === 'timer') startStepTimer(index);
+      else if (command === 'ingredients') setShowIngredients(true);
+      else if (command === 'done') finish();
+    },
+    [index, count, finish, goTo, steps, startStepTimer],
+  );
+  const canListen = voiceCommandsSupported();
+  const voice = useVoiceCommands(handsFree && canListen, onVoice);
+
+  // Hands-free reads each step aloud as it appears.
+  useEffect(() => {
+    if (handsFree && steps[index]) speak(steps[index].text);
+  }, [handsFree, index, steps]);
+  useEffect(() => () => stopSpeaking(), []);
+
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const page = Math.round(e.nativeEvent.contentOffset.x / width);
     if (page !== index) setIndex(page);
@@ -119,8 +152,30 @@ function CookMode({ recipe }: { recipe: Recipe }) {
           </Text>
           <Text variant="headline">{count ? `Step ${index + 1} of ${count}` : 'No steps'}</Text>
         </View>
+        <IconButton
+          icon={handsFree ? 'volume' : 'hand'}
+          variant={handsFree ? 'filled' : 'fill'}
+          onPress={() => {
+            if (handsFree) stopSpeaking();
+            setHandsFree(!handsFree);
+          }}
+          accessibilityLabel={handsFree ? 'Turn off hands-free' : 'Turn on hands-free'}
+        />
         <IconButton icon="list" variant="fill" onPress={() => setShowIngredients(true)} accessibilityLabel="Show ingredients" />
       </View>
+      {handsFree ? (
+        <View style={[styles.handsFree, { marginHorizontal: space.lg, backgroundColor: colors.accentSoft, borderRadius: radius.md, padding: space.sm, gap: space.sm }]}>
+          <Icon name={canListen ? 'mic' : 'volume'} size={18} tone="accent" />
+          <Text variant="footnote" style={styles.flex}>
+            {voice.error ??
+              (canListen
+                ? voice.listening
+                  ? 'Listening. Say “next”, “back”, “repeat”, “timer” or “ingredients”.'
+                  : 'Starting the microphone…'
+                : 'Reading each step aloud. Voice commands need a browser with speech recognition.')}
+          </Text>
+        </View>
+      ) : null}
 
       <View style={[styles.progress, { marginHorizontal: space.lg, gap: 4 }]}>
         {steps.map((s, i) => (
@@ -239,6 +294,7 @@ const styles = StyleSheet.create({
   page: { flexGrow: 1, justifyContent: 'center', maxWidth: 820, alignSelf: 'center', width: '100%' },
   timerButtons: { flexDirection: 'row', flexWrap: 'wrap' },
   used: { alignSelf: 'stretch' },
+  handsFree: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   footer: { flexDirection: 'row', paddingTop: 8 },
   doneBadge: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
 });
