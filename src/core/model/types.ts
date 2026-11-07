@@ -143,8 +143,6 @@ export interface Settings {
   units: UnitPreference;
   /** Keep the screen awake while viewing a recipe or cooking. */
   keepAwake: boolean;
-  /** First day of the planner week: 0 = Sunday. */
-  weekStartsOn: 0 | 1 | 6;
   /** Meal slots shown in the planner. */
   plannerSlots: MealSlot[];
   /** Grocery aisles in shopping order. */

@@ -34,6 +34,11 @@ export function weekDays(key: DayKey, weekStartsOn: number): DayKey[] {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
+/** `count` consecutive days starting at `key`. */
+export function daysFrom(key: DayKey, count: number): DayKey[] {
+  return Array.from({ length: count }, (_, i) => addDays(key, i));
+}
+
 export function daysBetween(a: DayKey, b: DayKey): number {
   return Math.round((parseDayKey(b).getTime() - parseDayKey(a).getTime()) / 86400000);
 }
@@ -110,13 +115,13 @@ export function matchesSlot(candidate: PlanCandidate, slot: MealSlot): boolean {
  * Picks one recipe per free day. Prefers recipes labelled for the slot, then
  * favorites, and avoids repeats within the window and within the plan.
  */
-export function generatePlan(options: GenerateOptions): Array<{ day: DayKey; recipeId: ID }> {
+export function generatePlan(options: GenerateOptions): { day: DayKey; recipeId: ID }[] {
   const random = options.random ?? Math.random;
   const window = options.avoidRepeatsWithin ?? 14;
   const labelled = options.candidates.filter((c) => matchesSlot(c, options.slot));
   const pool = labelled.length >= 3 ? labelled : options.candidates;
   const used = new Set<ID>();
-  const result: Array<{ day: DayKey; recipeId: ID }> = [];
+  const result: { day: DayKey; recipeId: ID }[] = [];
   for (const day of options.days) {
     if (options.occupiedDays?.has(day)) continue;
     const fresh = pool.filter(

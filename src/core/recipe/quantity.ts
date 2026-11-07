@@ -172,7 +172,7 @@ export function addQuantities(a: Quantity, b: Quantity): Quantity {
   return max === undefined ? { value: a.value + b.value } : { value: a.value + b.value, max };
 }
 
-const NICE_FRACTIONS: ReadonlyArray<readonly [number, string]> = [
+const NICE_FRACTIONS: readonly (readonly [number, string])[] = [
   [1 / 8, '⅛'],
   [1 / 4, '¼'],
   [1 / 3, '⅓'],

@@ -42,6 +42,8 @@ describe('durations', () => {
   it('formats', () => {
     expect(formatDuration(5400)).toBe('1 hr 30 min');
     expect(formatDuration(2700, 'long')).toBe('45 minutes');
+    expect(formatDuration(4500, 'compact')).toBe('1h 15m');
+    expect(formatDuration(2700, 'compact')).toBe('45m');
     expect(formatClock(245)).toBe('4:05');
     expect(formatClock(3750)).toBe('1:02:30');
   });
@@ -60,6 +62,8 @@ describe('ingredient mentions', () => {
   it('builds phrases from names', () => {
     expect(mentionPhrases('extra virgin olive oil')).toEqual(expect.arrayContaining(['virgin olive oil', 'olive oil', 'oil']));
     expect(mentionPhrases('large eggs')).toEqual(expect.arrayContaining(['eggs', 'egg']));
+    expect(mentionPhrases('fresh thyme leaves')).toEqual(expect.arrayContaining(['thyme leaves', 'thyme']));
+    expect(mentionPhrases('fresh thyme leaves')).not.toContain('leaves');
   });
 
   it('finds mentions, preferring longer phrases and skipping ambiguous ones', () => {

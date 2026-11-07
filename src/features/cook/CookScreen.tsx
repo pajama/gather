@@ -6,11 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Recipe } from '@/core/model/types';
 import { findDurations, formatDuration } from '@/core/recipe/durations';
+import { findIngredientMentions } from '@/core/recipe/mentions';
 import { useDb, useRecipe } from '@/data/react';
 import { IngredientLine, StepText, useIngredientViews } from '@/features/recipe/RecipeText';
 import { Button, haptic, Icon, IconButton, Sheet, Text, useTheme } from '@/ui';
 
-import { useTimers } from './timers';
+import { useTimerHudOffset, useTimers } from './timers';
 
 interface FlatStep {
   id: string;
@@ -37,6 +38,8 @@ function CookMode({ recipe }: { recipe: Recipe }) {
   const [showIngredients, setShowIngredients] = useState(false);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const views = useIngredientViews(recipe, 1, 'original');
+  useTimerHudOffset(insets.bottom + 96);
+  const targets = useMemo(() => [...views.values()].map((v) => ({ id: v.ingredient.id, name: v.parsedName })), [views]);
 
   const steps: FlatStep[] = useMemo(
     () => recipe.steps.flatMap((s) => s.items.map((item) => ({ id: item.id, text: item.text, ...(s.title ? { section: s.title } : {}) }))),
@@ -105,7 +108,6 @@ function CookMode({ recipe }: { recipe: Recipe }) {
     );
   }
 
-  const progress = count ? (index + 1) / count : 0;
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -137,6 +139,9 @@ function CookMode({ recipe }: { recipe: Recipe }) {
       >
         {steps.map((step) => {
           const durations = findDurations(step.text);
+          const used = [...new Set(findIngredientMentions(step.text, targets).map((m) => m.ingredientId))]
+            .map((ingredientId) => views.get(ingredientId))
+            .filter((v): v is NonNullable<typeof v> => !!v);
           return (
             <ScrollView key={step.id} style={{ width }} contentContainerStyle={[styles.page, { padding: space.xxl, gap: space.xl }]}>
               {step.section ? (
@@ -149,6 +154,7 @@ function CookMode({ recipe }: { recipe: Recipe }) {
                 recipe={recipe}
                 views={views}
                 variant={width >= 700 ? 'title1' : 'title2'}
+                showAmounts={false}
                 onStartTimer={(seconds, label) => timers.start(label, seconds, recipe.id)}
               />
               {durations.length ? (
@@ -165,6 +171,16 @@ function CookMode({ recipe }: { recipe: Recipe }) {
                       />
                     );
                   })}
+                </View>
+              ) : null}
+              {used.length ? (
+                <View style={[styles.used, { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, gap: space.xs }]}>
+                  <Text variant="overline" tone="secondary" style={{ marginBottom: space.xs }}>
+                    In this step
+                  </Text>
+                  {used.map((view) => (
+                    <IngredientLine key={view.ingredient.id} view={view} />
+                  ))}
                 </View>
               ) : null}
             </ScrollView>
@@ -222,6 +238,7 @@ const styles = StyleSheet.create({
   progressSegment: { flex: 1, height: 4 },
   page: { flexGrow: 1, justifyContent: 'center', maxWidth: 820, alignSelf: 'center', width: '100%' },
   timerButtons: { flexDirection: 'row', flexWrap: 'wrap' },
+  used: { alignSelf: 'stretch' },
   footer: { flexDirection: 'row', paddingTop: 8 },
   doneBadge: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
 });

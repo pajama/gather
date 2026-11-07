@@ -132,18 +132,6 @@ export function SettingsScreen() {
       <ListSection title="Planner">
         <View style={{ padding: space.md, gap: space.sm }}>
           <Text variant="subhead" tone="secondary">
-            Week starts on
-          </Text>
-          <SegmentedControl
-            options={[
-              { value: '0', label: 'Sunday' },
-              { value: '1', label: 'Monday' },
-              { value: '6', label: 'Saturday' },
-            ]}
-            value={String(settings.weekStartsOn) as '0' | '1' | '6'}
-            onChange={(v) => db.updateSettings({ weekStartsOn: Number(v) as 0 | 1 | 6 })}
-          />
-          <Text variant="subhead" tone="secondary" style={{ marginTop: space.sm }}>
             Meals to plan
           </Text>
           <View style={[styles.chips, { gap: space.sm }]}>

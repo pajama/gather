@@ -3,7 +3,7 @@ import type { ID, Recipe } from './types';
 
 export type LibrarySort = 'recent' | 'name' | 'cooked' | 'quickest';
 
-export const LIBRARY_SORTS: ReadonlyArray<{ value: LibrarySort; label: string }> = [
+export const LIBRARY_SORTS: readonly { value: LibrarySort; label: string }[] = [
   { value: 'recent', label: 'Recently added' },
   { value: 'name', label: 'Name' },
   { value: 'cooked', label: 'Recently cooked' },

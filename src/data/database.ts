@@ -20,7 +20,6 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   units: 'original',
   keepAwake: true,
-  weekStartsOn: 0,
   plannerSlots: ['breakfast', 'lunch', 'dinner'],
   aisleOrder: [...DEFAULT_AISLE_ORDER],
 };

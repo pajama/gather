@@ -39,6 +39,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
     "playwright-core": "^1.65.0",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
@@ -51,9 +53,11 @@
     "android": "expo start --android",
     "build:web": "expo export --platform web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint",
+    "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "screenshots": "node scripts/screenshots.mjs dist screenshots",
+    "check": "npm run typecheck && npm run lint && npm test"
   },
   "private": true
 }

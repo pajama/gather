@@ -99,6 +99,7 @@ async function scrollMain(page, y) {
   await page.getByRole('button', { name: 'Next' }).first().click().catch(() => {});
   await page.getByRole('button', { name: 'Next' }).first().click().catch(() => {});
   await page.getByRole('button', { name: 'Next' }).first().click().catch(() => {});
+  await page.waitForTimeout(900);
   await shot(page, '05-cook-mode');
   await page.getByText(/Start 1 hr 15 min timer/).first().click().catch(() => {});
   await shot(page, '06-cook-timer');
@@ -117,8 +118,10 @@ async function scrollMain(page, y) {
   await page.getByText('Plan').first().waitFor();
   await shot(page, '08-plan');
   await page.goto(base + '/settings');
+  await page.getByText('Accent color').first().waitFor({ timeout: 15000 });
   await shot(page, '09-settings');
   await page.goto(base + '/import?mode=text');
+  await page.getByText('Import Recipe').first().waitFor({ timeout: 15000 });
   await shot(page, '10-import');
   await context.close();
 }

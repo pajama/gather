@@ -11,7 +11,7 @@ import { emptyDraft, type DraftSection, type RecipeDraft } from './draft';
 
 type Zone = 'intro' | 'ingredients' | 'steps' | 'notes';
 
-const MARKERS: Array<[Zone, RegExp]> = [
+const MARKERS: [Zone, RegExp][] = [
   ['ingredients', /^(?:ingredients?|what you(?:'|’)ll need|you(?:'|’)ll need|you will need|shopping list)\s*:?$/i],
   ['steps', /^(?:directions?|instructions?|method|steps|preparation|how to make(?: it)?|to make)\s*:?$/i],
   ['notes', /^(?:notes?|tips?|cook(?:'|’)s notes?|variations?)\s*:?$/i],

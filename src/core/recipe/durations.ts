@@ -150,9 +150,15 @@ export function parseDurationText(text: string | undefined | null): number | nul
   return found.reduce((sum, d) => sum + d.seconds, 0);
 }
 
-/** "1 hr 30 min", "45 min", "2 days". */
-export function formatDuration(seconds: number, style: 'short' | 'long' = 'short'): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return style === 'short' ? '0 min' : '0 minutes';
+/** "1 hr 30 min" (short), "1 hour 30 minutes" (long), "1h 30m" (compact). */
+export function formatDuration(seconds: number, style: 'short' | 'long' | 'compact' = 'short'): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return style === 'long' ? '0 minutes' : style === 'compact' ? '0m' : '0 min';
+  if (style === 'compact') {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.round((seconds % 3600) / 60);
+    return [d ? `${d}d` : '', h ? `${h}h` : '', m && !d ? `${m}m` : ''].filter(Boolean).join(' ') || `${Math.round(seconds)}s`;
+  }
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);

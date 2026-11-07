@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { useTheme } from '../theme/theme';
@@ -80,7 +80,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   style,
 }: {
-  options: ReadonlyArray<{ value: T; label: string; icon?: IconName }>;
+  options: readonly { value: T; label: string; icon?: IconName }[];
   value: T;
   onChange: (value: T) => void;
   style?: StyleProp<ViewStyle>;
@@ -165,7 +165,7 @@ export function Stepper({
 
 export function Checkbox({ checked, size = 24 }: { checked: boolean; size?: number }) {
   const { colors } = useTheme();
-  const scale = useRef(new Animated.Value(checked ? 1 : 0)).current;
+  const [scale] = useState(() => new Animated.Value(checked ? 1 : 0));
   useEffect(() => {
     Animated.spring(scale, { toValue: checked ? 1 : 0, useNativeDriver: true, speed: 30, bounciness: 10 }).start();
   }, [checked, scale]);

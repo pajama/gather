@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 import { setImageResolver } from '@/ui/images';
 
 const SEED_IMAGES: Record<string, number> = {

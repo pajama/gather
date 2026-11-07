@@ -2,8 +2,8 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
-import { Alert, Platform, ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Animated, Platform, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { coverImage, recipeToText, totalSeconds } from '@/core/model/recipe';
@@ -11,7 +11,7 @@ import type { Recipe, UnitPreference } from '@/core/model/types';
 import { formatDuration } from '@/core/recipe/durations';
 import { formatNumber } from '@/core/recipe/quantity';
 import { useDb, useFolders, useRecipe, useSettings } from '@/data/react';
-import { useTimers } from '@/features/cook/timers';
+import { useTimerHudOffset, useTimers } from '@/features/cook/timers';
 import {
   Button,
   Card,
@@ -61,6 +61,9 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
   const timers = useTimers();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
+  useTimerHudOffset(insets.bottom + 16);
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const [solid, setSolid] = useState(false);
   const { width, height } = useWindowDimensions();
   const wide = width >= 900;
   const baseServings = recipe.servings ?? 0;
@@ -70,7 +73,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
   const scale = baseServings ? servings / baseServings : 1;
   const views = useIngredientViews(recipe, scale, units);
   const total = totalSeconds(recipe);
-  const heroHeight = Math.min(Math.max(height * 0.42, 260), 460);
+  const heroHeight = wide ? 420 : Math.min(Math.max(height * 0.42, 260), 460);
   const columnWidth = Math.min(width, wide ? 1180 : CONTENT_MAX_WIDTH);
   const gutter = width >= 720 ? 24 : 16;
 
@@ -83,11 +86,12 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
   }, [settings.keepAwake]);
 
   const startTimer = (seconds: number, label: string) => timers.start(label, seconds, recipe.id);
-  const stats: Array<{ icon: IconName; label: string; value: string }> = [];
-  if (recipe.prepSeconds) stats.push({ icon: 'time', label: 'Prep', value: formatDuration(recipe.prepSeconds) });
-  if (recipe.cookSeconds) stats.push({ icon: 'flame', label: 'Cook', value: formatDuration(recipe.cookSeconds) });
-  if (total && (recipe.prepSeconds || recipe.cookSeconds)) stats.push({ icon: 'timer', label: 'Total', value: formatDuration(total) });
-  else if (total) stats.push({ icon: 'timer', label: 'Time', value: formatDuration(total) });
+  const stats: { icon: IconName; label: string; value: string }[] = [];
+  const tileTime = (seconds: number) => formatDuration(seconds, seconds >= 3600 ? 'compact' : 'short');
+  if (recipe.prepSeconds) stats.push({ icon: 'time', label: 'Prep', value: tileTime(recipe.prepSeconds) });
+  if (recipe.cookSeconds) stats.push({ icon: 'flame', label: 'Cook', value: tileTime(recipe.cookSeconds) });
+  if (total && (recipe.prepSeconds || recipe.cookSeconds)) stats.push({ icon: 'timer', label: 'Total', value: tileTime(total) });
+  else if (total) stats.push({ icon: 'timer', label: 'Time', value: tileTime(total) });
   if (recipe.servings) stats.push({ icon: 'people', label: 'Serves', value: formatNumber(recipe.servings) });
 
   const share = async () => {
@@ -154,7 +158,12 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
     </Card>
   );
 
-  let stepNumber = 0;
+  const stepNumbers = useMemo(() => {
+    const numbers = new Map<string, number>();
+    let n = 0;
+    for (const section of recipe.steps) for (const step of section.items) numbers.set(step.id, ++n);
+    return numbers;
+  }, [recipe.steps]);
   const methodCard = (
     <Card style={{ gap: space.md }}>
       <View style={styles.cardHeader}>
@@ -174,7 +183,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
             </Text>
           ) : null}
           {section.items.map((step) => {
-            stepNumber += 1;
+            const stepNumber = stepNumbers.get(step.id);
             return (
               <View key={step.id} style={[styles.step, { gap: space.md }]}>
                 <View style={[styles.stepNumber, { backgroundColor: colors.accentSoft }]}>
@@ -197,13 +206,29 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 48 }}>
-        <View style={{ height: heroHeight }}>
-          <Photo uri={coverImage(recipe)} style={StyleSheet.absoluteFill} fallbackIcon="restaurant" />
-          <LinearGradient colors={['rgba(0,0,0,0.35)', 'transparent', 'transparent', colors.background]} locations={[0, 0.3, 0.7, 1]} style={StyleSheet.absoluteFill} />
-        </View>
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + 48 }}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: Platform.OS !== 'web',
+          listener: (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+            const next = e.nativeEvent.contentOffset.y > heroHeight - 110;
+            if (next !== solid) setSolid(next);
+          },
+        })}
+      >
+        {wide ? (
+          <View style={{ width: columnWidth, alignSelf: 'center', paddingHorizontal: gutter, paddingTop: insets.top + 64 }}>
+            <Photo uri={coverImage(recipe)} style={{ height: heroHeight, borderRadius: radius.xl }} fallbackIcon="restaurant" />
+          </View>
+        ) : (
+          <View style={{ height: heroHeight }}>
+            <Photo uri={coverImage(recipe)} style={StyleSheet.absoluteFill} fallbackIcon="restaurant" />
+            <LinearGradient colors={['rgba(0,0,0,0.35)', 'transparent', 'transparent', colors.background]} locations={[0, 0.3, 0.7, 1]} style={StyleSheet.absoluteFill} />
+          </View>
+        )}
 
-        <View style={{ width: columnWidth, alignSelf: 'center', paddingHorizontal: gutter, marginTop: -40, gap: space.lg }}>
+        <View style={{ width: columnWidth, alignSelf: 'center', paddingHorizontal: gutter, marginTop: wide ? space.xl : -40, gap: space.lg }}>
           <View style={{ gap: space.sm }}>
             <Text variant="largeTitle" accessibilityRole="header">
               {recipe.name}
@@ -300,23 +325,51 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
             </Text>
           ) : null}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.headerBar,
+          {
+            height: insets.top + 56,
+            paddingTop: insets.top,
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.separator,
+            opacity: scrollY.interpolate({ inputRange: [heroHeight - 140, heroHeight - 80], outputRange: [0, 1], extrapolate: 'clamp' }),
+          },
+        ]}
+      >
+        <Text variant="headline" numberOfLines={1} style={[styles.headerTitle, { marginHorizontal: gutter + 52 }]}>
+          {recipe.name}
+        </Text>
+      </Animated.View>
 
       <View style={[styles.topBar, { top: insets.top + 6, paddingHorizontal: gutter }]} pointerEvents="box-none">
-        <IconButton icon="back" variant="glass" size={38} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} accessibilityLabel="Back" />
+        <IconButton
+          icon="back"
+          variant={solid ? 'plain' : 'glass'}
+          size={38}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          accessibilityLabel="Back"
+        />
         <View style={[styles.topActions, { gap: space.sm }]}>
-          <IconButton
-            icon={recipe.favorite ? 'heart' : 'heartOutline'}
-            variant="glass"
-            size={38}
-            onPress={() => {
-              haptic();
-              db.recipes.toggleFavorite(recipe.id);
-            }}
-            accessibilityLabel={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
-          />
-          <IconButton icon="share" variant="glass" size={38} onPress={share} accessibilityLabel="Share" />
-          <IconButton icon="more" variant="glass" size={38} onPress={() => setSheet('more')} accessibilityLabel="More actions" />
+          {solid ? null : (
+            <>
+              <IconButton
+                icon={recipe.favorite ? 'heart' : 'heartOutline'}
+                variant="glass"
+                size={38}
+                onPress={() => {
+                  haptic();
+                  db.recipes.toggleFavorite(recipe.id);
+                }}
+                accessibilityLabel={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
+              />
+              <IconButton icon="share" variant="glass" size={38} onPress={share} accessibilityLabel="Share" />
+            </>
+          )}
+          <IconButton icon="more" variant={solid ? 'plain' : 'glass'} size={38} onPress={() => setSheet('more')} accessibilityLabel="More actions" />
         </View>
       </View>
 
@@ -380,5 +433,7 @@ const styles = StyleSheet.create({
   nutrient: { minWidth: 96 },
   tags: { flexDirection: 'row', flexWrap: 'wrap' },
   topBar: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerBar: { position: 'absolute', top: 0, left: 0, right: 0, justifyContent: 'center', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth },
+  headerTitle: { alignSelf: 'stretch', textAlign: 'center' },
   topActions: { flexDirection: 'row' },
 });

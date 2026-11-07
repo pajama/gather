@@ -83,7 +83,7 @@ const KEYWORDS: Record<string, string[]> = {
   ],
 };
 
-const ENTRIES: Array<[string, string]> = Object.entries(KEYWORDS)
+const ENTRIES: [string, string][] = Object.entries(KEYWORDS)
   .flatMap(([aisle, words]) => words.map((w): [string, string] => [w, aisle]))
   .sort((a, b) => b[0].length - a[0].length);
 

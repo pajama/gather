@@ -47,6 +47,16 @@ function variants(phrase: string[]): string[] {
   return [...forms].map((f) => (head ? `${head} ${f}` : f));
 }
 
+/**
+ * Words that name a part or form of an ingredient rather than the
+ * ingredient itself: "thyme leaves" is mentioned as "thyme".
+ */
+const PART_WORDS = new Set(
+  'leaves leaf sprigs sprig cloves clove stalks stalk stems stem fillets fillet pieces piece slices slice florets floret wedges wedge strips strip cubes cube halves'.split(
+    ' ',
+  ),
+);
+
 /** Candidate phrases for an ingredient, longest first. */
 export function mentionPhrases(name: string): string[] {
   const cleaned = name.replace(/\([^)]*\)/g, ' ');
@@ -55,6 +65,12 @@ export function mentionPhrases(name: string): string[] {
   const phrases = new Set<string>();
   // Suffixes of the cleaned name: "extra virgin olive oil" -> "virgin olive oil", "olive oil", "oil".
   for (let i = 0; i < all.length; i++) for (const v of variants(all.slice(i))) phrases.add(v);
+  // "fresh thyme leaves" -> "thyme"; "salmon fillets" -> "salmon".
+  if (all.length > 1 && PART_WORDS.has(all[all.length - 1]!)) {
+    const head = all.slice(0, -1);
+    for (let i = 0; i < head.length; i++) for (const v of variants(head.slice(i))) phrases.add(v);
+    for (const part of [all[all.length - 1]!, singular(all[all.length - 1]!)]) phrases.delete(part);
+  }
   // Also the first noun phrase before "or"/"and" alternatives: "butter or margarine" -> "butter".
   const alt = name.toLowerCase().split(/\s+(?:or|and)\s+/)[0];
   if (alt && alt !== name.toLowerCase()) for (const p of mentionPhrases(alt)) phrases.add(p);
@@ -105,10 +121,8 @@ export type TextSegment =
 /** Splits text into plain, ingredient and duration segments for rich rendering. */
 export function segmentText(
   text: string,
-  marks: ReadonlyArray<
-    | { start: number; end: number; ingredientId: string }
-    | { start: number; end: number; seconds: number; maxSeconds?: number }
-  >,
+  marks: readonly (| { start: number; end: number; ingredientId: string }
+    | { start: number; end: number; seconds: number; maxSeconds?: number })[],
 ): TextSegment[] {
   const sorted = [...marks].sort((a, b) => a.start - b.start);
   const segments: TextSegment[] = [];

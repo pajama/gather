@@ -1,5 +1,5 @@
 import { Image, type ImageProps } from 'expo-image';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
   KeyboardAvoidingView,
@@ -35,8 +35,8 @@ export function Photo({
   fallbackIcon?: IconName;
 }) {
   const { colors } = useTheme();
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [uri]);
+  const [failedUri, setFailedUri] = useState<string | undefined>(undefined);
+  const failed = !!uri && failedUri === uri;
   const source = resolveImage(uri);
   return (
     <View style={[{ backgroundColor: colors.imagePlaceholder, overflow: 'hidden' }, style]}>
@@ -46,7 +46,7 @@ export function Photo({
           style={StyleSheet.absoluteFill}
           contentFit={contentFit}
           transition={transition}
-          onError={() => setFailed(true)}
+          onError={() => setFailedUri(uri)}
           {...rest}
         />
       ) : (
@@ -83,11 +83,16 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const wide = width >= 720;
-  const progress = useRef(new Animated.Value(0)).current;
+  const [progress] = useState(() => new Animated.Value(0));
   const [mounted, setMounted] = useState(visible);
+  const [prevVisible, setPrevVisible] = useState(visible);
+  // Mount as soon as the sheet opens; unmount only after the close animation.
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
+    if (visible) setMounted(true);
+  }
 
   useEffect(() => {
-    if (visible) setMounted(true);
     Animated.timing(progress, { toValue: visible ? 1 : 0, duration: visible ? 260 : 200, useNativeDriver: true }).start(
       ({ finished }) => {
         if (finished && !visible) setMounted(false);

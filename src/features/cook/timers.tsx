@@ -4,8 +4,9 @@
  * screen (Crouton's "timers HUD").
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatClock } from '@/core/recipe/durations';
@@ -32,6 +33,9 @@ interface TimersApi {
   cancel: (id: string) => void;
   addTime: (id: string, seconds: number) => void;
   remaining: (timer: KitchenTimer) => number;
+  /** Distance of the heads-up display from the bottom edge, set by the focused screen. */
+  hudBottom: number | undefined;
+  setHudBottom: (bottom: number | undefined) => void;
 }
 
 const TimersContext = createContext<TimersApi | null>(null);
@@ -39,23 +43,36 @@ const TimersContext = createContext<TimersApi | null>(null);
 let counter = 0;
 
 export function TimersProvider({ children }: { children: ReactNode }) {
-  const [timers, setTimers] = useState<KitchenTimer[]>([]);
+  const [stored, setTimers] = useState<KitchenTimer[]>([]);
   const [now, setNow] = useState(() => Date.now());
+  const [hudBottom, setHudBottom] = useState<number | undefined>(undefined);
+  // A running timer whose end has passed is done; derive it rather than store it.
+  const timers = useMemo(
+    () => stored.map((t) => (t.state === 'running' && t.endsAt !== undefined && t.endsAt <= now ? { ...t, state: 'done' as const } : t)),
+    [stored, now],
+  );
   const anyRunning = timers.some((t) => t.state === 'running');
+  const latest = useRef(stored);
+  const notified = useRef(new Set<string>());
+  useEffect(() => {
+    latest.current = stored;
+  }, [stored]);
 
   useEffect(() => {
     if (!anyRunning) return;
-    const handle = setInterval(() => setNow(Date.now()), 250);
+    const handle = setInterval(() => {
+      const tick = Date.now();
+      const finishing = latest.current.filter(
+        (t) => t.state === 'running' && t.endsAt !== undefined && t.endsAt <= tick && !notified.current.has(t.id),
+      );
+      if (finishing.length) {
+        for (const t of finishing) notified.current.add(t.id);
+        haptic('success');
+      }
+      setNow(tick);
+    }, 250);
     return () => clearInterval(handle);
   }, [anyRunning]);
-
-  // Mark finished timers as done (once) and buzz.
-  useEffect(() => {
-    const finished = timers.filter((t) => t.state === 'running' && t.endsAt !== undefined && t.endsAt <= now);
-    if (finished.length === 0) return;
-    haptic('success');
-    setTimers((list) => list.map((t) => (finished.some((f) => f.id === t.id) ? { ...t, state: 'done' } : t)));
-  }, [now, timers]);
 
   const remaining = useCallback(
     (t: KitchenTimer) => {
@@ -71,6 +88,8 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       timers,
       now,
       remaining,
+      hudBottom,
+      setHudBottom,
       start: (label, seconds, recipeId) => {
         const id = `timer-${Date.now()}-${counter++}`;
         haptic('medium');
@@ -101,12 +120,13 @@ export function TimersProvider({ children }: { children: ReactNode }) {
           list.map((t) => {
             if (t.id !== id) return t;
             if (t.state === 'paused') return { ...t, pausedRemaining: (t.pausedRemaining ?? 0) + seconds, totalSeconds: t.totalSeconds + seconds };
-            const base = t.state === 'done' ? Date.now() : (t.endsAt ?? Date.now());
+            notified.current.delete(t.id);
+            const base = Math.max(Date.now(), t.endsAt ?? 0);
             return { ...t, state: 'running', endsAt: base + seconds * 1000, totalSeconds: t.totalSeconds + seconds };
           }),
         ),
     }),
-    [timers, now, remaining],
+    [timers, now, remaining, hudBottom],
   );
 
   return (
@@ -119,6 +139,21 @@ export function TimersProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Places the timers HUD for the focused screen: screens without a tab bar
+ * (recipe, cook mode) move it closer to the bottom edge or above their own
+ * footer. Screens that do not call this get the tab-bar default.
+ */
+export function useTimerHudOffset(bottom: number): void {
+  const { setHudBottom } = useTimers();
+  useFocusEffect(
+    useCallback(() => {
+      setHudBottom(bottom);
+      return () => setHudBottom(undefined);
+    }, [bottom, setHudBottom]),
+  );
+}
+
 export function useTimers(): TimersApi {
   const api = useContext(TimersContext);
   if (!api) throw new Error('useTimers must be used inside <TimersProvider>');
@@ -127,7 +162,7 @@ export function useTimers(): TimersApi {
 
 /** Floating heads-up display listing active timers. */
 function TimerHud() {
-  const { timers, remaining, pause, resume, cancel, addTime } = useTimers();
+  const { timers, remaining, pause, resume, cancel, addTime, hudBottom } = useTimers();
   const { colors, radius, space } = useTheme();
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
@@ -137,7 +172,7 @@ function TimerHud() {
   const doneCount = timers.filter((t) => t.state === 'done').length;
 
   return (
-    <View pointerEvents="box-none" style={[styles.hudWrap, { top: insets.top + (Platform.OS === 'web' ? 8 : 4) }]}>
+    <View pointerEvents="box-none" style={[styles.hudWrap, { bottom: hudBottom ?? insets.bottom + 72 }]}>
       <View
         style={[
           styles.hud,

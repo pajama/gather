@@ -70,7 +70,7 @@ function splitTopLevelComma(text: string): [string, string | undefined] {
   return [text.trim(), undefined];
 }
 
-function joinNotes(...notes: Array<string | undefined>): string | undefined {
+function joinNotes(...notes: (string | undefined)[]): string | undefined {
   const parts = notes.map((n) => n?.trim()).filter((n): n is string => !!n);
   return parts.length ? parts.join(', ') : undefined;
 }

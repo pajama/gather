@@ -66,7 +66,7 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
         .filter(Boolean),
       folderIds,
     };
-    const optional: Array<[keyof Recipe, unknown]> = [
+    const optional: [keyof Recipe, unknown][] = [
       ['description', description.trim() || undefined],
       ['sourceName', sourceName.trim() || undefined],
       ['sourceUrl', sourceUrl.trim() || undefined],

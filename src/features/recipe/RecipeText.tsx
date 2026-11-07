@@ -125,7 +125,7 @@ export function StepText({
               onPress={onStartTimer ? () => onStartTimer(segment.maxSeconds ?? segment.seconds, `${recipe.name}: ${formatDuration(segment.maxSeconds ?? segment.seconds)}`) : undefined}
               style={styles.durationLink}
             >
-              ⏱ {segment.text}
+              {segment.text}
             </Text>
           );
         }

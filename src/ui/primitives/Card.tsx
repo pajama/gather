@@ -131,7 +131,13 @@ export function ListRow({
       {accessory === 'chevron' ? <Icon name="chevron" size={18} tone="tertiary" /> : null}
       {accessory === 'check' ? <Icon name="check" size={20} tone="accent" /> : null}
       {accessory === 'switch' ? (
-        <Switch value={!!switchValue} onValueChange={onSwitch} trackColor={{ true: colors.accent, false: colors.fillStrong }} />
+        <Switch
+          value={!!switchValue}
+          onValueChange={onSwitch}
+          trackColor={{ true: colors.accent, false: colors.fillStrong }}
+          thumbColor="#FFFFFF"
+          {...({ activeThumbColor: '#FFFFFF' } as object)}
+        />
       ) : null}
     </View>
   );

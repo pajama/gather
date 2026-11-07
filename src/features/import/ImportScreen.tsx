@@ -14,6 +14,22 @@ import { Button, Card, CONTENT_MAX_WIDTH, Field, Icon, Photo, SegmentedControl, 
 
 type Mode = 'url' | 'text';
 
+type ImportResult = { draft: RecipeDraft } | { error: string };
+
+/** Downloads a page and extracts its best recipe. Never throws. */
+async function importFromUrl(target: string): Promise<ImportResult> {
+  try {
+    const page = await fetchRecipePage(target);
+    const [best] = extractRecipesFromHtml(page.html, page.url);
+    if (!best || draftLineCount(best.ingredients) + draftLineCount(best.steps) === 0) {
+      return { error: 'No recipe found on that page. Try copying the recipe text and pasting it instead.' };
+    }
+    return { draft: best };
+  } catch (e) {
+    return { error: e instanceof PageFetchError ? e.message : 'Something went wrong reading that page.' };
+  }
+}
+
 export function ImportScreen() {
   const params = useLocalSearchParams<{ url?: string; mode?: Mode }>();
   const db = useDb();
@@ -22,33 +38,38 @@ export function ImportScreen() {
   const [mode, setMode] = useState<Mode>(params.mode === 'text' ? 'text' : 'url');
   const [url, setUrl] = useState(params.url ?? '');
   const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(params.url));
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<RecipeDraft | null>(null);
 
-  const fetchUrl = async (target = url) => {
+  const apply = (result: ImportResult) => {
+    setLoading(false);
+    if ('draft' in result) setDraft(result.draft);
+    else setError(result.error);
+  };
+
+  const fetchUrl = (target = url) => {
     if (!target.trim()) return;
     setLoading(true);
     setError(null);
     setDraft(null);
-    try {
-      const page = await fetchRecipePage(target);
-      const [best] = extractRecipesFromHtml(page.html, page.url);
-      if (!best || draftLineCount(best.ingredients) + draftLineCount(best.steps) === 0) {
-        setError('No recipe found on that page. Try copying the recipe text and pasting it instead.');
-      } else setDraft(best);
-    } catch (e) {
-      setError(e instanceof PageFetchError ? e.message : 'Something went wrong reading that page.');
-    } finally {
-      setLoading(false);
-    }
+    void importFromUrl(target).then(apply);
   };
 
+  // Opened from the clipboard banner with a link: start right away.
   useEffect(() => {
-    if (params.url) void fetchUrl(params.url);
-    // Only on first open with a URL from the clipboard banner.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!params.url) return;
+    let cancelled = false;
+    void importFromUrl(params.url).then((result) => {
+      if (cancelled) return;
+      setLoading(false);
+      if ('draft' in result) setDraft(result.draft);
+      else setError(result.error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [params.url]);
 
   const save = (edit: boolean) => {
     if (!draft) return;
