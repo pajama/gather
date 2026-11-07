@@ -31,7 +31,10 @@
       "expo-image",
       "expo-font",
       "expo-splash-screen",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-sharing",
+      "expo-web-browser",
+      "expo-localization"
     ],
     "scheme": "gather",
     "experiments": {
