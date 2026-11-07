@@ -68,9 +68,12 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
   const wide = width >= 900;
   const baseServings = recipe.servings ?? 0;
   const [servings, setServings] = useState(baseServings || 1);
+  // Recipes without a serving count scale by a multiplier instead (½×, 1×, 1½×, 2×…).
+  const [multiplier, setMultiplier] = useState(1);
+  const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const [units, setUnits] = useState<UnitPreference>(settings.units);
   const [sheet, setSheet] = useState<'plan' | 'groceries' | 'more' | 'folders' | null>(null);
-  const scale = baseServings ? servings / baseServings : 1;
+  const scale = baseServings ? servings / baseServings : multiplier;
   const views = useIngredientViews(recipe, scale, units);
   const total = totalSeconds(recipe);
   const heroHeight = wide ? 420 : Math.min(Math.max(height * 0.42, 260), 460);
@@ -124,7 +127,9 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
         <Text variant="title2">Ingredients</Text>
         {baseServings ? (
           <Stepper value={servings} onChange={setServings} min={1} max={99} format={(v) => `${v} ${v === 1 ? 'serving' : 'servings'}`} />
-        ) : null}
+        ) : (
+          <Stepper value={multiplier} onChange={setMultiplier} min={0.5} max={8} step={0.5} format={(v) => `${formatNumber(v)}×`} />
+        )}
       </View>
       <SegmentedControl
         options={[
@@ -150,7 +155,19 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
           ) : null}
           {section.items.map((item) => {
             const view = views.get(item.id);
-            return view ? <IngredientLine key={item.id} view={view} /> : null;
+            return view ? (
+              <IngredientLine
+                key={item.id}
+                view={view}
+                checked={checked.has(item.id)}
+                onToggle={() => {
+                  const next = new Set(checked);
+                  if (next.has(item.id)) next.delete(item.id);
+                  else next.add(item.id);
+                  setChecked(next);
+                }}
+              />
+            ) : null;
           })}
         </View>
       ))}

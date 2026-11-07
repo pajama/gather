@@ -8,7 +8,7 @@ const PROXY = process.env.EXPO_PUBLIC_IMPORT_PROXY;
  * that proxy; otherwise a direct fetch is attempted and a blocked read is
  * reported so the user can paste the text instead.
  */
-export async function fetchRecipePage(input: string): Promise<FetchedPage> {
+export async function fetchPage(input: string): Promise<FetchedPage> {
   const url = normalizeUrl(input);
   if (PROXY) {
     const page = await fetchDirect(`${PROXY}${PROXY.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`, { headers: {} });

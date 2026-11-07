@@ -2,6 +2,7 @@ import { Image, type ImageProps } from 'expo-image';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
+  Easing,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -84,23 +85,19 @@ export function Sheet({
   const { width, height } = useWindowDimensions();
   const wide = width >= 720;
   const [progress] = useState(() => new Animated.Value(0));
-  const [mounted, setMounted] = useState(visible);
-  const [prevVisible, setPrevVisible] = useState(visible);
-  // Mount as soon as the sheet opens; unmount only after the close animation.
-  if (visible !== prevVisible) {
-    setPrevVisible(visible);
-    if (visible) setMounted(true);
-  }
 
+  // The Modal fades the backdrop in and out; the sheet itself slides up on open.
   useEffect(() => {
-    Animated.timing(progress, { toValue: visible ? 1 : 0, duration: visible ? 260 : 200, useNativeDriver: true }).start(
-      ({ finished }) => {
-        if (finished && !visible) setMounted(false);
-      },
-    );
+    if (!visible) return;
+    progress.setValue(0);
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
   }, [visible, progress]);
 
-  if (!mounted) return null;
   const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [wide ? 24 : height * 0.6, 0] });
   const body = scroll ? (
     <ScrollView contentContainerStyle={{ padding: space.lg, paddingTop: 0 }} keyboardShouldPersistTaps="handled">
@@ -111,11 +108,11 @@ export function Sheet({
   );
 
   return (
-    <Modal transparent visible animationType="none" onRequestClose={onClose} statusBarTranslucent>
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim, opacity: progress }]}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
           <Pressable style={styles.fill} onPress={onClose} accessibilityLabel="Close" />
-        </Animated.View>
+        </View>
         <View style={[styles.fill, wide ? styles.centerWide : styles.bottom]} pointerEvents="box-none">
           <Animated.View
             style={[
@@ -129,7 +126,6 @@ export function Sheet({
                 width: wide ? Math.min(560, width - 48) : '100%',
                 paddingBottom: wide ? space.lg : Math.max(insets.bottom, space.lg),
                 transform: [{ translateY }],
-                opacity: wide ? progress : 1,
               },
             ]}
           >

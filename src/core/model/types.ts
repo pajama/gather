@@ -4,6 +4,8 @@
  * future sync engine can treat them uniformly.
  */
 
+import type { FeedItem } from '../import/feed';
+
 export type ID = string;
 /** ISO 8601 timestamp. */
 export type Timestamp = string;
@@ -131,6 +133,17 @@ export interface GroceryItem extends Entity {
 export interface GroceryList extends Entity {
   name: string;
   sortIndex: number;
+}
+
+/** A followed recipe feed (RSS/Atom) with its latest posts cached for offline reading. */
+export interface Feed extends Entity {
+  url: string;
+  title: string;
+  siteUrl?: string;
+  items: FeedItem[];
+  lastFetchedAt?: Timestamp;
+  /** Last refresh failure, shown on the feed until the next success. */
+  error?: string;
 }
 
 export type UnitPreference = 'original' | 'us' | 'metric';

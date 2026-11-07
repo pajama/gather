@@ -125,6 +125,8 @@ describe('ingredient parsing', () => {
     expect(parseIngredient('1 onion - diced')).toMatchObject({ name: 'onion', note: 'diced' });
     expect(parseIngredient('Pinch of salt')).toMatchObject({ unit: 'pinch', name: 'salt' });
     expect(parseIngredient('▢ 1 tsp vanilla extract')).toMatchObject({ unit: 'tsp', name: 'vanilla extract' });
+    expect(parseIngredient('1/2 small clove garlic ((or 1/8 tsp garlic powder))')).toMatchObject({ name: 'small clove garlic', note: 'or 1/8 tsp garlic powder' });
+    expect(parseIngredient('A fistful of chopped herbs').quantity).toBeUndefined();
   });
 
   it('formats with scaling and conversion', () => {

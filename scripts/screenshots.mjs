@@ -126,6 +126,34 @@ async function scrollMain(page, y) {
   await context.close();
 }
 
+// Live import and feeds (needs a build made with EXPO_PUBLIC_IMPORT_PROXY and that proxy running).
+if (process.env.IMPORT_URL || process.env.FEED_URL) {
+  const { context, page } = await session({ width: 390, height: 844 });
+  await page.goto(base + '/');
+  await page.getByText('Recipes').first().waitFor({ timeout: 20000 });
+  if (process.env.IMPORT_URL) {
+    await page.goto(`${base}/import?url=${encodeURIComponent(process.env.IMPORT_URL)}`);
+    await page.getByText('Save recipe').first().waitFor({ timeout: 30000 });
+    await shot(page, '15-import-preview');
+    await page.getByText('Save recipe').first().click();
+    await page.getByText('Ingredients').first().waitFor({ timeout: 15000 });
+    await page.waitForTimeout(1200);
+    await shot(page, '16-imported-recipe');
+  }
+  if (process.env.FEED_URL) {
+    await page.goto(base + '/discover');
+    await page.getByText('Follow your favorite food blogs').first().waitFor({ timeout: 20000 });
+    await page.getByRole('button', { name: 'Manage feeds' }).first().click();
+    await page.getByPlaceholder('Blog or feed address').fill(process.env.FEED_URL);
+    await page.getByRole('button', { name: 'Follow' }).first().click();
+    await page.getByText('Following').first().waitFor({ timeout: 30000 });
+    await page.getByRole('button', { name: 'Close' }).last().click();
+    await page.waitForTimeout(1500);
+    await shot(page, '17-discover');
+  }
+  await context.close();
+}
+
 // Phone, dark
 {
   const { context, page } = await session({ width: 390, height: 844, scheme: 'dark' });

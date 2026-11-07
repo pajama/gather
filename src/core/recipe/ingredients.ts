@@ -31,6 +31,9 @@ const TRAILING_NOTE =
 
 function normalize(line: string): string {
   return line
+    // Some recipe plugins double-wrap notes: "garlic ((or garlic powder))".
+    .replace(/\(\(/g, '(')
+    .replace(/\)\)/g, ')')
     .replace(/\u00a0/g, ' ')
     .replace(/[\u2009\u202f]/g, ' ')
     .replace(/\s+/g, ' ')

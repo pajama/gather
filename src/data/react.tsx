@@ -5,7 +5,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 
-import type { DayKey, Folder, GroceryItem, ID, MealPlanEntry, Recipe, Settings } from '@/core/model/types';
+import type { DayKey, Feed, Folder, GroceryItem, ID, MealPlanEntry, Recipe, Settings } from '@/core/model/types';
 
 import type { Collection, Identified, Singleton } from './collection';
 import { Database } from './database';
@@ -89,6 +89,10 @@ export function useGroceryItems(listId: ID = DEFAULT_LIST_ID): GroceryItem[] {
   const db = useDb();
   const items = useCollection(db.collections.groceries);
   return useMemo(() => items.filter((g) => g.listId === listId).sort((a, b) => a.sortIndex - b.sortIndex), [items, listId]);
+}
+
+export function useFeeds(): readonly Feed[] {
+  return useCollection(useDb().collections.feeds);
 }
 
 export function useSettings(): Settings {

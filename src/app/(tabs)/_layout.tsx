@@ -24,6 +24,10 @@ export default function TabsLayout() {
         options={{ title: 'Recipes', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'bookFilled' : 'book'} color={color} size={24} /> }}
       />
       <Tabs.Screen
+        name="discover"
+        options={{ title: 'Discover', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'compassFilled' : 'compass'} color={color} size={24} /> }}
+      />
+      <Tabs.Screen
         name="plan"
         options={{ title: 'Plan', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'calendarFilled' : 'calendar'} color={color} size={24} /> }}
       />

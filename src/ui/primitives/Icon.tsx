@@ -97,6 +97,11 @@ const GLYPHS = {
   pricetag: 'pricetag-outline',
   volume: 'volume-high-outline',
   hand: 'hand-left-outline',
+  compass: 'compass-outline',
+  compassFilled: 'compass',
+  newspaper: 'newspaper-outline',
+  mic: 'mic-outline',
+  micOff: 'mic-off-outline',
 } as const satisfies Record<string, ComponentProps<typeof Ionicons>['name']>;
 
 export type IconName = keyof typeof GLYPHS;

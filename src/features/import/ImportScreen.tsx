@@ -9,7 +9,7 @@ import { extractRecipesFromHtml } from '@/core/import/web';
 import { formatDuration } from '@/core/recipe/durations';
 import { useDb } from '@/data/react';
 import { PageFetchError } from '@/data/services/fetch-page';
-import { fetchRecipePage } from '@/data/services/page-fetcher';
+import { fetchPage } from '@/data/services/page-fetcher';
 import { Button, Card, CONTENT_MAX_WIDTH, Field, Icon, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
 type Mode = 'url' | 'text';
@@ -19,7 +19,7 @@ type ImportResult = { draft: RecipeDraft } | { error: string };
 /** Downloads a page and extracts its best recipe. Never throws. */
 async function importFromUrl(target: string): Promise<ImportResult> {
   try {
-    const page = await fetchRecipePage(target);
+    const page = await fetchPage(target);
     const [best] = extractRecipesFromHtml(page.html, page.url);
     if (!best || draftLineCount(best.ingredients) + draftLineCount(best.steps) === 0) {
       return { error: 'No recipe found on that page. Try copying the recipe text and pasting it instead.' };

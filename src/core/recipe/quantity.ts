@@ -55,7 +55,7 @@ const WORD_NUMBERS: Readonly<Record<string, number>> = {
 };
 
 /** Words after "a"/"an" that make it vague rather than a count ("a few"). */
-const VAGUE_AFTER_ARTICLE = /^(few|little|bit|couple|handful of|splash|drizzle|dash|pinch|sprinkle)\b/i;
+const VAGUE_AFTER_ARTICLE = /^(few|little|bit|couple|fistful|good|generous|large handful|handful of|splash|drizzle|dash|pinch|sprinkle)\b/i;
 
 type AtomParser = { re: RegExp; read: (m: RegExpExecArray) => number | null };
 
