@@ -6,6 +6,7 @@
 
 import { DEFAULT_AISLE_ORDER } from '@/core/grocery/aisles';
 import type { Feed, Folder, GroceryItem, GroceryList, MealPlanEntry, Recipe, Settings } from '@/core/model/types';
+import type { KitchenTimer } from '@/core/timers/timers';
 
 import { Collection, Singleton } from './collection';
 import { migrateRecipe } from './migrations';
@@ -14,6 +15,7 @@ import { FoldersRepository } from './repositories/folders';
 import { GroceriesRepository } from './repositories/groceries';
 import { PlannerRepository } from './repositories/planner';
 import { RecipesRepository } from './repositories/recipes';
+import { TimersRepository } from './repositories/timers';
 import type { DocumentStore } from './store/document-store';
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,6 +34,7 @@ export interface Collections {
   groceries: Collection<GroceryItem>;
   lists: Collection<GroceryList>;
   feeds: Collection<Feed>;
+  timers: Collection<KitchenTimer>;
   settings: Singleton<Settings>;
 }
 
@@ -42,6 +45,7 @@ export class Database {
   readonly planner: PlannerRepository;
   readonly groceries: GroceriesRepository;
   readonly feeds: FeedsRepository;
+  readonly timers: TimersRepository;
 
   private constructor(
     readonly store: DocumentStore,
@@ -54,6 +58,7 @@ export class Database {
       groceries: new Collection<GroceryItem>(store, 'groceries', { onError }),
       lists: new Collection<GroceryList>(store, 'lists', { onError }),
       feeds: new Collection<Feed>(store, 'feeds', { onError }),
+      timers: new Collection<KitchenTimer>(store, 'timers', { onError }),
       settings: new Singleton<Settings>(store, 'settings', DEFAULT_SETTINGS, onError),
     };
     this.recipes = new RecipesRepository(this.collections);
@@ -61,6 +66,7 @@ export class Database {
     this.planner = new PlannerRepository(this.collections);
     this.groceries = new GroceriesRepository(this.collections);
     this.feeds = new FeedsRepository(this.collections);
+    this.timers = new TimersRepository(this.collections);
   }
 
   static async open(
@@ -69,12 +75,22 @@ export class Database {
   ): Promise<Database> {
     const db = new Database(store, options.onError ?? ((e) => console.warn('[gather] storage error', e)));
     const c = db.collections;
-    await Promise.all([c.recipes.load(), c.folders.load(), c.plan.load(), c.groceries.load(), c.lists.load(), c.feeds.load(), c.settings.load()]);
+    await Promise.all([
+      c.recipes.load(),
+      c.folders.load(),
+      c.plan.load(),
+      c.groceries.load(),
+      c.lists.load(),
+      c.feeds.load(),
+      c.timers.load(),
+      c.settings.load(),
+    ]);
     if ((await store.getMeta('seeded')) === null) {
       await options.seed?.(db);
       await store.setMeta('seeded', new Date().toISOString());
     }
     db.groceries.ensureDefaultList();
+    db.timers.prune();
     return db;
   }
 
@@ -96,6 +112,7 @@ export class Database {
       c.groceries.flush(),
       c.lists.flush(),
       c.feeds.flush(),
+      c.timers.flush(),
       c.settings.flush(),
     ]);
   }

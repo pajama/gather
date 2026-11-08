@@ -110,6 +110,19 @@ describe('Database', () => {
     expect(names).not.toContain('Oats');
   });
 
+  it('keeps timers across a restart and forgets long-finished ones', async () => {
+    const { db, store } = await openDb();
+    const now = Date.now();
+    const running = db.timers.start('Pancakes: step 2', 120, undefined, now);
+    const old = db.timers.start('Yesterday', 60, undefined, now - 3 * 3_600_000);
+    db.timers.pause(running.id, now + 30_000);
+    await db.flush();
+    const reopened = await Database.open(store);
+    expect(reopened.timers.all().map((t) => t.id)).toEqual([running.id]);
+    expect(reopened.timers.all()[0]).toMatchObject({ state: 'paused', pausedRemaining: 90 });
+    expect(reopened.timers.all().some((t) => t.id === old.id)).toBe(false);
+  });
+
   it('round-trips a backup', async () => {
     const { db } = await openDb();
     db.recipes.createFromDraft(parseRecipeText(PANCAKES));

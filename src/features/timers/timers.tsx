@@ -10,19 +10,14 @@ import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatClock } from '@/core/recipe/durations';
+import { timerRemaining, timerStatus, type KitchenTimer as StoredTimer, type TimerStatus } from '@/core/timers/timers';
+import { useDb, useKitchenTimers } from '@/data/react';
 import { cancelTimerAlert, scheduleTimerAlert, timerFinished } from '@/data/services/timer-alerts';
 import { haptic, IconButton, Tap, Text, useTheme } from '@/ui';
 
-export interface KitchenTimer {
-  id: string;
-  label: string;
-  recipeId?: string;
-  totalSeconds: number;
-  /** Epoch ms when a running timer ends. */
-  endsAt?: number;
-  /** Seconds left while paused. */
-  pausedRemaining?: number;
-  state: 'running' | 'paused' | 'done';
+/** A stored timer with its status worked out from the clock. */
+export interface KitchenTimer extends Omit<StoredTimer, 'state'> {
+  state: TimerStatus;
 }
 
 interface TimersApi {
@@ -38,16 +33,16 @@ interface TimersApi {
 
 const TimersContext = createContext<TimersApi | null>(null);
 
-let counter = 0;
+function asStored(timer: KitchenTimer): StoredTimer {
+  return { ...timer, state: timer.state === 'paused' ? 'paused' : 'running' };
+}
 
 export function TimersProvider({ children }: { children: ReactNode }) {
-  const [stored, setTimers] = useState<KitchenTimer[]>([]);
+  const db = useDb();
+  const stored = useKitchenTimers();
   const [now, setNow] = useState(() => Date.now());
-  // A running timer whose end has passed is done; derive it rather than store it.
-  const timers = useMemo(
-    () => stored.map((t) => (t.state === 'running' && t.endsAt !== undefined && t.endsAt <= now ? { ...t, state: 'done' as const } : t)),
-    [stored, now],
-  );
+  const [mountedAt] = useState(() => Date.now());
+  const timers = useMemo(() => stored.map((t) => ({ ...t, state: timerStatus(t, now) })).sort((a, b) => a.createdAt - b.createdAt), [stored, now]);
   const anyRunning = timers.some((t) => t.state === 'running');
   const latest = useRef(stored);
   const notified = useRef(new Set<string>());
@@ -59,29 +54,23 @@ export function TimersProvider({ children }: { children: ReactNode }) {
     if (!anyRunning) return;
     const handle = setInterval(() => {
       const tick = Date.now();
-      const finishing = latest.current.filter(
-        (t) => t.state === 'running' && t.endsAt !== undefined && t.endsAt <= tick && !notified.current.has(t.id),
-      );
-      if (finishing.length) {
-        for (const t of finishing) {
-          notified.current.add(t.id);
+      const finishing = latest.current.filter((t) => t.state === 'running' && t.endsAt !== undefined && t.endsAt <= tick && !notified.current.has(t.id));
+      let alerted = false;
+      for (const t of finishing) {
+        notified.current.add(t.id);
+        // Timers that ended while the app was closed were already announced by the system notification.
+        if ((t.endsAt ?? 0) > mountedAt) {
           timerFinished(t.id);
+          alerted = true;
         }
-        haptic('success');
       }
+      if (alerted) haptic('success');
       setNow(tick);
     }, 250);
     return () => clearInterval(handle);
-  }, [anyRunning]);
+  }, [anyRunning, mountedAt]);
 
-  const remaining = useCallback(
-    (t: KitchenTimer) => {
-      if (t.state === 'done') return 0;
-      if (t.state === 'paused') return t.pausedRemaining ?? 0;
-      return Math.max(0, ((t.endsAt ?? now) - now) / 1000);
-    },
-    [now],
-  );
+  const remaining = useCallback((t: KitchenTimer) => timerRemaining(asStored(t), now), [now]);
 
   const api = useMemo<TimersApi>(
     () => ({
@@ -89,52 +78,33 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       now,
       remaining,
       start: (label, seconds, recipeId) => {
-        const id = `timer-${Date.now()}-${counter++}`;
         haptic('medium');
-        void scheduleTimerAlert(id, label, seconds);
+        const timer = db.timers.start(label, seconds, recipeId);
+        void scheduleTimerAlert(timer.id, label, timer.totalSeconds);
         setNow(Date.now());
-        setTimers((list) => [
-          ...list,
-          { id, label, totalSeconds: seconds, endsAt: Date.now() + seconds * 1000, state: 'running', ...(recipeId ? { recipeId } : {}) },
-        ]);
-        return id;
+        return timer.id;
       },
       pause: (id) => {
         void cancelTimerAlert(id);
-        setTimers((list) =>
-          list.map((t) =>
-            t.id === id && t.state === 'running'
-              ? { ...t, state: 'paused', pausedRemaining: Math.max(0, ((t.endsAt ?? Date.now()) - Date.now()) / 1000) }
-              : t,
-          ),
-        );
+        db.timers.pause(id);
       },
       resume: (id) => {
-        const timer = stored.find((t) => t.id === id);
-        if (timer?.state === 'paused') void scheduleTimerAlert(id, timer.label, timer.pausedRemaining ?? 0);
-        setTimers((list) =>
-          list.map((t) =>
-            t.id === id && t.state === 'paused' ? { ...t, state: 'running', endsAt: Date.now() + (t.pausedRemaining ?? 0) * 1000 } : t,
-          ),
-        );
+        const timer = db.timers.resume(id);
+        if (timer?.endsAt) void scheduleTimerAlert(id, timer.label, (timer.endsAt - Date.now()) / 1000);
+        setNow(Date.now());
       },
       cancel: (id) => {
         void cancelTimerAlert(id);
-        setTimers((list) => list.filter((t) => t.id !== id));
+        db.timers.cancel(id);
       },
-      addTime: (id, seconds) =>
-        setTimers((list) =>
-          list.map((t) => {
-            if (t.id !== id) return t;
-            if (t.state === 'paused') return { ...t, pausedRemaining: (t.pausedRemaining ?? 0) + seconds, totalSeconds: t.totalSeconds + seconds };
-            notified.current.delete(t.id);
-            const base = Math.max(Date.now(), t.endsAt ?? 0);
-            void scheduleTimerAlert(t.id, t.label, (base + seconds * 1000 - Date.now()) / 1000);
-            return { ...t, state: 'running', endsAt: base + seconds * 1000, totalSeconds: t.totalSeconds + seconds };
-          }),
-        ),
+      addTime: (id, seconds) => {
+        notified.current.delete(id);
+        const timer = db.timers.addTime(id, seconds);
+        if (timer?.state === 'running' && timer.endsAt) void scheduleTimerAlert(id, timer.label, (timer.endsAt - Date.now()) / 1000);
+        setNow(Date.now());
+      },
     }),
-    [timers, stored, now, remaining],
+    [timers, now, remaining, db],
   );
 
   return (
