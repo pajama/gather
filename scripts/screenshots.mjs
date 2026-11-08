@@ -92,6 +92,10 @@ async function scrollMain(page, y) {
   await shot(page, '03-recipe-ingredients');
   await scrollMain(page, 640);
   await shot(page, '04-recipe-method');
+  await page.getByText('20 minutes', { exact: true }).first().click().catch(() => {});
+  await page.getByText('lemon', { exact: true }).first().click().catch(() => {});
+  await page.getByText('10 minutes', { exact: true }).first().click().catch(() => {});
+  await shot(page, '04b-recipe-callouts');
   await page.goto(page.url().replace(/[?#].*$/, '').replace(/\/?$/, '') + '/cook').catch(() => {});
   await page.getByText(/^Step 1/).first().waitFor({ timeout: 10000 }).catch(() => {});
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next step' }).first().click().catch(() => {});

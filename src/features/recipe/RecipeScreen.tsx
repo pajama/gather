@@ -82,7 +82,10 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const [units, setUnits] = useState<UnitPreference>(settings.units);
   const [sheet, setSheet] = useState<'plan' | 'groceries' | 'more' | 'folders' | 'scale' | 'units' | 'timers' | null>(null);
-  const [callout, setCallout] = useState<{ stepId: string; view: IngredientView } | null>(null);
+  // One bubble at a time inside a step card: an ingredient's amount, or Crouton's "Start Timer" prompt.
+  const [callout, setCallout] = useState<
+    { stepId: string; kind: 'ingredient'; view: IngredientView } | { stepId: string; kind: 'timer'; seconds: number; label: string } | null
+  >(null);
   const scale = baseServings ? servings / baseServings : multiplier;
   const views = useIngredientViews(recipe, scale, units);
   const total = totalSeconds(recipe);
@@ -101,7 +104,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
 
   useEffect(() => {
     if (!callout) return;
-    const handle = setTimeout(() => setCallout(null), 2600);
+    const handle = setTimeout(() => setCallout(null), callout.kind === 'timer' ? 5000 : 2600);
     return () => clearTimeout(handle);
   }, [callout]);
 
@@ -300,7 +303,20 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
                   ) : null}
                   {section.items.map((step) => (
                     <Card key={step.id} style={{ borderRadius: radius.xl, gap: space.sm }}>
-                      {callout?.stepId === step.id ? <IngredientCallout view={callout.view} /> : null}
+                      {callout?.stepId === step.id && callout.kind === 'ingredient' ? <IngredientCallout view={callout.view} /> : null}
+                      {callout?.stepId === step.id && callout.kind === 'timer' ? (
+                        <Button
+                          title={`Start ${formatDuration(callout.seconds)} timer`}
+                          icon="timer"
+                          variant="yellow"
+                          size="sm"
+                          style={styles.calloutButton}
+                          onPress={() => {
+                            startTimer(callout.seconds, callout.label);
+                            setCallout(null);
+                          }}
+                        />
+                      ) : null}
                       <View style={[styles.step, { gap: space.md }]}>
                         <View style={[styles.stepNumber, { backgroundColor: colors.accent }]}>
                           <Text variant="subhead" rounded weight="800" color={colors.onAccent}>
@@ -312,10 +328,13 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
                             text={step.text}
                             recipe={recipe}
                             views={views}
-                            onStartTimer={startTimer}
+                            onStartTimer={(seconds, label) => {
+                              haptic();
+                              setCallout({ stepId: step.id, kind: 'timer', seconds, label });
+                            }}
                             onIngredientPress={(view) => {
                               haptic();
-                              setCallout({ stepId: step.id, view });
+                              setCallout({ stepId: step.id, kind: 'ingredient', view });
                             }}
                           />
                         </View>
@@ -587,6 +606,7 @@ const styles = StyleSheet.create({
   timeCell: { alignItems: 'center', gap: 4, flexShrink: 1 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
+  calloutButton: { alignSelf: 'flex-start' },
   difficulty: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4 },
   slidersButton: { width: 44 },
   indented: { paddingLeft: 10 },
