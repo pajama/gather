@@ -4,7 +4,10 @@
  * future sync engine can treat them uniformly.
  */
 
+import type { Difficulty } from '../import/draft';
 import type { FeedItem } from '../import/feed';
+
+export type { Difficulty };
 
 export type ID = string;
 /** ISO 8601 timestamp. */
@@ -90,6 +93,7 @@ export interface Recipe extends Entity {
   favorite: boolean;
   /** 0-5 stars; undefined when unrated. */
   rating?: number;
+  difficulty?: Difficulty;
   lastCookedAt?: Timestamp;
   cookCount: number;
 }

@@ -7,8 +7,9 @@ import { Alert, Animated, Platform, Share, StyleSheet, useWindowDimensions, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { recipeToHtml } from '@/core/export/print';
+import { crumbFromDraft } from '@/core/import/crumb';
 import { toGatherFile } from '@/core/import/files';
-import { coverImage, recipeToDraft, recipeToText, totalSeconds } from '@/core/model/recipe';
+import { coverImage, newId, recipeToDraft, recipeToText, totalSeconds } from '@/core/model/recipe';
 import type { Recipe, UnitPreference } from '@/core/model/types';
 import { formatDuration } from '@/core/recipe/durations';
 import { formatNumber } from '@/core/recipe/quantity';
@@ -35,6 +36,7 @@ import {
   useTheme,
 } from '@/ui';
 
+import { RatingStars } from './RatingStars';
 import { AddToGroceriesSheet, AddToPlanSheet } from './RecipeSheets';
 import { IngredientCallout, IngredientLine, StepText, useIngredientViews, type IngredientView } from './RecipeText';
 
@@ -217,6 +219,18 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
               ) : null}
             </View>
           ) : null}
+
+          <View style={[styles.ratingRow, { gap: space.md }]}>
+            <RatingStars value={recipe.rating} onChange={(rating) => db.recipes.setRating(recipe.id, rating)} />
+            {recipe.difficulty ? (
+              <View style={[styles.difficulty, { backgroundColor: colors.fill, borderRadius: radius.pill }]}>
+                <Icon name="flame" size={14} tone="secondary" />
+                <Text variant="footnote" tone="secondary" weight="600">
+                  {DIFFICULTY_LABELS[recipe.difficulty]}
+                </Text>
+              </View>
+            ) : null}
+          </View>
 
           {recipe.description ? (
             <Text variant="body" tone="secondary">
@@ -509,6 +523,18 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
               void shareTextFile(`${slug}.gather`, JSON.stringify(toGatherFile([recipeToDraft(recipe)]), null, 2));
             }}
           />
+          <ListRow
+            icon="upload"
+            iconColor="#F5A623"
+            title="Share as Crouton file"
+            subtitle="A .crumb file Crouton can open"
+            onPress={() => {
+              setSheet(null);
+              const slug = recipe.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'recipe';
+              const crumb = crumbFromDraft(recipeToDraft(recipe), () => newId().toUpperCase());
+              void shareTextFile(`${slug}.crumb`, JSON.stringify(crumb), 'application/json');
+            }}
+          />
         </ListSection>
         <ListSection>
           <ListRow icon="trash" iconColor={colors.danger} title="Delete recipe" destructive onPress={() => { setSheet(null); remove(); }} />
@@ -531,6 +557,8 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
     </View>
   );
 }
+
+const DIFFICULTY_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 
 const NUTRITION_LABELS: Record<string, string> = {
   servingSize: 'Serving',
@@ -558,6 +586,8 @@ const styles = StyleSheet.create({
   timeTile: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 12, paddingHorizontal: 8, minHeight: 72 },
   timeCell: { alignItems: 'center', gap: 4, flexShrink: 1 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
+  difficulty: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4 },
   slidersButton: { width: 44 },
   indented: { paddingLeft: 10 },
   step: { flexDirection: 'row', alignItems: 'flex-start' },

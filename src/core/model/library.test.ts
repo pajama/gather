@@ -37,6 +37,8 @@ describe('queryLibrary', () => {
     expect(queryLibrary(recipes, { sort: 'name' }).map((r) => r.name)).toEqual(['apple pie', 'Banana Bread', 'Tomato Soup']);
     expect(queryLibrary(recipes, { sort: 'cooked' })[0]!.name).toBe('apple pie');
     expect(queryLibrary(recipes, { sort: 'quickest' }).map((r) => r.name)).toEqual(['Tomato Soup', 'Banana Bread', 'apple pie']);
+    const rated = recipes.map((r) => (r.name === 'Tomato Soup' ? { ...r, rating: 5 } : r.name === 'apple pie' ? { ...r, rating: 3 } : r));
+    expect(queryLibrary(rated, { sort: 'rating' }).map((r) => r.name)).toEqual(['Tomato Soup', 'apple pie', 'Banana Bread']);
   });
 });
 

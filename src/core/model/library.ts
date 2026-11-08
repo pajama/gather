@@ -1,13 +1,14 @@
 import { searchText, totalSeconds } from './recipe';
 import type { ID, Recipe } from './types';
 
-export type LibrarySort = 'recent' | 'name' | 'cooked' | 'quickest';
+export type LibrarySort = 'recent' | 'name' | 'cooked' | 'quickest' | 'rating';
 
 export const LIBRARY_SORTS: readonly { value: LibrarySort; label: string }[] = [
   { value: 'recent', label: 'Recently added' },
   { value: 'name', label: 'Name' },
   { value: 'cooked', label: 'Recently cooked' },
   { value: 'quickest', label: 'Quickest' },
+  { value: 'rating', label: 'Top rated' },
 ];
 
 export interface LibraryQuery {
@@ -43,6 +44,8 @@ export function queryLibrary(recipes: readonly Recipe[], query: LibraryQuery): R
       return filtered.sort((a, b) => (b.lastCookedAt ?? '').localeCompare(a.lastCookedAt ?? '') || byName(a, b));
     case 'quickest':
       return filtered.sort((a, b) => (totalSeconds(a) ?? Infinity) - (totalSeconds(b) ?? Infinity) || byName(a, b));
+    case 'rating':
+      return filtered.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || byName(a, b));
     default:
       return filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }

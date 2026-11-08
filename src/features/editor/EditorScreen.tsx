@@ -13,9 +13,10 @@ import {
   textToSteps,
 } from '@/core/model/editing';
 import { createRecipe, newId } from '@/core/model/recipe';
-import type { Recipe } from '@/core/model/types';
+import type { Difficulty, Recipe } from '@/core/model/types';
 import { useDb, useFolders, useRecipe } from '@/data/react';
-import { Button, Chip, CONTENT_MAX_WIDTH, Field, Icon, IconButton, Photo, Tap, Text, useTheme } from '@/ui';
+import { RatingStars } from '@/features/recipe';
+import { Button, Chip, CONTENT_MAX_WIDTH, Field, Icon, IconButton, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
 export function NewRecipeScreen() {
   const initial = useMemo(() => createRecipe({ name: '' }), []);
@@ -45,6 +46,8 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
   const [steps, setSteps] = useState(stepsToText(initial.steps));
   const [notes, setNotes] = useState(initial.notes ?? '');
   const [tags, setTags] = useState(initial.tags.join(', '));
+  const [rating, setRating] = useState<number | undefined>(initial.rating);
+  const [difficulty, setDifficulty] = useState<Difficulty | 'none'>(initial.difficulty ?? 'none');
   const [folderIds, setFolderIds] = useState<string[]>(initial.folderIds);
   const [images, setImages] = useState(initial.images);
   const [imageUrl, setImageUrl] = useState('');
@@ -74,6 +77,8 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
       ['prepSeconds', minutesFieldToSeconds(prep)],
       ['cookSeconds', minutesFieldToSeconds(cook)],
       ['notes', notes.trim() || undefined],
+      ['rating', rating],
+      ['difficulty', difficulty === 'none' ? undefined : difficulty],
     ];
     for (const [key, value] of optional) {
       if (value === undefined) delete (next as unknown as Record<string, unknown>)[key];
@@ -181,6 +186,32 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
           <Field label="Link" value={sourceUrl} onChangeText={setSourceUrl} placeholder="https://" autoCapitalize="none" keyboardType="url" style={styles.flex} />
         </View>
         <Field label="Tags" value={tags} onChangeText={setTags} placeholder="Dinner, Vegetarian, Quick" />
+
+        <View style={[styles.row, { gap: space.lg, alignItems: 'flex-end' }]}>
+          <View style={{ gap: space.sm }}>
+            <Text variant="footnote" tone="secondary" weight="600">
+              Rating
+            </Text>
+            <View style={{ height: 36, justifyContent: 'center' }}>
+              <RatingStars value={rating} onChange={setRating} size={26} />
+            </View>
+          </View>
+          <View style={[styles.flex, { gap: space.sm }]}>
+            <Text variant="footnote" tone="secondary" weight="600">
+              Difficulty
+            </Text>
+            <SegmentedControl
+              options={[
+                { value: 'none', label: '—' },
+                { value: 'easy', label: 'Easy' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'hard', label: 'Hard' },
+              ]}
+              value={difficulty}
+              onChange={(v) => setDifficulty(v as Difficulty | 'none')}
+            />
+          </View>
+        </View>
 
         {folders.length ? (
           <View style={{ gap: space.sm }}>

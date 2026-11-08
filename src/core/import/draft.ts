@@ -4,6 +4,10 @@
  * importers never depend on storage.
  */
 
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'medium', 'hard'];
+
 export interface DraftSection {
   /** Heading for a group ("For the sauce"); undefined for the default group. */
   title?: string;
@@ -33,6 +37,7 @@ export interface RecipeDraft {
   cuisines: string[];
   /** 1-5 stars when the source app kept ratings. */
   rating?: number;
+  difficulty?: Difficulty;
 }
 
 export const NUTRITION_KEYS = [

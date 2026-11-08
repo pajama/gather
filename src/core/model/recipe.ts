@@ -92,6 +92,7 @@ export function recipeFromDraft(draft: RecipeDraft, extra: Partial<Recipe> = {})
     ...(nutrition && Object.keys(nutrition).length ? { nutrition } : {}),
     tags: tags.slice(0, 12),
     ...(draft.rating ? { rating: draft.rating } : {}),
+    ...(draft.difficulty ? { difficulty: draft.difficulty } : {}),
     ...extra,
   });
 }
@@ -134,6 +135,7 @@ export function recipeToDraft(recipe: Recipe): RecipeDraft {
     categories: [],
     cuisines: [],
     ...(recipe.rating ? { rating: recipe.rating } : {}),
+    ...(recipe.difficulty ? { difficulty: recipe.difficulty } : {}),
   };
 }
 

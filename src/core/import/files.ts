@@ -1,5 +1,6 @@
 /**
  * Recipe files from other apps and from Gather itself:
+ * - Crouton: `.crumb` (JSON, one recipe) and zips of them
  * - Paprika: `.paprikarecipes` (zip of gzipped JSON) and `.paprikarecipe`
  * - Gather: `.gather` / `.json` single-recipe or multi-recipe files
  * - Web pages saved as `.html` and plain `.txt` recipes
@@ -10,6 +11,7 @@
 import { gunzipSync, strFromU8, unzipSync } from 'fflate';
 
 import { parseDurationText } from '../recipe/durations';
+import { draftFromCrumb, isCrumb } from './crumb';
 import { emptyDraft, type DraftSection, type RecipeDraft } from './draft';
 import { parseRecipeText } from './text';
 import { extractRecipesFromHtml } from './web';
@@ -117,18 +119,22 @@ export function readRecipeFile(name: string, bytes: Uint8Array): ImportedFile {
   const lower = name.toLowerCase();
   const skipped: string[] = [];
 
-  if (lower.endsWith('.paprikarecipes') || (isZip(bytes) && !lower.endsWith('.crumb'))) {
+  if (lower.endsWith('.paprikarecipes') || isZip(bytes)) {
     const entries = unzipSync(bytes);
     const drafts: RecipeDraft[] = [];
+    let crumbs = 0;
     for (const [entryName, data] of Object.entries(entries)) {
-      if (entryName.endsWith('/') || entryName.startsWith('__MACOSX')) continue;
+      if (entryName.endsWith('/') || entryName.startsWith('__MACOSX') || /(^|\/)\./.test(entryName)) continue;
       try {
-        drafts.push(readPaprikaEntry(data));
+        if (entryName.toLowerCase().endsWith('.crumb')) {
+          drafts.push(draftFromCrumb(JSON.parse(strFromU8(data)) as never));
+          crumbs++;
+        } else drafts.push(readPaprikaEntry(data));
       } catch {
         skipped.push(entryName);
       }
     }
-    return { drafts, format: 'Paprika', skipped };
+    return { drafts, format: crumbs > drafts.length / 2 ? 'Crouton' : 'Paprika', skipped };
   }
 
   if (lower.endsWith('.paprikarecipe') || isGzip(bytes)) {
@@ -136,8 +142,11 @@ export function readRecipeFile(name: string, bytes: Uint8Array): ImportedFile {
   }
 
   const text = strFromU8(bytes);
-  if (lower.endsWith('.json') || lower.endsWith('.gather') || /^\s*[[{]/.test(text)) {
-    const data = JSON.parse(text) as Partial<GatherRecipeFile> & PaprikaRecipe;
+  if (lower.endsWith('.json') || lower.endsWith('.gather') || lower.endsWith('.crumb') || /^\s*[[{]/.test(text)) {
+    const parsed = JSON.parse(text) as unknown;
+    if (Array.isArray(parsed) && parsed.length && parsed.every(isCrumb)) return { drafts: parsed.map(draftFromCrumb), format: 'Crouton', skipped };
+    if (isCrumb(parsed) && (lower.endsWith('.crumb') || !('directions' in parsed))) return { drafts: [draftFromCrumb(parsed)], format: 'Crouton', skipped };
+    const data = parsed as Partial<GatherRecipeFile> & PaprikaRecipe;
     if (data.format === 'gather-recipes' && Array.isArray(data.recipes)) return { drafts: data.recipes, format: 'Gather', skipped };
     if (typeof data.name === 'string' && (data.ingredients !== undefined || data.directions !== undefined)) {
       return { drafts: [draftFromPaprika(data)], format: 'Paprika', skipped };

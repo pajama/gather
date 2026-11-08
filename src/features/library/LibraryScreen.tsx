@@ -211,7 +211,7 @@ export function LibraryScreen() {
             icon="download"
             iconColor="#F5A623"
             title="From a file"
-            subtitle="Paprika export, Gather file or saved page"
+            subtitle="Crouton or Paprika export, Gather file or saved page"
             onPress={() => {
               setAddOpen(false);
               router.push({ pathname: '/import', params: { mode: 'file' } });

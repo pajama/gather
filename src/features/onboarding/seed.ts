@@ -4,6 +4,7 @@
  * `asset://seed/<name>` URIs (resolved by the image component).
  */
 
+import type { Difficulty } from '@/core/model/types';
 import { parseRecipeText } from '@/core/import/text';
 import { addDays, dayKey } from '@/core/planner/planner';
 import type { Database } from '@/data/database';
@@ -17,6 +18,8 @@ interface SeedRecipe {
   favorite?: boolean;
   prep?: number;
   cook?: number;
+  rating?: number;
+  difficulty?: Difficulty;
 }
 
 const m = (minutes: number) => minutes * 60;
@@ -24,6 +27,8 @@ const m = (minutes: number) => minutes * 60;
 export const SEED_RECIPES: SeedRecipe[] = [
   {
     image: 'roast-chicken',
+    rating: 5,
+    difficulty: 'medium',
     tags: ['Dinner', 'Chicken'],
     folders: ['Dinners', 'Sunday Cooking'],
     favorite: true,
@@ -55,6 +60,8 @@ Method
   },
   {
     image: 'tomato-pasta',
+    rating: 4,
+    difficulty: 'easy',
     tags: ['Dinner', 'Pasta', 'Vegetarian'],
     folders: ['Dinners', 'Weeknight'],
     prep: m(10),
@@ -83,6 +90,8 @@ Method
   },
   {
     image: 'pancakes',
+    rating: 5,
+    difficulty: 'easy',
     tags: ['Breakfast'],
     folders: ['Breakfast & Brunch'],
     favorite: true,
@@ -114,6 +123,8 @@ Method
   },
   {
     image: 'green-curry',
+    rating: 4,
+    difficulty: 'medium',
     tags: ['Dinner', 'Thai', 'Vegetarian'],
     folders: ['Dinners', 'Weeknight'],
     prep: m(15),
@@ -147,6 +158,8 @@ Method
   },
   {
     image: 'cookies',
+    rating: 5,
+    difficulty: 'easy',
     tags: ['Dessert', 'Baking'],
     folders: ['Baking'],
     favorite: true,
@@ -178,6 +191,8 @@ Method
   },
   {
     image: 'shakshuka',
+    rating: 4,
+    difficulty: 'easy',
     tags: ['Breakfast', 'Vegetarian'],
     folders: ['Breakfast & Brunch', 'Weeknight'],
     prep: m(10),
@@ -209,6 +224,8 @@ Method
   },
   {
     image: 'miso-salmon',
+    rating: 4,
+    difficulty: 'easy',
     tags: ['Dinner', 'Fish'],
     folders: ['Dinners', 'Weeknight'],
     prep: m(10),
@@ -237,6 +254,8 @@ Method
   },
   {
     image: 'panzanella',
+    rating: 3,
+    difficulty: 'easy',
     tags: ['Lunch', 'Salad', 'Vegetarian'],
     folders: ['Summer'],
     prep: m(20),
@@ -279,6 +298,8 @@ export function seedDatabase(db: Database): void {
       sourceName: seed.sourceName ?? 'Gather Kitchen',
       ...(seed.prep ? { prepSeconds: seed.prep } : {}),
       ...(seed.cook ? { cookSeconds: seed.cook } : {}),
+      ...(seed.rating ? { rating: seed.rating } : {}),
+      ...(seed.difficulty ? { difficulty: seed.difficulty } : {}),
       images: seed.image ? [{ id: `seed-${seed.image}`, uri: `asset://seed/${seed.image}` }] : [],
       // Stagger creation times so "Recently added" has a stable order.
       createdAt: new Date(Date.now() - index * 3_600_000).toISOString(),

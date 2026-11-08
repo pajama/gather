@@ -149,7 +149,7 @@ export function ImportScreen() {
               }}
             />
             <Text variant="footnote" tone="secondary">
-              Paprika exports (.paprikarecipes), Gather recipe files, saved web pages and plain text.
+              Crouton recipes (.crumb, or a zip of them), Paprika exports (.paprikarecipes), Gather recipe files, saved web pages and plain text.
             </Text>
           </View>
         ) : (
