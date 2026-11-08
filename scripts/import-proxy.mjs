@@ -2,8 +2,9 @@
 /**
  * Tiny CORS proxy for importing recipes in the web build during development.
  *
- *   node scripts/import-proxy.mjs            # listens on :8787
- *   EXPO_PUBLIC_IMPORT_PROXY=http://localhost:8787 npm run web
+ *   npm run proxy                            # listens on :8787
+ *   npm run web                              # Gather on localhost finds it automatically
+ *   EXPO_PUBLIC_IMPORT_PROXY=https://… npm run build:web   # hosted builds name their proxy
  *
  * Only GET /?url=https://... is served, only http(s) targets are fetched,
  * and only HTML is returned.

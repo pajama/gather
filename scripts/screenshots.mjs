@@ -135,7 +135,7 @@ async function scrollMain(page, y) {
 if (process.env.IMPORT_URL || process.env.FEED_URL) {
   const { context, page } = await session({ width: 390, height: 844 });
   await page.goto(base + '/');
-  await page.getByText('All Recipes').first().waitFor({ timeout: 20000 });
+  await page.getByText('Lemon Herb Roast Chicken').first().waitFor({ timeout: 20000 });
   if (process.env.IMPORT_URL) {
     await page.goto(`${base}/import?url=${encodeURIComponent(process.env.IMPORT_URL)}`);
     await page.getByText('Save recipe').first().waitFor({ timeout: 30000 });

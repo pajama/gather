@@ -26,6 +26,14 @@ npm run ios        # iOS simulator (macOS)
 npm run android    # Android emulator
 ```
 
+Importing from websites works directly on iOS and Android. Browsers block reading other sites, so on the web run the import helper in a second terminal:
+
+```sh
+npm run proxy      # localhost:8787; Gather on localhost uses it automatically
+```
+
+For a hosted web build, set `EXPO_PUBLIC_IMPORT_PROXY` to your own proxy.
+
 ## Checks
 
 ```sh
