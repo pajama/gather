@@ -2,17 +2,13 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { useDb, useFolders, useRecipes } from '@/data/react';
-import { Button, Field, Icon, IconButton, LargeHeader, Screen, Sheet, Tap, Text, useTheme, type IconName } from '@/ui';
+import { inFolder } from '@/core/model/library';
+import type { Folder } from '@/core/model/types';
+import { useDb, useFolders, useRecipes, useSettings } from '@/data/react';
+import { Icon, IconButton, LargeHeader, Screen, Sheet, Tap, Text, useTheme, type IconName } from '@/ui';
 
-/** Tag dot colors, picked deterministically from the tag name. */
-const TAG_COLORS = ['#A050E0', '#3D8EF0', '#34C759', '#F5A623', '#FF2D55', '#20A889', '#5E5CE6', '#FF9500'];
-
-export function tagColor(tag: string): string {
-  let hash = 0;
-  for (const ch of tag.toLowerCase()) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return TAG_COLORS[hash % TAG_COLORS.length]!;
-}
+import { FolderSheet } from './FolderSheet';
+import { TAG_COLORS, useTagColor } from './tagColors';
 
 function CollectionRow({
   icon,
@@ -21,6 +17,7 @@ function CollectionRow({
   titleColor,
   subtitle,
   onPress,
+  onLongPress,
   right,
   first,
 }: {
@@ -30,6 +27,7 @@ function CollectionRow({
   titleColor?: string;
   subtitle?: string;
   onPress?: () => void;
+  onLongPress?: () => void;
   right?: React.ReactNode;
   first?: boolean;
 }) {
@@ -37,6 +35,7 @@ function CollectionRow({
   return (
     <Tap
       onPress={onPress}
+      onLongPress={onLongPress}
       style={[styles.row, { paddingHorizontal: space.lg, gap: space.md, borderTopWidth: first ? 0 : StyleSheet.hairlineWidth, borderTopColor: colors.separator }]}
       accessibilityLabel={title}
     >
@@ -75,16 +74,18 @@ export function CollectionsScreen() {
   const db = useDb();
   const recipes = useRecipes();
   const folders = useFolders();
-  const { space } = useTheme();
+  const settings = useSettings();
+  const colorFor = useTagColor();
+  const { colors, space } = useTheme();
   const [editing, setEditing] = useState(false);
-  const [newFolder, setNewFolder] = useState(false);
-  const [name, setName] = useState('');
+  const [folderSheet, setFolderSheet] = useState<{ folder?: Folder } | null>(null);
+  const [colorTag, setColorTag] = useState<string | null>(null);
 
   const folderCounts = useMemo(() => {
     const map = new Map<string, number>();
-    for (const r of recipes) for (const f of r.folderIds) map.set(f, (map.get(f) ?? 0) + 1);
+    for (const f of folders) map.set(f.id, recipes.filter((r) => inFolder(r, f)).length);
     return map;
-  }, [recipes]);
+  }, [recipes, folders]);
   const tags = useMemo(() => {
     const map = new Map<string, { label: string; n: number }>();
     for (const r of recipes)
@@ -98,14 +99,6 @@ export function CollectionsScreen() {
   }, [recipes]);
   const favorites = recipes.filter((r) => r.favorite).length;
 
-  const create = () => {
-    if (!name.trim()) return;
-    const folder = db.folders.create(name);
-    setName('');
-    setNewFolder(false);
-    router.push({ pathname: '/collection/[id]', params: { id: folder.id } });
-  };
-
   return (
     <Screen
       header={
@@ -114,7 +107,7 @@ export function CollectionsScreen() {
           right={
             <>
               <IconButton icon={editing ? 'check' : 'edit'} variant="tinted" onPress={() => setEditing(!editing)} accessibilityLabel={editing ? 'Done editing' : 'Edit folders'} />
-              <IconButton icon="add" variant="tinted" onPress={() => setNewFolder(true)} accessibilityLabel="New folder" />
+              <IconButton icon="add" variant="tinted" onPress={() => setFolderSheet({})} accessibilityLabel="New folder" />
             </>
           }
         />
@@ -130,10 +123,11 @@ export function CollectionsScreen() {
           <CollectionRow
             key={f.id}
             first={i === 0}
-            icon="folderFilled"
+            icon={f.tags?.length ? 'sparkles' : 'folderFilled'}
             title={f.name}
-            subtitle={count(folderCounts.get(f.id) ?? 0)}
-            onPress={editing ? undefined : () => router.push({ pathname: '/collection/[id]', params: { id: f.id } })}
+            subtitle={`${count(folderCounts.get(f.id) ?? 0)}${f.tags?.length ? ` · tagged ${f.tags.join(f.tagMatch === 'all' ? ' + ' : ' or ')}` : ''}`}
+            onPress={editing ? () => setFolderSheet({ folder: f }) : () => router.push({ pathname: '/collection/[id]', params: { id: f.id } })}
+            onLongPress={() => setFolderSheet({ folder: f })}
             right={
               editing ? (
                 <Tap onPress={() => db.folders.delete(f.id)} accessibilityLabel={`Delete ${f.name}`} hitSlop={8}>
@@ -143,7 +137,7 @@ export function CollectionsScreen() {
             }
           />
         ))}
-        <CollectionRow first={folders.length === 0} icon="add" title="New Folder" onPress={() => setNewFolder(true)} right={<View />} />
+        <CollectionRow first={folders.length === 0} icon="add" title="New Folder" onPress={() => setFolderSheet({})} right={<View />} />
       </Section>
 
       {tags.length ? (
@@ -153,21 +147,49 @@ export function CollectionsScreen() {
               key={t.label}
               first={i === 0}
               icon="ellipse"
-              iconColor={tagColor(t.label)}
+              iconColor={colorFor(t.label)}
               title={t.label}
-              titleColor={tagColor(t.label)}
+              titleColor={colorFor(t.label)}
               subtitle={count(t.n)}
-              onPress={() => router.push({ pathname: '/collection/[id]', params: { id: `tag:${encodeURIComponent(t.label)}` } })}
+              onPress={editing ? () => setColorTag(t.label) : () => router.push({ pathname: '/collection/[id]', params: { id: `tag:${encodeURIComponent(t.label)}` } })}
+              onLongPress={() => setColorTag(t.label)}
             />
           ))}
         </Section>
       ) : null}
 
-      <Sheet visible={newFolder} onClose={() => setNewFolder(false)} title="New folder">
-        <View style={{ gap: space.lg }}>
-          <Field value={name} onChangeText={setName} placeholder="Folder name" autoFocus onSubmitEditing={create} returnKeyType="done" />
-          <Button title="Create folder" onPress={create} disabled={!name.trim()} full />
+      <FolderSheet
+        visible={!!folderSheet}
+        {...(folderSheet?.folder ? { folder: folderSheet.folder } : {})}
+        allTags={tags.map((t) => t.label)}
+        onClose={() => setFolderSheet(null)}
+        onCreated={(folder) => router.push({ pathname: '/collection/[id]', params: { id: folder.id } })}
+      />
+
+      <Sheet visible={!!colorTag} onClose={() => setColorTag(null)} title={colorTag ? `Color for “${colorTag}”` : ''}>
+        <View style={[styles.swatches, { gap: space.md }]}>
+          {TAG_COLORS.map((color) => {
+            const selected = !!colorTag && colorFor(colorTag) === color;
+            return (
+              <Tap
+                key={color}
+                onPress={() => {
+                  if (!colorTag) return;
+                  db.updateSettings({ tagColors: { ...settings.tagColors, [colorTag.toLowerCase()]: color } });
+                  setColorTag(null);
+                }}
+                accessibilityLabel={`Use ${color}`}
+                accessibilityState={{ selected }}
+                style={[styles.swatch, { backgroundColor: color, borderColor: selected ? colors.text : 'transparent' }]}
+              >
+                {selected ? <Icon name="check" size={20} color="#FFFFFF" /> : null}
+              </Tap>
+            );
+          })}
         </View>
+        <Text variant="footnote" tone="secondary" style={{ marginTop: space.lg }}>
+          Tip: long-press a tag or folder to change it.
+        </Text>
       </Sheet>
     </Screen>
   );
@@ -175,5 +197,7 @@ export function CollectionsScreen() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 58, paddingVertical: 8 },
+  swatches: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  swatch: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1 },
 });

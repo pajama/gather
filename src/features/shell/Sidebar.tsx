@@ -3,8 +3,9 @@ import type { BottomTabBarProps } from 'expo-router/tabs';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { inFolder } from '@/core/model/library';
 import { useFolders, useRecipes } from '@/data/react';
-import { tagColor } from '@/features/library';
+import { useTagColor } from '@/features/library';
 import { Icon, IconButton, SIDEBAR_WIDTH, Tap, Text, useTheme, type IconName } from '@/ui';
 
 const LIBRARY: { route: string; href: '/plan' | '/' | '/groceries' | '/discover'; label: string; icon: IconName; color: string }[] = [
@@ -85,11 +86,12 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
   const [tagsOpen, setTagsOpen] = useState(true);
   const activeRoute = state.routes[state.index]?.name;
 
+  const colorFor = useTagColor();
   const folderCounts = useMemo(() => {
     const map = new Map<string, number>();
-    for (const r of recipes) for (const f of r.folderIds) map.set(f, (map.get(f) ?? 0) + 1);
+    for (const f of folders) map.set(f.id, recipes.filter((r) => inFolder(r, f)).length);
     return map;
-  }, [recipes]);
+  }, [recipes, folders]);
   const tags = useMemo(() => {
     const map = new Map<string, string>();
     for (const r of recipes) for (const t of r.tags) if (!map.has(t.toLowerCase())) map.set(t.toLowerCase(), t);
@@ -138,7 +140,7 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
             {folders.map((f) => (
               <Row
                 key={f.id}
-                icon="folderFilled"
+                icon={f.tags?.length ? 'sparkles' : 'folderFilled'}
                 iconColor={colors.accent}
                 label={f.name}
                 detail={count(folderCounts.get(f.id) ?? 0)}
@@ -156,9 +158,9 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
                 key={t}
                 icon="ellipse"
                 iconSize={14}
-                iconColor={tagColor(t)}
+                iconColor={colorFor(t)}
                 label={t}
-                labelColor={tagColor(t)}
+                labelColor={colorFor(t)}
                 active={decodeURIComponent(pathname) === `/collection/tag:${t}`}
                 onPress={() => router.navigate({ pathname: '/collection/[id]', params: { id: `tag:${encodeURIComponent(t)}` } })}
               />

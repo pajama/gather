@@ -289,6 +289,8 @@ export const SEED_FOLDERS = ['Dinners', 'Weeknight', 'Breakfast & Brunch', 'Baki
 export function seedDatabase(db: Database): void {
   const folderIds = new Map<string, string>();
   for (const name of SEED_FOLDERS) folderIds.set(name, db.folders.create(name).id);
+  // A smart folder: collects every recipe tagged Vegetarian.
+  db.folders.create('Meat-free', { tags: ['Vegetarian'] });
   const created = SEED_RECIPES.map((seed, index) => {
     const draft = parseRecipeText(seed.text);
     const recipe = db.recipes.createFromDraft(draft, {

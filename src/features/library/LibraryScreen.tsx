@@ -52,10 +52,10 @@ export function LibraryScreen() {
     () =>
       queryLibrary(recipes, {
         text,
-        ...(tag ? { tag } : scopeParam !== 'all' ? { scope: scopeParam === 'favorites' ? 'favorites' : scopeParam } : {}),
+        ...(tag ? { tag } : folder ? { folder } : scopeParam === 'favorites' ? { scope: 'favorites' } : {}),
         sort,
       }),
-    [recipes, text, tag, scopeParam, sort],
+    [recipes, text, tag, folder, scopeParam, sort],
   );
   const selected = split ? (results.find((r) => r.id === selectedId) ?? results[0]) : undefined;
 

@@ -4,6 +4,7 @@
  * screen (Crouton's timer card).
  */
 
+import { usePathname } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -163,8 +164,11 @@ function TimerHud() {
   const { timers, remaining, pause, resume, cancel, addTime } = useTimers();
   const { colors, radius, space } = useTheme();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
   if (timers.length === 0) return null;
+  // The full card shows while cooking (recipe and step-by-step screens); elsewhere a small pill keeps titles clear.
+  const compactPill = !expanded && !pathname.startsWith('/recipe/');
   const sorted = [...timers].sort((a, b) => remaining(a) - remaining(b));
   const first = sorted[0]!;
   const shadow = `0 10px 30px ${colors.shadow}, 0 2px 8px ${colors.shadow}`;
@@ -196,7 +200,23 @@ function TimerHud() {
 
   return (
     <View pointerEvents="box-none" style={[styles.hudWrap, { top: insets.top + 56, right: space.lg }]}>
-      {!expanded ? (
+      {compactPill ? (
+        <Tap
+          onPress={() => setExpanded(true)}
+          accessibilityLabel="Show timers"
+          style={[styles.pill, { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, boxShadow: shadow }]}
+        >
+          <Ring progress={first.totalSeconds ? 1 - remaining(first) / first.totalSeconds : 1} size={22} color={first.state === 'done' ? colors.danger : colors.timer} track={colors.fill} />
+          <Text variant="headline" rounded weight="800" color={first.state === 'done' ? colors.danger : colors.timer} style={styles.pillDigits}>
+            {first.state === 'done' ? 'Done' : formatClock(remaining(first))}
+          </Text>
+          {timers.length > 1 ? (
+            <Text variant="caption" tone="secondary" weight="700">
+              +{timers.length - 1}
+            </Text>
+          ) : null}
+        </Tap>
+      ) : !expanded ? (
         <Tap
           onPress={() => setExpanded(true)}
           accessibilityLabel="Show timers"
@@ -253,5 +273,7 @@ const styles = StyleSheet.create({
   digits: { fontSize: 34, lineHeight: 40, fontVariant: ['tabular-nums'] },
   digitsLarge: { fontSize: 38, lineHeight: 44 },
   controls: { flexDirection: 'row', justifyContent: 'flex-end' },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, height: 40 },
+  pillDigits: { fontVariant: ['tabular-nums'] },
   more: { position: 'absolute', top: -6, right: -6, minWidth: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
 });

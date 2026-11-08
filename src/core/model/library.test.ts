@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { queryLibrary } from './library';
+import { inFolder, queryLibrary } from './library';
 import { createRecipe } from './recipe';
 
 const recipes = [
@@ -60,5 +60,17 @@ describe('recipe drafts', () => {
       ['For the glaze', ['1 cup sugar']],
     ]);
     expect(copy.id).not.toBe(original.id);
+  });
+
+  it('collects recipes into smart folders by tag', () => {
+    const tagged = recipes.map((r, i) => ({ ...r, tags: i === 0 ? ['Dinner', 'Quick'] : i === 1 ? ['dinner'] : ['Baking'] }));
+    const base = { id: 'smart', name: 'Weeknights', sortIndex: 0, createdAt: '', updatedAt: '' };
+    const any = { ...base, tags: ['dinner'] };
+    const all = { ...base, tags: ['Dinner', 'quick'], tagMatch: 'all' as const };
+    expect(tagged.filter((r) => inFolder(r, any)).map((r) => r.name)).toEqual([tagged[0]!.name, tagged[1]!.name]);
+    expect(tagged.filter((r) => inFolder(r, all)).map((r) => r.name)).toEqual([tagged[0]!.name]);
+    const manual = { ...tagged[2]!, folderIds: ['smart'] };
+    expect(inFolder(manual, all)).toBe(true);
+    expect(queryLibrary([...tagged.slice(0, 2), manual], { folder: all, sort: 'name' }).length).toBe(2);
   });
 });

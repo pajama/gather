@@ -1,4 +1,5 @@
 import { newId, now } from '@/core/model/recipe';
+import { inFolder } from '@/core/model/library';
 import type { Folder, ID } from '@/core/model/types';
 
 import type { Collections } from '../database';
@@ -63,7 +64,9 @@ export class FoldersRepository {
     }));
   }
 
+  /** Recipes in the folder, counting ones its tag rule collects. */
   recipeCount(folderId: ID): number {
-    return this.c.recipes.all().filter((r) => r.folderIds.includes(folderId)).length;
+    const folder = this.c.folders.get(folderId);
+    return folder ? this.c.recipes.all().filter((r) => inFolder(r, folder)).length : 0;
   }
 }

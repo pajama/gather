@@ -104,6 +104,13 @@ export interface Folder extends Entity {
   icon?: string;
   color?: string;
   sortIndex: number;
+  /**
+   * Smart folder rule: recipes carrying these tags appear in the folder as
+   * well as the ones added by hand (Crouton folders can collect by tag too).
+   */
+  tags?: string[];
+  /** Whether a recipe needs any of the tags (default) or all of them. */
+  tagMatch?: 'any' | 'all';
 }
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -164,4 +171,6 @@ export interface Settings {
   plannerSlots: MealSlot[];
   /** Grocery aisles in shopping order. */
   aisleOrder: string[];
+  /** Colors picked for tags (lower-case tag -> hex); others get a color derived from the name. */
+  tagColors?: Record<string, string>;
 }
