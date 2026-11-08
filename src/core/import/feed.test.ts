@@ -71,3 +71,14 @@ describe('feeds', () => {
     expect(looksLikeFeed(html)).toBe(false);
   });
 });
+
+describe('feed safety', () => {
+  it('drops items whose links are not http(s)', () => {
+    const feed = parseFeed(
+      `<rss><channel><title>F</title><link>javascript:alert(1)</link><item><title>Bad</title><link>javascript:alert(1)</link></item><item><title>Good</title><link>https://example.com/r</link></item></channel></rss>`,
+      'https://example.com/feed',
+    );
+    expect(feed.items.map((i) => i.title)).toEqual(['Good']);
+    expect(feed.siteUrl).toBeUndefined();
+  });
+});

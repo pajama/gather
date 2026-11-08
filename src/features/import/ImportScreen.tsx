@@ -258,7 +258,7 @@ export function ImportScreen() {
               icon="download"
               onPress={async () => {
                 const drafts = await Promise.all(batch.drafts.map(storeDraftPhotos));
-                for (const d of drafts) db.recipes.createFromDraft(d);
+                db.recipes.createManyFromDrafts(drafts);
                 router.dismissAll?.();
                 router.replace('/');
               }}

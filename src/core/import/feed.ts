@@ -4,6 +4,7 @@
  * the CDATA, entities and media extensions food blogs use.
  */
 
+import { safeImageUrl, safeLink } from './draft';
 import { cleanText, decodeEntities, resolveUrl } from './html';
 
 export interface FeedItem {
@@ -62,7 +63,25 @@ function firstImage(item: string, base?: string): string | undefined {
   return found ? resolveUrl(found, base) : undefined;
 }
 
+/**
+ * Parses an RSS or Atom feed. Only http(s) links survive: a feed is someone
+ * else's content, and a javascript: link would run when tapped.
+ */
 export function parseFeed(xml: string, feedUrl?: string): ParsedFeed {
+  const feed = parseFeedXml(xml, feedUrl);
+  const siteUrl = safeLink(feed.siteUrl);
+  const items = feed.items.flatMap((item) => {
+    const link = safeLink(item.link);
+    if (!link) return [];
+    const { imageUrl: rawImage, ...rest } = item;
+    const imageUrl = safeImageUrl(rawImage);
+    return [{ ...rest, link, ...(imageUrl ? { imageUrl } : {}) }];
+  });
+  const { siteUrl: _site, ...restFeed } = feed;
+  return { ...restFeed, ...(siteUrl ? { siteUrl } : {}), items };
+}
+
+function parseFeedXml(xml: string, feedUrl?: string): ParsedFeed {
   const isAtom = /<feed\b[^>]*xmlns\s*=\s*["']http:\/\/www\.w3\.org\/2005\/Atom/i.test(xml) || (/<feed\b/i.test(xml) && !/<rss\b/i.test(xml));
   if (isAtom) {
     const head = xml.split(/<entry\b/i)[0] ?? '';

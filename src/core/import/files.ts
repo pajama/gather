@@ -12,7 +12,7 @@ import { gunzipSync, strFromU8, unzipSync } from 'fflate';
 
 import { parseDurationText } from '../recipe/durations';
 import { draftFromCrumb, isCrumb } from './crumb';
-import { emptyDraft, type DraftSection, type RecipeDraft } from './draft';
+import { emptyDraft, normalizeDraft, type DraftSection, type RecipeDraft } from './draft';
 import { parseRecipeText } from './text';
 import { extractRecipesFromHtml } from './web';
 
@@ -114,8 +114,17 @@ export function toGatherFile(drafts: RecipeDraft[]): GatherRecipeFile {
   return { format: 'gather-recipes', version: 1, recipes: drafts };
 }
 
-/** Reads any supported recipe file. `name` is used for its extension. */
+/**
+ * Reads any supported recipe file. `name` is used for its extension. Every
+ * draft is normalized (types checked, links http(s) only), so a malformed or
+ * hostile file cannot put bad data into the library.
+ */
 export function readRecipeFile(name: string, bytes: Uint8Array): ImportedFile {
+  const file = readRawRecipeFile(name, bytes);
+  return { ...file, drafts: file.drafts.map(normalizeDraft) };
+}
+
+function readRawRecipeFile(name: string, bytes: Uint8Array): ImportedFile {
   const lower = name.toLowerCase();
   const skipped: string[] = [];
 
@@ -142,8 +151,17 @@ export function readRecipeFile(name: string, bytes: Uint8Array): ImportedFile {
   }
 
   const text = strFromU8(bytes);
-  if (lower.endsWith('.json') || lower.endsWith('.gather') || lower.endsWith('.crumb') || /^\s*[[{]/.test(text)) {
-    const parsed = JSON.parse(text) as unknown;
+  const namedJson = lower.endsWith('.json') || lower.endsWith('.gather') || lower.endsWith('.crumb');
+  let parsed: unknown;
+  if (namedJson || /^\s*[[{]/.test(text)) {
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      // "[Grandma] Pie" in a .txt starts like JSON but isn't.
+      if (namedJson) throw error;
+    }
+  }
+  if (parsed !== undefined) {
     if (Array.isArray(parsed) && parsed.length && parsed.every(isCrumb)) return { drafts: parsed.map(draftFromCrumb), format: 'Crouton', skipped };
     if (isCrumb(parsed) && (lower.endsWith('.crumb') || !('directions' in parsed))) return { drafts: [draftFromCrumb(parsed)], format: 'Crouton', skipped };
     const data = parsed as Partial<GatherRecipeFile> & PaprikaRecipe;

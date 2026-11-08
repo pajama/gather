@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { recipeToHtml } from '@/core/export/print';
 import { crumbFromDraft } from '@/core/import/crumb';
+import { safeLink } from '@/core/import/draft';
 import { toGatherFile } from '@/core/import/files';
 import { coverImage, newId, recipeToDraft, recipeToText, totalSeconds } from '@/core/model/recipe';
 import type { Recipe, UnitPreference } from '@/core/model/types';
@@ -385,7 +386,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
 
           {recipe.sourceName || recipe.sourceUrl ? (
             <Tap
-              onPress={recipe.sourceUrl ? () => void WebBrowser.openBrowserAsync(recipe.sourceUrl!) : undefined}
+              onPress={safeLink(recipe.sourceUrl) ? () => void WebBrowser.openBrowserAsync(safeLink(recipe.sourceUrl)!) : undefined}
               style={[styles.source, { backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.md, gap: space.md }]}
             >
               <Icon name={recipe.sourceUrl ? 'globe' : 'book'} tone="accent" />

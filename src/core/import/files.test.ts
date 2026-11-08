@@ -62,3 +62,34 @@ describe('recipe files', () => {
     expect(readRecipeFile('page.html', strToU8(html))).toMatchObject({ format: 'Web page', drafts: [{ name: 'Saved' }] });
   });
 });
+
+describe('untrusted files', () => {
+  const encode = (s: string) => new TextEncoder().encode(s);
+
+  it('normalizes partial Gather files instead of crashing later', () => {
+    const file = readRecipeFile('x.gather', encode(JSON.stringify({ format: 'gather-recipes', recipes: [{ name: 'A' }, { ingredients: 'oops', tags: [1, 'Soup'] }] })));
+    expect(file.drafts).toHaveLength(2);
+    expect(file.drafts[0]).toMatchObject({ name: 'A', imageUrls: [], ingredients: [], steps: [], tags: [] });
+    expect(file.drafts[1]).toMatchObject({ name: 'Untitled recipe', ingredients: [], tags: ['Soup'] });
+  });
+
+  it('keeps only http(s) links and images Gather can show', () => {
+    const file = readRecipeFile(
+      'x.gather',
+      encode(
+        JSON.stringify({
+          format: 'gather-recipes',
+          recipes: [{ name: 'B', sourceUrl: 'javascript:alert(1)', imageUrls: ['javascript:x', 'https://example.com/a.jpg', 'file:///etc/passwd', 'data:image/png;base64,AAAA'] }],
+        }),
+      ),
+    );
+    expect(file.drafts[0]?.sourceUrl).toBeUndefined();
+    expect(file.drafts[0]?.imageUrls).toEqual(['https://example.com/a.jpg', 'data:image/png;base64,AAAA']);
+  });
+
+  it('reads a text file that merely starts with a bracket as text', () => {
+    const file = readRecipeFile('pie.txt', encode('[Grandma] Pie\n2 cups flour\nBake it for 40 minutes until golden and bubbling at the edges.'));
+    expect(file.format).toBe('Text');
+    expect(file.drafts[0]?.name).toBe('[Grandma] Pie');
+  });
+});

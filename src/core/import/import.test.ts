@@ -87,6 +87,13 @@ Simmer 20 minutes."}</script>`;
     ]);
   });
 
+  it('drops script links from JSON-LD', () => {
+    const html = `<script type="application/ld+json">{"@type":"Recipe","name":"X","url":"javascript:alert(document.domain)","recipeIngredient":["1 cup milk"],"recipeInstructions":"Mix."}</script>`;
+    const [draft] = extractRecipesFromHtml(html, 'https://evil.example/r');
+    expect(draft?.name).toBe('X');
+    expect(draft?.sourceUrl === undefined || draft.sourceUrl.startsWith('https://')).toBe(true);
+  });
+
   it('decodes HTML', () => {
     expect(decodeEntities('Fish &amp; Chips &#8211; &frac12; &#x2F;')).toBe('Fish & Chips – ½ /');
     expect(htmlToText('<ul><li>One</li><li>Two</li></ul>')).toBe('One\nTwo');

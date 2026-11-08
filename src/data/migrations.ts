@@ -6,6 +6,7 @@
  */
 
 import { aisleFor } from '@/core/grocery/aisles';
+import { safeLink } from '@/core/import/draft';
 import { groceryName } from '@/core/grocery/merge';
 import { newId, now } from '@/core/model/recipe';
 import {
@@ -74,6 +75,8 @@ export function migrateRecipe(raw: unknown): Recipe {
   for (const key of ['servings', 'prepSeconds', 'cookSeconds', 'totalSeconds', 'rating'] as const) {
     if (recipe[key] !== undefined && !finite(recipe[key])) delete recipe[key];
   }
+  // Only http(s) sources open in the browser; anything else from an old or edited file is dropped.
+  if (recipe.sourceUrl !== undefined && !safeLink(recipe.sourceUrl)) delete recipe.sourceUrl;
   return recipe;
 }
 

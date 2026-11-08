@@ -23,6 +23,13 @@ export class RecipesRepository {
     return recipe;
   }
 
+  /** Saves several imported recipes in one write: all of them, or (if one can't be built) none. */
+  createManyFromDrafts(drafts: RecipeDraft[]): Recipe[] {
+    const recipes = drafts.map((draft) => recipeFromDraft(draft));
+    this.c.recipes.upsert(...recipes);
+    return recipes;
+  }
+
   createFromDraft(draft: RecipeDraft, extra: Partial<Recipe> = {}): Recipe {
     const recipe = recipeFromDraft(draft, extra);
     this.c.recipes.upsert(recipe);

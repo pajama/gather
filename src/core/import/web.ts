@@ -4,7 +4,7 @@
  */
 
 import { parseDurationText } from '../recipe/durations';
-import { emptyDraft, NUTRITION_KEYS, type DraftSection, type RecipeDraft } from './draft';
+import { emptyDraft, normalizeDraft, NUTRITION_KEYS, type DraftSection, type RecipeDraft } from './draft';
 import { cleanText, decodeEntities, getMetaContent, getTitle, hostLabel, htmlToText, resolveUrl } from './html';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -256,5 +256,5 @@ export function extractRecipesFromHtml(html: string, pageUrl?: string): RecipeDr
     if (draft.imageUrls.length === 0 && ogImage) draft.imageUrls = [resolveUrl(ogImage, pageUrl)];
   }
   const score = (d: RecipeDraft) => d.ingredients.reduce((n, s) => n + s.lines.length, 0) * 2 + d.steps.length;
-  return drafts.sort((a, b) => score(b) - score(a));
+  return drafts.map(normalizeDraft).sort((a, b) => score(b) - score(a));
 }

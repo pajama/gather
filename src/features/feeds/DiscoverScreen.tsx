@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { safeLink } from '@/core/import/draft';
 import { hostLabel } from '@/core/import/html';
 import { useDb, useFeeds } from '@/data/react';
 import { PageFetchError } from '@/data/services/fetch-page';
@@ -124,7 +125,7 @@ export function DiscoverScreen() {
                       <Text variant="subhead" tone="accent" weight="600">
                         Save recipe
                       </Text>
-                      <Tap onPress={() => void WebBrowser.openBrowserAsync(item.link)} hitSlop={8}>
+                      <Tap onPress={() => safeLink(item.link) && void WebBrowser.openBrowserAsync(safeLink(item.link)!)} hitSlop={8}>
                         <Text variant="subhead" tone="secondary">
                           Read on {hostLabel(item.link) ?? 'site'}
                         </Text>
