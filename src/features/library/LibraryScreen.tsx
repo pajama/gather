@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { safeLink } from '@/core/import/draft';
 import { hostLabel } from '@/core/import/html';
 import { LIBRARY_SORTS, queryLibrary, type LibrarySort } from '@/core/model/library';
 import type { Recipe } from '@/core/model/types';
@@ -18,6 +19,11 @@ import { RecipeCard, RecipeRow } from './RecipeCard';
  * A collection of recipes: All Recipes (the tab's landing page), Favorites,
  * a folder, or a tag (`/collection/tag:Dinner`).
  */
+
+/** Clipboard offers are a convenience: once dismissed or used, iOS stops offering until the next launch. */
+let clipboardOfferDismissed = false;
+let lastClipboardRead = 0;
+
 export function LibraryScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const scopeParam = params.id ?? 'all';
@@ -31,7 +37,9 @@ export function LibraryScreen() {
   const [sort, setSort] = useState<LibrarySort>('recent');
   const [addOpen, setAddOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
+  // A link on the clipboard to offer for import. On iOS the link isn't read until the person taps
+  // Import (reading asks for paste permission), so `url` is unknown there.
+  const [offer, setOffer] = useState<{ url?: string } | null>(null);
   const [quick, setQuick] = useState<Recipe | null>(null);
   const dismissedUrls = useRef(new Set<string>());
 
@@ -61,19 +69,24 @@ export function LibraryScreen() {
   );
   const selected = split ? (results.find((r) => r.id === selectedId) ?? results[0]) : undefined;
 
-  // Offer to import a recipe URL found on the clipboard (native only; the web needs a user gesture).
+  // Offer to import a recipe link found on the clipboard (native only; the web needs a user gesture).
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS === 'web') return;
       let cancelled = false;
       (async () => {
         try {
-          if (!(await Clipboard.hasUrlAsync?.())) return;
-          const value = (await Clipboard.getStringAsync()).trim();
-          if (!cancelled && /^https?:\/\//.test(value) && !dismissedUrls.current.has(value)) {
-            const known = db.recipes.all().some((r) => r.sourceUrl === value);
-            if (!known) setClipboardUrl(value);
+          if (Platform.OS === 'ios') {
+            // iOS asks permission every time an app reads the clipboard, so only ask whether it holds a link.
+            if (!clipboardOfferDismissed && (await Clipboard.hasUrlAsync()) && !cancelled) setOffer({});
+            return;
           }
+          // Android shows a "pasted from your clipboard" notice on every read: look at most once a minute.
+          const now = Date.now();
+          if (now - lastClipboardRead < 60_000 || !(await Clipboard.hasStringAsync())) return;
+          lastClipboardRead = now;
+          const url = safeLink((await Clipboard.getStringAsync()).trim());
+          if (!cancelled && url && !dismissedUrls.current.has(url) && !db.recipes.all().some((r) => r.sourceUrl === url)) setOffer({ url });
         } catch {
           // Clipboard access can be refused; the banner is a convenience.
         }
@@ -83,6 +96,17 @@ export function LibraryScreen() {
       };
     }, [db]),
   );
+
+  const importOffer = async () => {
+    const url = offer?.url ?? safeLink((await Clipboard.getStringAsync().catch(() => '')).trim());
+    clipboardOfferDismissed = true;
+    if (url) dismissedUrls.current.add(url);
+    setOffer(null);
+    if (!url) return;
+    const existing = db.recipes.all().find((r) => r.sourceUrl === url);
+    if (existing) router.push(`/recipe/${existing.id}`);
+    else router.push({ pathname: '/import', params: { url } });
+  };
 
   const header = (
     <View style={{ gap: space.md, marginBottom: space.lg }}>
@@ -96,31 +120,23 @@ export function LibraryScreen() {
           </>
         }
       />
-      {clipboardUrl ? (
+      {offer ? (
         <View style={[styles.banner, { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, gap: space.md }]}>
           <Icon name="clipboard" tone="accent" />
           <View style={{ flex: 1 }}>
-            <Text variant="headline">Import from {hostLabel(clipboardUrl) ?? 'link'}?</Text>
+            <Text variant="headline">{offer.url ? `Import from ${hostLabel(offer.url) ?? 'link'}?` : 'Import the copied link?'}</Text>
             <Text variant="footnote" tone="secondary" numberOfLines={1}>
-              {clipboardUrl}
+              {offer.url ?? 'Gather reads it when you tap Import'}
             </Text>
           </View>
-          <Button
-            title="Import"
-            size="sm"
-            onPress={() => {
-              const url = clipboardUrl;
-              dismissedUrls.current.add(url);
-              setClipboardUrl(null);
-              router.push({ pathname: '/import', params: { url } });
-            }}
-          />
+          <Button title="Import" size="sm" onPress={() => void importOffer()} />
           <IconButton
             icon="close"
             size={28}
             onPress={() => {
-              dismissedUrls.current.add(clipboardUrl);
-              setClipboardUrl(null);
+              clipboardOfferDismissed = true;
+              if (offer.url) dismissedUrls.current.add(offer.url);
+              setOffer(null);
             }}
             accessibilityLabel="Dismiss"
           />

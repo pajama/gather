@@ -141,5 +141,17 @@ export function Icon({
     danger: colors.danger,
     onImage: colors.textOnImage,
   }[tone];
-  return <Ionicons name={GLYPHS[name]} size={size} color={(color ?? toneColor) as string} />;
+  // Icons are decoration: the control around them carries the label. Without this, screen readers
+  // read the glyph's private-use character as part of every row and button.
+  return (
+    <Ionicons
+      name={GLYPHS[name]}
+      size={size}
+      color={(color ?? toneColor) as string}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      aria-hidden
+    />
+  );
 }

@@ -216,7 +216,7 @@ function TimerHud() {
               {subtitle}
             </Text>
           ) : null}
-          <Text rounded weight="800" color={tone} style={[styles.digits, compact ? null : styles.digitsLarge]}>
+          <Text rounded weight="800" color={done ? colors.danger : colors.timerText} style={[styles.digits, compact ? null : styles.digitsLarge]}>
             {done ? 'Done!' : formatClock(left)}
           </Text>
         </View>
@@ -234,7 +234,7 @@ function TimerHud() {
           style={[styles.pill, { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, boxShadow: shadow }]}
         >
           <Ring progress={first.totalSeconds ? 1 - remaining(first) / first.totalSeconds : 1} size={22} color={first.state === 'done' ? colors.danger : colors.timer} track={colors.fill} />
-          <Text variant="headline" rounded weight="800" color={first.state === 'done' ? colors.danger : colors.timer} style={styles.pillDigits}>
+          <Text variant="headline" rounded weight="800" color={first.state === 'done' ? colors.danger : colors.timerText} style={styles.pillDigits}>
             {first.state === 'done' ? 'Done' : formatClock(remaining(first))}
           </Text>
           {timers.length > 1 ? (

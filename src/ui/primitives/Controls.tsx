@@ -66,6 +66,7 @@ export function Field({
       <TextInput
         placeholderTextColor={colors.textTertiary}
         multiline={multiline}
+        accessibilityLabel={label}
         {...props}
         style={[
           styles.field,

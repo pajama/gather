@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { readableOn } from './contrast';
 import { accentById, DARK, LIGHT, RADIUS, SPACE, TYPE, type AccentDef, type Palette } from './tokens';
 
 export interface Theme {
@@ -11,6 +12,10 @@ export interface Theme {
     /** Accent at low opacity for tinted backgrounds. */
     accentSoft: string;
     accentMuted: string;
+    /** Text in the accent color (amounts, links): the accent, adjusted to read at 4.5:1. */
+    accentText: string;
+    /** Text in the timer color (durations, countdowns), adjusted the same way. */
+    timerText: string;
   };
   accent: AccentDef;
   space: typeof SPACE;
@@ -36,6 +41,8 @@ export function buildTheme(scheme: 'light' | 'dark', accentId: string): Theme {
       onAccent: accent.onAccent,
       accentSoft: withAlpha(accentColor, scheme === 'dark' ? 0.2 : 0.12),
       accentMuted: withAlpha(accentColor, scheme === 'dark' ? 0.35 : 0.24),
+      accentText: readableOn(accentColor, base.surface),
+      timerText: readableOn(base.timer, base.surface),
     },
     space: SPACE,
     radius: RADIUS,

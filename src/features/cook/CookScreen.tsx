@@ -50,6 +50,8 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
     [recipe],
   );
   const count = steps.length;
+  const stepDurations = useMemo(() => steps.map((step) => findDurations(step.text)), [steps]);
+  const finishedRef = useRef(false);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -77,6 +79,9 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
   );
 
   const finish = useCallback(() => {
+    // Keys, voice and buttons can all say "done"; the recipe is cooked once.
+    if (finishedRef.current) return;
+    finishedRef.current = true;
     db.recipes.markCooked(recipe.id);
     haptic('success');
     stopSpeaking();
@@ -85,7 +90,7 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
 
   // Keyboard control on the web and with hardware keyboards: arrows and space.
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || finished) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
@@ -96,19 +101,19 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [index, count, goTo, finish]);
+  }, [index, count, goTo, finish, finished]);
 
   const startStepTimer = useCallback(
     (stepIndex: number) => {
-      const step = steps[stepIndex];
-      const first = step ? findDurations(step.text)[0] : undefined;
+      const first = stepDurations[stepIndex]?.[0];
       if (first) timers.start(`${recipe.name}: step ${stepIndex + 1}`, first.maxSeconds ?? first.seconds, recipe.id);
     },
-    [steps, timers, recipe.name, recipe.id],
+    [stepDurations, timers, recipe.name, recipe.id],
   );
 
   const onVoice = useCallback(
     (command: VoiceCommand) => {
+      if (finishedRef.current) return;
       if (command === 'next') {
         if (index >= count - 1) finish();
         else goTo(index + 1);
@@ -121,7 +126,7 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
     [index, count, finish, goTo, steps, startStepTimer],
   );
   const canListen = voiceCommandsSupported();
-  const voice = useVoiceCommands(handsFree && canListen, onVoice);
+  const voice = useVoiceCommands(handsFree && canListen && !finished, onVoice);
 
   // Hands-free reads each step aloud as it appears.
   useEffect(() => {
@@ -129,8 +134,10 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
   }, [handsFree, index, steps]);
   useEffect(() => () => stopSpeaking(), []);
 
-  const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const page = Math.round(e.nativeEvent.contentOffset.x / width);
+  // The page follows the scroll position. react-native-web never fires onMomentumScrollEnd, so
+  // swiping or trackpad-scrolling in a browser has to be tracked from onScroll.
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const page = Math.max(0, Math.min(count - 1, Math.round(e.nativeEvent.contentOffset.x / width)));
     if (page !== index) {
       setIndex(page);
       setCallout(null);
@@ -194,12 +201,12 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={onScrollEnd}
+        onScroll={onScroll}
         scrollEventThrottle={16}
         style={styles.flex}
       >
         {steps.map((step, stepIndex) => {
-          const durations = findDurations(step.text);
+          const durations = stepDurations[stepIndex] ?? [];
           return (
             <ScrollView key={step.id} style={{ width }} contentContainerStyle={[styles.page, { paddingHorizontal: space.xxxl, paddingTop: space.huge, gap: space.lg }]}>
               <Text variant="overline" tone="tertiary">

@@ -134,6 +134,8 @@ export function ListRow({
         <Switch
           value={!!switchValue}
           onValueChange={onSwitch}
+          accessibilityLabel={title}
+          {...(subtitle ? { accessibilityHint: subtitle } : {})}
           trackColor={{ true: colors.accent, false: colors.fillStrong }}
           thumbColor="#FFFFFF"
           {...({ activeThumbColor: '#FFFFFF' } as object)}
@@ -143,7 +145,12 @@ export function ListRow({
   );
   if (!onPress) return content;
   return (
-    <Tap onPress={onPress} feedback="dim">
+    <Tap
+      onPress={onPress}
+      feedback="dim"
+      accessibilityLabel={[title, value, subtitle].filter(Boolean).join(', ')}
+      accessibilityState={accessory === 'check' ? { selected: true } : {}}
+    >
       {content}
     </Tap>
   );

@@ -81,7 +81,8 @@ React bindings (react.tsx)     <DatabaseProvider>, useRecipes(), useRecipe(id), 
 ### ui: the design system
 
 - `theme/tokens.ts`: light/dark palettes (including the pastel green/yellow/purple action tints and the amber timer color), spacing, radii, the type ramp (rounded Nunito for titles, buttons and numbers; the system face for reading text), and the user-selectable accent colors.
-- `theme/theme.tsx`: `ThemeProvider` builds the theme from the accent and color-scheme preference; components call `useTheme()`.
+- `theme/theme.tsx`: `ThemeProvider` builds the theme from the accent and color-scheme preference; components call `useTheme()`. Text in the accent or timer color uses `accentText`/`timerText`, shades adjusted by `theme/contrast.ts` to read at 4.5:1 (WCAG AA); the bright colors stay for fills and icons.
+- Accessibility: icons are hidden from screen readers (the control carries the label), `Field` labels its input, `ListRow` reports a checked row as selected and names its switch, and the rating stars are one adjustable control.
 - `primitives/*`: `Text`, `Icon` (semantic names, one place to swap icon sets), `Tap` (press feedback + haptics), `Button` and `IconButton` (filled, tinted and pastel variants), `Card`, `ListSection`/`ListRow`, `SearchField`, `Field`, `SegmentedControl`, `Stepper`, `Checkbox`, `Chip`, `EmptyState`, `Photo`, `Sheet`, `Screen`, `LargeHeader` (nav row with back link and actions above a large title), `BackLink`.
 - `useAppLayout()` decides between the phone layout (tab bar) and the wide layout (sidebar, from 1000pt) and reports the width left for the screen.
 

@@ -79,7 +79,8 @@ export const LIGHT: Palette = {
   fillStrong: 'rgba(118, 118, 128, 0.20)',
   separator: 'rgba(60, 60, 67, 0.12)',
   text: '#1C1C1E',
-  textSecondary: 'rgba(60, 60, 67, 0.62)',
+  // Secondary text reads at 4.5:1 on cards and the background (WCAG AA).
+  textSecondary: 'rgba(60, 60, 67, 0.76)',
   textTertiary: 'rgba(60, 60, 67, 0.34)',
   textOnImage: '#FFFFFF',
   scrim: 'rgba(0, 0, 0, 0.40)',

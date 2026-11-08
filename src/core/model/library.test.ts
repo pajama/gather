@@ -29,7 +29,8 @@ describe('queryLibrary', () => {
 
   it('filters by scope and tag', () => {
     expect(queryLibrary(recipes, { scope: 'favorites' }).map((r) => r.name)).toEqual(['Tomato Soup']);
-    expect(queryLibrary(recipes, { scope: 'f1' }).map((r) => r.name)).toEqual(['Tomato Soup']);
+    const f1 = { id: 'f1', name: 'Soups', sortIndex: 0, createdAt: '', updatedAt: '' };
+    expect(queryLibrary(recipes, { folder: f1 }).map((r) => r.name)).toEqual(['Tomato Soup']);
     expect(queryLibrary(recipes, { tag: 'baking' }).map((r) => r.name)).toEqual(['Banana Bread']);
   });
 

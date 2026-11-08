@@ -1,5 +1,5 @@
 import { searchText, totalSeconds } from './recipe';
-import type { Folder, ID, Recipe } from './types';
+import type { Folder, Recipe } from './types';
 
 export type LibrarySort = 'recent' | 'name' | 'cooked' | 'quickest' | 'rating';
 
@@ -22,8 +22,8 @@ export function inFolder(recipe: Recipe, folder: Folder): boolean {
 
 export interface LibraryQuery {
   text?: string;
-  /** A folder id, 'favorites', or undefined for all recipes. Prefer `folder` so smart rules apply. */
-  scope?: ID | 'favorites';
+  /** Only favorites. (Folders go in `folder`, so their tag rules apply.) */
+  scope?: 'favorites';
   /** Limit to a folder, including recipes its tag rule collects. */
   folder?: Folder;
   tag?: string;
@@ -40,7 +40,6 @@ export function queryLibrary(recipes: readonly Recipe[], query: LibraryQuery): R
   const filtered = recipes.filter((r) => {
     if (query.scope === 'favorites' && !r.favorite) return false;
     if (query.folder && !inFolder(r, query.folder)) return false;
-    if (!query.folder && query.scope && query.scope !== 'favorites' && !r.folderIds.includes(query.scope)) return false;
     if (tag && !r.tags.some((t) => t.toLowerCase() === tag)) return false;
     if (words.length) {
       const haystack = searchText(r);

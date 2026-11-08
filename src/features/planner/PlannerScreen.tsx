@@ -319,7 +319,12 @@ function RecipePicker({
   const [scope, setScope] = useState<string | undefined>(undefined);
   const [note, setNote] = useState('');
   const [slot, setSlot] = useState<MealSlot>(defaultSlotFor(settings.plannerSlots));
-  const results = useMemo(() => queryLibrary(recipes, { text, ...(scope ? { scope } : {}), sort: 'name' }), [recipes, text, scope]);
+  // Pass the folder itself so smart folders (recipes collected by tag) list their recipes here too.
+  const folder = scope && scope !== 'favorites' ? folders.find((f) => f.id === scope) : undefined;
+  const results = useMemo(
+    () => queryLibrary(recipes, { text, ...(folder ? { folder } : scope === 'favorites' ? { scope: 'favorites' as const } : {}), sort: 'name' }),
+    [recipes, text, folder, scope],
+  );
   const today = dayKey(new Date());
 
   return (

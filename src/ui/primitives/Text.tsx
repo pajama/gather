@@ -43,12 +43,12 @@ export function Text({ variant = 'body', tone = 'primary', weight, align, color,
     primary: colors.text,
     secondary: colors.textSecondary,
     tertiary: colors.textTertiary,
-    accent: colors.accent,
+    accent: colors.accentText,
     onAccent: colors.onAccent,
     danger: colors.danger,
     onImage: colors.textOnImage,
     success: colors.success,
-    timer: colors.timer,
+    timer: colors.timerText,
   };
   return (
     <RNText
