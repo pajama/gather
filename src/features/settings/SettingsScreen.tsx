@@ -1,11 +1,15 @@
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, StyleSheet, View } from 'react-native';
 
+import { crumbArchive } from '@/core/import/crumb';
+import { newId, recipeToDraft } from '@/core/model/recipe';
 import { MEAL_SLOTS, type MealSlot, type UnitPreference } from '@/core/model/types';
 import type { Backup } from '@/data/database';
 import { useDb, useRecipes, useSettings } from '@/data/react';
 import { pickBackupFile, saveBackupFile } from '@/data/services/backup-file';
+import { shareBinaryFile } from '@/data/services/pick-file';
 import { ACCENTS, Chip, haptic, Icon, LargeHeader, ListRow, ListSection, Screen, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
 const SLOT_LABELS: Record<MealSlot, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
@@ -145,6 +149,27 @@ export function SettingsScreen() {
       <ListSection title="Your data" footer={status ?? `${recipes.length} recipes stored on this device.`}>
         <ListRow icon="upload" iconColor="#5E8BD6" title="Export a backup" subtitle="Everything, as one file" onPress={() => void exportBackup()} />
         <ListRow icon="download" iconColor="#2F9E5B" title="Restore from backup" onPress={() => void importBackup()} />
+      </ListSection>
+
+      <ListSection title="Other apps" footer="Crouton opens .crumb files, so recipes can move between the two apps in either direction.">
+        <ListRow
+          icon="download"
+          iconColor="#F5A623"
+          title="Import recipes"
+          subtitle="From Crouton, Paprika or a Gather file"
+          onPress={() => router.push({ pathname: '/import', params: { mode: 'file' } })}
+        />
+        <ListRow
+          icon="upload"
+          iconColor="#5E5CE6"
+          title="Export for Crouton"
+          subtitle="Every recipe as a .crumb file, in one zip"
+          onPress={() => {
+            const zip = crumbArchive(recipes.map(recipeToDraft), () => newId().toUpperCase());
+            void shareBinaryFile('Gather recipes.zip', zip);
+            setStatus(`Exported ${recipes.length} recipes for Crouton`);
+          }}
+        />
       </ListSection>
 
       <View style={[styles.about, { gap: space.xs, borderRadius: radius.lg }]}>

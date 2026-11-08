@@ -1,7 +1,7 @@
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 
-import { crumbFromDraft, crumbIngredientLine, draftFromCrumb, isCrumb, type CrumbRecipe } from './crumb';
+import { crumbArchive, crumbFromDraft, crumbIngredientLine, draftFromCrumb, isCrumb, type CrumbRecipe } from './crumb';
 import { readRecipeFile } from './files';
 
 // A hand-written recipe in Crouton's export shape (not taken from any real export).
@@ -123,5 +123,15 @@ describe('Crouton .crumb import', () => {
     expect(many.format).toBe('Crouton');
     expect(many.drafts.map((d) => d.name).sort()).toEqual(['Lemon Ricotta Pancakes', 'Toast']);
     expect(many.skipped).toEqual(['Export/broken.crumb']);
+  });
+
+  it('exports a library as a zip of .crumb files that reads back', () => {
+    const draft = draftFromCrumb(CRUMB);
+    let n = 0;
+    const zip = crumbArchive([draft, { ...draft, name: 'Lemon Ricotta Pancakes' }, { ...draft, name: 'Toast / jam' }], () => `U-${++n}`);
+    const back = readRecipeFile('Gather export.zip', zip);
+    expect(back.format).toBe('Crouton');
+    expect(back.drafts.map((d) => d.name).sort()).toEqual(['Lemon Ricotta Pancakes', 'Lemon Ricotta Pancakes', 'Toast / jam']);
+    expect(back.drafts[0]?.ingredients).toEqual(draft.ingredients);
   });
 });

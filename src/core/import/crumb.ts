@@ -16,6 +16,8 @@
  * recipes can go back.
  */
 
+import { strToU8, zipSync } from 'fflate';
+
 import { parseIngredient } from '../recipe/ingredients';
 import { formatNumber, parseQuantity } from '../recipe/quantity';
 import { getUnit, unitLabel } from '../recipe/units';
@@ -278,4 +280,18 @@ export function crumbQuantityFromText(text: string): CrumbQuantity | undefined {
   const q = parseQuantity(text);
   if (!q) return undefined;
   return { amount: q.value, ...(q.max !== undefined ? { secondaryAmount: q.max } : {}) };
+}
+
+/** A zip of one `.crumb` per recipe, named after the recipes. */
+export function crumbArchive(drafts: readonly RecipeDraft[], uuid: () => string): Uint8Array {
+  const files: Record<string, Uint8Array> = {};
+  const used = new Set<string>();
+  for (const draft of drafts) {
+    const base = draft.name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Recipe';
+    let name = `${base}.crumb`;
+    for (let n = 2; used.has(name.toLowerCase()); n++) name = `${base} ${n}.crumb`;
+    used.add(name.toLowerCase());
+    files[name] = strToU8(JSON.stringify(crumbFromDraft(draft, uuid)));
+  }
+  return zipSync(files, { level: 6 });
 }
