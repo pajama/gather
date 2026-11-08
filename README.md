@@ -53,5 +53,6 @@ npm run lint       # ESLint (expo lint)
 | `src/data/` | Persistence behind repository interfaces, with native and web adapters. |
 | `src/features/` | Feature modules (library, recipe, cook, timers, planner, groceries, import, feeds, settings, shell). |
 | `src/ui/` | Design system: tokens, theme and primitives. |
+| `tools/reverse-engineering/` | Python scripts from the reverse-engineering study (not part of the app). |
 
 See [AGENTS.md](AGENTS.md) for the rules that keep these layers apart and [docs/architecture.md](docs/architecture.md) for how data flows and how to add a feature.

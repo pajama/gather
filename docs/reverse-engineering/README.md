@@ -12,7 +12,8 @@ This page records what we learned, where each fact came from, and what it change
 | Crouton's press kit (linked from the website for press use) | Screenshots of every main screen on iPhone, iPad and Mac: the ground truth for layout and styling |
 | Open-source projects that interoperate with Crouton: [crouton-sync](https://github.com/bridges-wood/crouton-sync)'s internals notes, and the Crouton importers in [Salty](https://github.com/RMoRobert/salty), [RecipeSage](https://github.com/julianpoy/RecipeSage) and [Recipya](https://github.com/reaper47/recipya-rs) | The data model (Core Data entities and fields), the 17 quantity types, the `.crumb` export format, the sync backend |
 | REA, run against the website | DOM, accessibility tree, scripts and resources of crouton.app (a static marketing page, so little product insight) |
-| REA, run against the Crouton app binary | Not yet: the zip we received was a macOS alias rather than the app. See [rea-evaluation.md](rea-evaluation.md) for the plan and what REA can and cannot do on Linux |
+| REA, run against an open-source SwiftUI recipe app with known source ([Salty](https://github.com/RMoRobert/salty)) | A measured view of what REA recovers from a release build, and the metadata reader we will use on Crouton. See [rea-evaluation.md](rea-evaluation.md) |
+| REA, run against the Crouton app binary | Not yet: the zip we received was a macOS alias rather than the app |
 
 ## Navigation and screens
 
