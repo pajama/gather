@@ -73,8 +73,8 @@ export function DiscoverScreen() {
             subtitle={feeds.length ? `New from ${feeds.length} ${feeds.length === 1 ? 'feed' : 'feeds'}` : undefined}
             right={
               <>
-                {feeds.length ? <IconButton icon="refresh" variant="fill" onPress={() => void refresh()} accessibilityLabel="Refresh feeds" /> : null}
-                <IconButton icon="add" variant="filled" onPress={() => setManageOpen(true)} accessibilityLabel="Manage feeds" />
+                {feeds.length ? <IconButton icon="refresh" variant="tinted" onPress={() => void refresh()} accessibilityLabel="Refresh feeds" /> : null}
+                <IconButton icon="add" variant="tinted" onPress={() => setManageOpen(true)} accessibilityLabel="Manage feeds" />
               </>
             }
           />

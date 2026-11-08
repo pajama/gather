@@ -51,9 +51,9 @@ export function ListSection({
   return (
     <View style={[{ marginBottom: space.xxl }, style]}>
       {title || action ? (
-        <View style={[styles.sectionHeader, { paddingHorizontal: space.lg, marginBottom: space.sm }]}>
+        <View style={[styles.sectionHeader, { paddingHorizontal: space.xs, marginBottom: space.sm }]}>
           {title ? (
-            <Text variant="footnote" tone="secondary" weight="600" style={styles.upper}>
+            <Text variant="subhead" tone="secondary">
               {title}
             </Text>
           ) : (
@@ -151,7 +151,6 @@ export function ListRow({
 
 const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-  upper: { textTransform: 'uppercase', letterSpacing: 0.4 },
   separator: { height: StyleSheet.hairlineWidth },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowIcon: { width: 29, height: 29, alignItems: 'center', justifyContent: 'center' },
