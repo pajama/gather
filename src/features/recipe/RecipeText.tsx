@@ -37,26 +37,30 @@ export function useIngredientViews(recipe: Recipe | undefined, scale: number, un
   }, [recipe, scale, units]);
 }
 
+/** "1 cup unsalted butter, softened" with the amount in the accent color (Crouton's ingredient line). */
 export function IngredientLine({
   view,
   checked,
   onToggle,
   size = 'body',
+  showCheckbox = false,
 }: {
   view: IngredientView;
   checked?: boolean;
   onToggle?: () => void;
   size?: 'body' | 'large';
+  /** Show an explicit checkbox (cook mode ingredient list); otherwise tapping strikes the line through. */
+  showCheckbox?: boolean;
 }) {
-  const { colors, space } = useTheme();
+  const { space } = useTheme();
   const { formatted } = view;
   const variant: TextProps['variant'] = size === 'large' ? 'title3' : 'body';
   const content = (
-    <View style={[styles.ingredient, { gap: space.md, opacity: checked ? 0.45 : 1 }]}>
-      {onToggle ? <Checkbox checked={!!checked} size={22} /> : <View style={[styles.dot, { backgroundColor: colors.accent }]} />}
+    <View style={[styles.ingredient, { gap: space.md, opacity: checked ? 0.4 : 1 }]}>
+      {showCheckbox ? <Checkbox checked={!!checked} size={22} /> : null}
       <Text variant={variant} style={[styles.flex, checked ? styles.strike : null]}>
         {formatted.amount ? (
-          <Text variant={variant} weight="700" tone="accent">
+          <Text variant={variant} tone="accent">
             {formatted.amount}{' '}
           </Text>
         ) : null}
@@ -78,34 +82,29 @@ export function IngredientLine({
 }
 
 /**
- * Step text with durations as tappable timer links and ingredient mentions
- * showing the scaled amount ("the flour (2 cups)").
+ * Step text with durations (amber, tap to start a timer) and ingredient
+ * mentions (accent, tap to see the amount), as in Crouton's step views.
  */
 export function StepText({
   text,
   recipe,
   views,
   onStartTimer,
+  onIngredientPress,
   variant = 'body',
-  showAmounts = true,
 }: {
   text: string;
   recipe: Recipe;
   views: Map<string, IngredientView>;
   onStartTimer?: (seconds: number, label: string) => void;
+  onIngredientPress?: (view: IngredientView) => void;
   variant?: TextProps['variant'];
-  showAmounts?: boolean;
 }) {
-  const { colors } = useTheme();
   const segments = useMemo(() => {
     const targets = [...views.values()].map((v) => ({ id: v.ingredient.id, name: v.parsedName }));
     const mentions = findIngredientMentions(text, targets);
     const durations = findDurations(text);
-    const marks = [
-      ...durations,
-      // A duration and an ingredient never overlap; drop mentions inside durations just in case.
-      ...mentions.filter((m) => !durations.some((d) => m.start < d.end && d.start < m.end)),
-    ];
+    const marks = [...durations, ...mentions.filter((m) => !durations.some((d) => m.start < d.end && d.start < m.end))];
     return segmentText(text, marks);
   }, [text, views]);
 
@@ -114,32 +113,30 @@ export function StepText({
       {segments.map((segment, index) => {
         if (segment.kind === 'text') return <Fragment key={index}>{segment.text}</Fragment>;
         if (segment.kind === 'duration') {
+          const seconds = segment.maxSeconds ?? segment.seconds;
           return (
             <Text
               key={index}
               variant={variant}
-              weight="700"
-              tone="accent"
+              tone="timer"
               accessibilityRole="button"
               accessibilityHint="Starts a timer"
-              onPress={onStartTimer ? () => onStartTimer(segment.maxSeconds ?? segment.seconds, `${recipe.name}: ${formatDuration(segment.maxSeconds ?? segment.seconds)}`) : undefined}
-              style={styles.durationLink}
+              onPress={onStartTimer ? () => onStartTimer(seconds, `${recipe.name}: ${formatDuration(seconds)}`) : undefined}
             >
               {segment.text}
             </Text>
           );
         }
         const view = views.get(segment.ingredientId);
-        const amount = showAmounts ? view?.formatted.amount : undefined;
         return (
-          <Text key={index} variant={variant} weight="600" color={colors.text}>
+          <Text
+            key={index}
+            variant={variant}
+            tone="accent"
+            accessibilityRole={onIngredientPress ? 'button' : undefined}
+            onPress={onIngredientPress && view ? () => onIngredientPress(view) : undefined}
+          >
             {segment.text}
-            {amount ? (
-              <Text variant={variant} weight="600" tone="accent">
-                {' '}
-                ({amount})
-              </Text>
-            ) : null}
           </Text>
         );
       })}
@@ -147,10 +144,27 @@ export function StepText({
   );
 }
 
+/** The bubble Crouton shows when you tap an ingredient inside a step: "1 tsp chilli powder". */
+export function IngredientCallout({ view }: { view: IngredientView }) {
+  const { colors, radius, space } = useTheme();
+  return (
+    <View
+      style={[
+        styles.callout,
+        { backgroundColor: colors.surfaceRaised, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: space.sm, boxShadow: `0 4px 18px ${colors.shadow}, 0 1px 3px ${colors.shadow}` },
+      ]}
+    >
+      <Text variant="body">
+        {view.formatted.amount ? <Text tone="accent">{view.formatted.amount} </Text> : null}
+        {view.formatted.name}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  ingredient: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 7 },
-  dot: { width: 6, height: 6, borderRadius: 3, marginTop: 10, marginHorizontal: 8 },
+  ingredient: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   flex: { flex: 1 },
   strike: { textDecorationLine: 'line-through' },
-  durationLink: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  callout: { alignSelf: 'flex-start' },
 });

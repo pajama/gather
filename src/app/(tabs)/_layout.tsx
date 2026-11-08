@@ -1,8 +1,14 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, type ColorValue } from 'react-native';
 
-import { Icon, useTheme } from '@/ui';
+import { Icon, useTheme, type IconName } from '@/ui';
 
+function tabIcon(outline: IconName, filled: IconName) {
+  // eslint-disable-next-line react/display-name
+  return ({ color, focused }: { color: ColorValue; focused: boolean }) => <Icon name={focused ? filled : outline} color={color} size={25} />;
+}
+
+/** Tab order follows Crouton: Meal Plan, Recipes, Groceries, Discover, Settings. "/" opens Recipes. */
 export default function TabsLayout() {
   const { colors } = useTheme();
   return (
@@ -16,29 +22,14 @@ export default function TabsLayout() {
           borderTopColor: colors.separator,
           ...(Platform.OS === 'web' ? { height: 64, paddingBottom: 8, paddingTop: 6 } : {}),
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, fontFamily: 'Nunito_600SemiBold' },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Recipes', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'bookFilled' : 'book'} color={color} size={24} /> }}
-      />
-      <Tabs.Screen
-        name="discover"
-        options={{ title: 'Discover', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'compassFilled' : 'compass'} color={color} size={24} /> }}
-      />
-      <Tabs.Screen
-        name="plan"
-        options={{ title: 'Plan', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'calendarFilled' : 'calendar'} color={color} size={24} /> }}
-      />
-      <Tabs.Screen
-        name="groceries"
-        options={{ title: 'Groceries', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'cartFilled' : 'cart'} color={color} size={24} /> }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{ title: 'Settings', tabBarIcon: ({ color, focused }) => <Icon name={focused ? 'settingsFilled' : 'settings'} color={color} size={24} /> }}
-      />
+      <Tabs.Screen name="plan" options={{ title: 'Meal Plan', tabBarIcon: tabIcon('calendar', 'calendarFilled') }} />
+      <Tabs.Screen name="(recipes)" options={{ title: 'Recipes', tabBarIcon: tabIcon('recipes', 'recipesFilled') }} />
+      <Tabs.Screen name="groceries" options={{ title: 'Groceries', tabBarIcon: tabIcon('basket', 'basketFilled') }} />
+      <Tabs.Screen name="discover" options={{ title: 'Discover', tabBarIcon: tabIcon('sparkles', 'sparklesFilled') }} />
+      <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('moreCircle', 'moreCircleFilled') }} />
     </Tabs>
   );
 }

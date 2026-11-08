@@ -1,17 +1,17 @@
 /**
  * Kitchen timers. Timers live above navigation so they keep running while
- * the cook moves between recipes, and a heads-up pill shows them on every
- * screen (Crouton's "timers HUD").
+ * the cook moves between recipes, and a floating card shows them on every
+ * screen (Crouton's timer card).
  */
 
-import { useFocusEffect } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatClock } from '@/core/recipe/durations';
 import { cancelTimerAlert, scheduleTimerAlert, timerFinished } from '@/data/services/timer-alerts';
-import { haptic, Icon, IconButton, Tap, Text, useTheme } from '@/ui';
+import { haptic, IconButton, Tap, Text, useTheme } from '@/ui';
 
 export interface KitchenTimer {
   id: string;
@@ -34,9 +34,6 @@ interface TimersApi {
   cancel: (id: string) => void;
   addTime: (id: string, seconds: number) => void;
   remaining: (timer: KitchenTimer) => number;
-  /** Distance of the heads-up display from the bottom edge, set by the focused screen. */
-  hudBottom: number | undefined;
-  setHudBottom: (bottom: number | undefined) => void;
 }
 
 const TimersContext = createContext<TimersApi | null>(null);
@@ -46,7 +43,6 @@ let counter = 0;
 export function TimersProvider({ children }: { children: ReactNode }) {
   const [stored, setTimers] = useState<KitchenTimer[]>([]);
   const [now, setNow] = useState(() => Date.now());
-  const [hudBottom, setHudBottom] = useState<number | undefined>(undefined);
   // A running timer whose end has passed is done; derive it rather than store it.
   const timers = useMemo(
     () => stored.map((t) => (t.state === 'running' && t.endsAt !== undefined && t.endsAt <= now ? { ...t, state: 'done' as const } : t)),
@@ -92,8 +88,6 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       timers,
       now,
       remaining,
-      hudBottom,
-      setHudBottom,
       start: (label, seconds, recipeId) => {
         const id = `timer-${Date.now()}-${counter++}`;
         haptic('medium');
@@ -140,7 +134,7 @@ export function TimersProvider({ children }: { children: ReactNode }) {
           }),
         ),
     }),
-    [timers, stored, now, remaining, hudBottom],
+    [timers, stored, now, remaining],
   );
 
   return (
@@ -153,120 +147,141 @@ export function TimersProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Places the timers HUD for the focused screen: screens without a tab bar
- * (recipe, cook mode) move it closer to the bottom edge or above their own
- * footer. Screens that do not call this get the tab-bar default.
- */
-export function useTimerHudOffset(bottom: number | undefined): void {
-  const { setHudBottom } = useTimers();
-  useFocusEffect(
-    useCallback(() => {
-      if (bottom === undefined) return;
-      setHudBottom(bottom);
-      return () => setHudBottom(undefined);
-    }, [bottom, setHudBottom]),
-  );
-}
-
 export function useTimers(): TimersApi {
   const api = useContext(TimersContext);
   if (!api) throw new Error('useTimers must be used inside <TimersProvider>');
   return api;
 }
 
-/** Floating heads-up display listing active timers. */
+/** "Butter Chicken: step 3" -> { title: "Step 3", subtitle: "Butter Chicken" }. */
+export function splitTimerLabel(label: string): { title: string; subtitle?: string } {
+  const at = label.lastIndexOf(': ');
+  if (at <= 0) return { title: label };
+  const rest = label.slice(at + 2);
+  return { title: rest.charAt(0).toUpperCase() + rest.slice(1), subtitle: label.slice(0, at) };
+}
+
+function Ring({ progress, size, color, track }: { progress: number; size: number; color: string; track: string }) {
+  const stroke = Math.max(4, size * 0.16);
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const clamped = Math.min(1, Math.max(0, progress));
+  return (
+    <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={stroke} fill="none" />
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        stroke={color}
+        strokeWidth={stroke}
+        fill="none"
+        strokeDasharray={`${circumference} ${circumference}`}
+        strokeDashoffset={circumference * clamped}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * Crouton's timer card: floats at the top right over every screen with the
+ * most urgent timer in big amber digits and a ring that empties as it runs.
+ * Tap it to see and control every timer.
+ */
 function TimerHud() {
-  const { timers, remaining, pause, resume, cancel, addTime, hudBottom } = useTimers();
+  const { timers, remaining, pause, resume, cancel, addTime } = useTimers();
   const { colors, radius, space } = useTheme();
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
   if (timers.length === 0) return null;
   const sorted = [...timers].sort((a, b) => remaining(a) - remaining(b));
   const first = sorted[0]!;
-  const doneCount = timers.filter((t) => t.state === 'done').length;
+  const shadow = `0 10px 30px ${colors.shadow}, 0 2px 8px ${colors.shadow}`;
+
+  const card = (t: KitchenTimer, compact: boolean) => {
+    const left = remaining(t);
+    const done = t.state === 'done';
+    const { title, subtitle } = splitTimerLabel(t.label);
+    const tone = done ? colors.danger : colors.timer;
+    return (
+      <View style={[styles.timerCard, { gap: space.md }]}>
+        <View style={styles.timerText}>
+          <Text variant="headline" numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text variant="subhead" tone="secondary" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+          <Text rounded weight="800" color={tone} style={[styles.digits, compact ? null : styles.digitsLarge]}>
+            {done ? 'Done!' : formatClock(left)}
+          </Text>
+        </View>
+        <Ring progress={t.totalSeconds ? 1 - left / t.totalSeconds : 1} size={compact ? 42 : 46} color={tone} track={colors.fill} />
+      </View>
+    );
+  };
 
   return (
-    <View pointerEvents="box-none" style={[styles.hudWrap, { bottom: hudBottom ?? insets.bottom + 72 }]}>
-      <View
-        style={[
-          styles.hud,
-          {
-            backgroundColor: doneCount ? colors.accent : colors.text,
-            borderRadius: expanded ? radius.lg : radius.pill,
-            padding: expanded ? space.md : 0,
-            boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
-          },
-        ]}
-      >
-        {!expanded ? (
-          <Tap onPress={() => setExpanded(true)} style={styles.hudCollapsed} accessibilityLabel="Show timers">
-            <Icon name="timer" size={18} color={doneCount ? colors.onAccent : colors.background} />
-            <Text variant="headline" color={doneCount ? colors.onAccent : colors.background} style={styles.mono}>
-              {first.state === 'done' ? 'Done!' : formatClock(remaining(first))}
-            </Text>
-            <Text variant="footnote" color={doneCount ? colors.onAccent : colors.background} numberOfLines={1} style={styles.hudLabel}>
-              {first.label}
-              {timers.length > 1 ? ` +${timers.length - 1}` : ''}
-            </Text>
-          </Tap>
-        ) : (
-          <View style={{ gap: space.sm, minWidth: 280 }}>
-            <View style={styles.hudHeader}>
-              <Text variant="headline" color={colors.background}>
-                Timers
+    <View pointerEvents="box-none" style={[styles.hudWrap, { top: insets.top + 56, right: space.lg }]}>
+      {!expanded ? (
+        <Tap
+          onPress={() => setExpanded(true)}
+          accessibilityLabel="Show timers"
+          style={[styles.hud, { backgroundColor: colors.surfaceRaised, borderRadius: radius.xl, padding: space.md, boxShadow: shadow }]}
+        >
+          {card(first, true)}
+          {timers.length > 1 ? (
+            <View style={[styles.more, { backgroundColor: colors.timer }]}>
+              <Text variant="caption" rounded weight="800" color="#FFFFFF">
+                +{timers.length - 1}
               </Text>
-              <Tap onPress={() => setExpanded(false)} accessibilityLabel="Collapse timers" hitSlop={10}>
-                <Icon name="chevronDown" size={20} color={colors.background} />
-              </Tap>
             </View>
-            {sorted.map((t) => {
-              const left = remaining(t);
-              const progress = t.totalSeconds ? 1 - left / t.totalSeconds : 1;
-              return (
-                <View key={t.id} style={[styles.timerRow, { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: radius.md }]}>
-                  <View style={styles.timerText}>
-                    <Text variant="title3" color={t.state === 'done' ? colors.accent : colors.background} style={styles.mono}>
-                      {t.state === 'done' ? 'Done' : formatClock(left)}
-                    </Text>
-                    <Text variant="footnote" color={colors.background} numberOfLines={1} style={{ opacity: 0.75 }}>
-                      {t.label}
-                    </Text>
-                    <View style={[styles.track, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                      <View style={[styles.bar, { width: `${Math.min(100, progress * 100)}%`, backgroundColor: colors.accent }]} />
-                    </View>
-                  </View>
-                  <IconButton icon="add" variant="glass" size={32} onPress={() => addTime(t.id, 60)} accessibilityLabel="Add one minute" />
-                  {t.state !== 'done' ? (
-                    <IconButton
-                      icon={t.state === 'paused' ? 'play' : 'pause'}
-                      variant="glass"
-                      size={32}
-                      onPress={() => (t.state === 'paused' ? resume(t.id) : pause(t.id))}
-                      accessibilityLabel={t.state === 'paused' ? 'Resume' : 'Pause'}
-                    />
-                  ) : null}
-                  <IconButton icon="close" variant="glass" size={32} onPress={() => cancel(t.id)} accessibilityLabel="Remove timer" />
-                </View>
-              );
-            })}
+          ) : null}
+        </Tap>
+      ) : (
+        <View style={[styles.hud, styles.hudOpen, { backgroundColor: colors.surfaceRaised, borderRadius: radius.xl, padding: space.md, gap: space.md, boxShadow: shadow }]}>
+          <View style={styles.hudHeader}>
+            <Text variant="title3">Timers</Text>
+            <IconButton icon="chevronUp" variant="tinted" size={30} onPress={() => setExpanded(false)} accessibilityLabel="Collapse timers" />
           </View>
-        )}
-      </View>
+          {sorted.map((t) => (
+            <View key={t.id} style={{ gap: space.sm }}>
+              {card(t, false)}
+              <View style={[styles.controls, { gap: space.sm }]}>
+                <IconButton icon="add" variant="tinted" tint="yellow" size={34} onPress={() => addTime(t.id, 60)} accessibilityLabel="Add one minute" />
+                {t.state !== 'done' ? (
+                  <IconButton
+                    icon={t.state === 'paused' ? 'play' : 'pause'}
+                    variant="tinted"
+                    tint="yellow"
+                    size={34}
+                    onPress={() => (t.state === 'paused' ? resume(t.id) : pause(t.id))}
+                    accessibilityLabel={t.state === 'paused' ? 'Resume' : 'Pause'}
+                  />
+                ) : null}
+                <IconButton icon="close" variant="tinted" tint="red" size={34} onPress={() => cancel(t.id)} accessibilityLabel="Remove timer" />
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  hudWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 1000 },
-  hud: { maxWidth: 420 },
-  hudCollapsed: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 38, maxWidth: 320 },
-  hudLabel: { opacity: 0.8, flexShrink: 1 },
+  hudWrap: { position: 'absolute', alignItems: 'flex-end', zIndex: 1000 },
+  hud: { minWidth: 210, maxWidth: 300 },
+  hudOpen: { width: 300 },
   hudHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  timerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10 },
-  timerText: { flex: 1, gap: 2 },
-  track: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 4 },
-  bar: { height: 4, borderRadius: 2 },
-  mono: { fontVariant: ['tabular-nums'] },
+  timerCard: { flexDirection: 'row', alignItems: 'center' },
+  timerText: { flex: 1 },
+  digits: { fontSize: 34, lineHeight: 40, fontVariant: ['tabular-nums'] },
+  digitsLarge: { fontSize: 38, lineHeight: 44 },
+  controls: { flexDirection: 'row', justifyContent: 'flex-end' },
+  more: { position: 'absolute', top: -6, right: -6, minWidth: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
 });

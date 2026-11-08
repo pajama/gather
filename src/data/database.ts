@@ -17,7 +17,7 @@ import { RecipesRepository } from './repositories/recipes';
 import type { DocumentStore } from './store/document-store';
 
 export const DEFAULT_SETTINGS: Settings = {
-  accent: 'tomato',
+  accent: 'sky',
   theme: 'system',
   units: 'original',
   keepAwake: true,

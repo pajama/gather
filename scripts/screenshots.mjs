@@ -88,20 +88,17 @@ async function scrollMain(page, y) {
   await page.getByText('Ingredients').first().waitFor();
   await page.waitForTimeout(800);
   await shot(page, '02-recipe-top');
-  await scrollMain(page, 560);
+  await scrollMain(page, 520);
   await shot(page, '03-recipe-ingredients');
-  await scrollMain(page, 700);
+  await scrollMain(page, 640);
   await shot(page, '04-recipe-method');
-  await page.getByText('Start cooking').first().click().catch(() => {});
-  await page.goto(page.url().replace(/\/?$/, '') + '/cook').catch(() => {});
-  await page.getByText(/Step 1 of/).first().waitFor({ timeout: 10000 }).catch(() => {});
-  await page.getByRole('button', { name: 'Next' }).first().click().catch(() => {});
-  await page.getByRole('button', { name: 'Next' }).first().click().catch(() => {});
-  await page.getByRole('button', { name: 'Next' }).first().click().catch(() => {});
-  await page.getByRole('button', { name: 'Next' }).first().click().catch(() => {});
+  await page.goto(page.url().replace(/[?#].*$/, '').replace(/\/?$/, '') + '/cook').catch(() => {});
+  await page.getByText(/^Step 1/).first().waitFor({ timeout: 10000 }).catch(() => {});
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next step' }).first().click().catch(() => {});
   await page.waitForTimeout(900);
   await shot(page, '05-cook-mode');
   await page.getByText(/Start 1 hr 15 min timer/).first().click().catch(() => {});
+  await page.waitForTimeout(600);
   await shot(page, '06-cook-timer');
   await page.goto(base + '/');
   await page.getByText('Fluffy Buttermilk Pancakes').first().click();
@@ -114,9 +111,17 @@ async function scrollMain(page, y) {
   await page.goto(base + '/groceries');
   await page.getByText('Groceries').first().waitFor();
   await shot(page, '07-groceries');
+  await page.getByRole('button', { name: 'Add an item' }).first().click();
+  await page.getByLabel('Item name').fill('Tomatoes');
+  await page.getByRole('button', { name: '2', exact: true }).first().click().catch(() => {});
+  await page.getByRole('button', { name: 'Cup', exact: true }).first().click().catch(() => {});
+  await shot(page, '07b-groceries-add');
   await page.goto(base + '/plan');
-  await page.getByText('Plan').first().waitFor();
+  await page.getByText('Meal Plan').first().waitFor();
   await shot(page, '08-plan');
+  await page.goto(base + '/collections');
+  await page.getByText('Collections').first().waitFor({ timeout: 15000 });
+  await shot(page, '08b-collections');
   await page.goto(base + '/settings');
   await page.getByText('Accent color').first().waitFor({ timeout: 15000 });
   await shot(page, '09-settings');
@@ -130,7 +135,7 @@ async function scrollMain(page, y) {
 if (process.env.IMPORT_URL || process.env.FEED_URL) {
   const { context, page } = await session({ width: 390, height: 844 });
   await page.goto(base + '/');
-  await page.getByText('Recipes').first().waitFor({ timeout: 20000 });
+  await page.getByText('All Recipes').first().waitFor({ timeout: 20000 });
   if (process.env.IMPORT_URL) {
     await page.goto(`${base}/import?url=${encodeURIComponent(process.env.IMPORT_URL)}`);
     await page.getByText('Save recipe').first().waitFor({ timeout: 30000 });
@@ -176,7 +181,9 @@ if (process.env.IMPORT_URL || process.env.FEED_URL) {
   await shot(page, '13-library-desktop');
   await page.getByText('Miso Glazed Salmon').first().click();
   await page.waitForTimeout(900);
-  await scrollMain(page, 380);
+  await page.mouse.move(850, 500);
+  await page.mouse.wheel(0, 420);
+  await page.waitForTimeout(500);
   await shot(page, '14-recipe-desktop');
   await context.close();
 }

@@ -1,4 +1,7 @@
+import { Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black, useFonts } from '@expo-google-fonts/nunito';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,6 +14,7 @@ import { TimersProvider } from '@/features/cook/timers';
 import { ThemeProvider, useTheme } from '@/ui';
 
 registerSeedImages();
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function AppStack() {
   const { colors, scheme } = useTheme();
@@ -41,6 +45,12 @@ function ThemedApp() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({ Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
+  const ready = fontsLoaded || !!fontError;
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync().catch(() => undefined);
+  }, [ready]);
+  if (!ready) return null;
   return (
     <GestureHandlerRootView style={styles.fill}>
       <SafeAreaProvider>

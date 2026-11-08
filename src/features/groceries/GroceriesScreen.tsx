@@ -1,55 +1,42 @@
 import { useMemo, useState } from 'react';
-import { Platform, Share, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Share, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AISLES, aisleById } from '@/core/grocery/aisles';
 import type { GroceryItem } from '@/core/model/types';
+import { parseIngredient, formatIngredient } from '@/core/recipe/ingredients';
 import { useDb, useGroceryItems, useRecipes, useSettings } from '@/data/react';
-import {
-  Button,
-  Card,
-  Checkbox,
-  EmptyState,
-  Field,
-  haptic,
-  Icon,
-  IconButton,
-  LargeHeader,
-  ListRow,
-  ListSection,
-  Screen,
-  SegmentedControl,
-  Sheet,
-  Tap,
-  Text,
-  useTheme,
-  type IconName,
-} from '@/ui';
+import { Button, Checkbox, EmptyState, Field, haptic, IconButton, LargeHeader, ListRow, ListSection, Screen, Sheet, Tap, Text, useTheme } from '@/ui';
 
-type Grouping = 'aisle' | 'recipe';
+import { AddItemPanel } from './AddItemPanel';
 
+type Grouping = 'none' | 'aisle' | 'recipe';
+
+/** Crouton's Groceries: one card per item, amounts in the accent color, a keypad for adding. */
 export function GroceriesScreen() {
   const db = useDb();
   const items = useGroceryItems();
   const recipes = useRecipes();
   const settings = useSettings();
-  const { colors, space, radius } = useTheme();
-  const [draft, setDraft] = useState('');
-  const [grouping, setGrouping] = useState<Grouping>('aisle');
+  const { colors, space } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [grouping, setGrouping] = useState<Grouping>('none');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<GroceryItem | null>(null);
-  const [showChecked, setShowChecked] = useState(true);
 
   const open = items.filter((i) => !i.checked);
   const checked = items.filter((i) => i.checked);
 
   const groups = useMemo(() => {
+    if (grouping === 'none') return [{ key: 'all', title: '', items: open }];
     if (grouping === 'aisle') {
       const order = settings.aisleOrder;
       const byAisle = new Map<string, GroceryItem[]>();
       for (const item of open) byAisle.set(item.aisle, [...(byAisle.get(item.aisle) ?? []), item]);
       return [...byAisle.entries()]
         .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
-        .map(([aisle, list]) => ({ key: aisle, title: aisleById(aisle).name, icon: aisleById(aisle).icon as IconName | string, items: list }));
+        .map(([aisle, list]) => ({ key: aisle, title: aisleById(aisle).name, items: list }));
     }
     const byRecipe = new Map<string, GroceryItem[]>();
     for (const item of open) {
@@ -58,23 +45,11 @@ export function GroceriesScreen() {
     }
     return [...byRecipe.entries()]
       .sort((a, b) => (a[0] === 'other' ? 1 : b[0] === 'other' ? -1 : 0))
-      .map(([key, list]) => ({
-        key,
-        title: key === 'other' ? 'Other items' : (recipes.find((r) => r.id === key)?.name ?? 'Recipe'),
-        icon: key === 'other' ? 'basket' : 'restaurant',
-        items: list,
-      }));
+      .map(([key, list]) => ({ key, title: key === 'other' ? 'Other items' : (recipes.find((r) => r.id === key)?.name ?? 'Recipe'), items: list }));
   }, [grouping, open, recipes, settings.aisleOrder]);
 
-  const add = () => {
-    if (!draft.trim()) return;
-    for (const line of draft.split(/\n|,(?![^(]*\))/)) db.groceries.addText(line);
-    setDraft('');
-    haptic();
-  };
-
   const share = async () => {
-    const text = groups.map((g) => `${g.title}\n${g.items.map((i) => `- ${i.text}`).join('\n')}`).join('\n\n');
+    const text = open.map((i) => `- ${i.text}`).join('\n');
     try {
       await Share.share(Platform.OS === 'web' ? { message: text, title: 'Groceries' } : { message: text });
     } catch {
@@ -88,105 +63,97 @@ export function GroceriesScreen() {
         header={
           <LargeHeader
             title="Groceries"
-            subtitle={items.length ? `${open.length} to buy${checked.length ? ` · ${checked.length} in the cart` : ''}` : undefined}
-            right={<IconButton icon="more" variant="fill" onPress={() => setMenuOpen(true)} accessibilityLabel="Grocery list actions" />}
+            subtitle={items.length ? `${open.length} to buy${checked.length ? ` · ${checked.length} done` : ''}` : undefined}
+            right={
+              <>
+                <IconButton icon="add" variant="tinted" onPress={() => setAdding(true)} accessibilityLabel="Add an item" />
+                <IconButton icon="more" variant="tinted" onPress={() => setMenuOpen(true)} accessibilityLabel="Grocery list options" />
+              </>
+            }
           />
         }
+        contentContainerStyle={{ paddingBottom: adding ? 520 : insets.bottom + 96 }}
       >
-        <View style={[styles.addRow, { backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: space.md, gap: space.sm, marginBottom: space.lg }]}>
-          <Icon name="add" tone="accent" />
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            onSubmitEditing={add}
-            placeholder="Add an item, like 2 lemons"
-            placeholderTextColor={colors.textTertiary}
-            returnKeyType="done"
-            blurOnSubmit={false}
-            style={[styles.addInput, { color: colors.text }]}
-            accessibilityLabel="Add an item"
-          />
-          {draft.trim() ? (
-            <Button title="Add" size="sm" onPress={add} />
-          ) : null}
-        </View>
-
         {items.length === 0 ? (
           <EmptyState
-            icon="cart"
+            icon="basket"
             title="Your list is empty"
-            message="Add items above, or open a recipe and tap the cart to add its ingredients."
+            message="Tap + to add an item, or open a recipe and tap the basket to add its ingredients."
+            action={<Button title="Add an item" icon="add" variant="tinted" onPress={() => setAdding(true)} />}
           />
-        ) : (
-          <>
-            <SegmentedControl
-              options={[
-                { value: 'aisle', label: 'By aisle' },
-                { value: 'recipe', label: 'By recipe' },
-              ]}
-              value={grouping}
-              onChange={setGrouping}
-              style={{ marginBottom: space.lg }}
-            />
-            {open.length === 0 ? (
-              <Card style={[styles.allDone, { gap: space.md, marginBottom: space.lg }]}>
-                <Icon name="checkCircle" size={28} tone="accent" />
-                <View style={styles.flex}>
-                  <Text variant="headline">All done!</Text>
-                  <Text variant="footnote" tone="secondary">
-                    Everything on the list is in the cart.
-                  </Text>
-                </View>
-              </Card>
-            ) : null}
-            {groups.map((group) => (
-              <View key={group.key} style={{ marginBottom: space.lg }}>
-                <View style={[styles.groupHeader, { gap: space.sm, marginBottom: space.sm, paddingHorizontal: space.xs }]}>
-                  <Text variant="headline">{group.title}</Text>
-                  <Text variant="footnote" tone="tertiary">
-                    {group.items.length}
-                  </Text>
-                </View>
-                <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden' }}>
-                  {group.items.map((item, index) => (
-                    <GroceryRow key={item.id} item={item} first={index === 0} onMore={() => setEditing(item)} />
-                  ))}
-                </View>
-              </View>
-            ))}
-            {checked.length ? (
-              <View style={{ marginBottom: space.lg }}>
-                <View style={[styles.groupHeader, { marginBottom: space.sm, paddingHorizontal: space.xs }]}>
-                  <Tap onPress={() => setShowChecked(!showChecked)} style={[styles.groupHeader, styles.flex, { gap: space.sm }]}>
-                    <Text variant="headline" tone="secondary">
-                      In the cart
-                    </Text>
-                    <Icon name={showChecked ? 'chevronDown' : 'chevron'} size={16} tone="tertiary" />
-                  </Tap>
-                  <Tap onPress={() => db.groceries.clearChecked()} hitSlop={8}>
-                    <Text variant="subhead" tone="accent" weight="600">
-                      Clear
-                    </Text>
-                  </Tap>
-                </View>
-                {showChecked ? (
-                  <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden' }}>
-                    {checked.map((item, index) => (
-                      <GroceryRow key={item.id} item={item} first={index === 0} onMore={() => setEditing(item)} />
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-          </>
+        ) : null}
+
+        {open.length === 0 && items.length > 0 ? (
+          <View style={[styles.allDone, { gap: space.sm, marginBottom: space.lg }]}>
+            <Text variant="title3">All done!</Text>
+            <Text variant="subhead" tone="secondary">
+              Everything on the list is checked off.
+            </Text>
+          </View>
+        ) : null}
+
+        {groups.map((group) =>
+          group.items.length ? (
+            <View key={group.key} style={{ marginBottom: space.lg, gap: space.sm }}>
+              {group.title ? (
+                <Text variant="headline" tone="secondary" style={{ marginLeft: space.xs }}>
+                  {group.title}
+                </Text>
+              ) : null}
+              {group.items.map((item) => (
+                <GroceryCard key={item.id} item={item} onEdit={() => setEditing(item)} />
+              ))}
+            </View>
+          ) : null,
         )}
+
+        {checked.length ? (
+          <View style={{ gap: space.sm, marginBottom: space.lg }}>
+            <View style={styles.checkedHeader}>
+              <Text variant="headline" tone="secondary" style={{ marginLeft: space.xs }}>
+                Checked
+              </Text>
+              <Tap onPress={() => db.groceries.clearChecked()} hitSlop={8}>
+                <Text variant="subhead" tone="accent" weight="600">
+                  Clear
+                </Text>
+              </Tap>
+            </View>
+            {checked.map((item) => (
+              <GroceryCard key={item.id} item={item} onEdit={() => setEditing(item)} />
+            ))}
+          </View>
+        ) : null}
       </Screen>
 
+      {adding ? (
+        <View style={[styles.panelWrap, { paddingHorizontal: space.md }]} pointerEvents="box-none">
+          <AddItemPanel
+            onAdd={(text) => {
+              db.groceries.addText(text);
+              haptic('success');
+            }}
+            onClose={() => setAdding(false)}
+          />
+        </View>
+      ) : null}
+
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)} title="Groceries">
+        <ListSection title="Group by">
+          {(
+            [
+              ['none', 'Nothing'],
+              ['aisle', 'Aisle'],
+              ['recipe', 'Recipe'],
+            ] as const
+          ).map(([value, label]) => (
+            <ListRow key={value} title={label} accessory={grouping === value ? 'check' : 'none'} onPress={() => { setGrouping(value); setMenuOpen(false); }} />
+          ))}
+        </ListSection>
         <ListSection>
-          <ListRow icon="share" title="Share list" onPress={() => { setMenuOpen(false); void share(); }} />
-          <ListRow icon="refresh" iconColor="#5E8BD6" title="Uncheck everything" onPress={() => { db.groceries.uncheckAll(); setMenuOpen(false); }} />
-          <ListRow icon="checkCircle" iconColor="#2F9E5B" title="Clear checked items" onPress={() => { db.groceries.clearChecked(); setMenuOpen(false); }} />
+          <ListRow icon="share" iconColor="#5E5CE6" title="Share list" onPress={() => { setMenuOpen(false); void share(); }} />
+          <ListRow icon="refresh" iconColor="#3D8EF0" title="Uncheck everything" onPress={() => { db.groceries.uncheckAll(); setMenuOpen(false); }} />
+          <ListRow icon="checkCircle" iconColor="#34C759" title="Clear checked items" onPress={() => { db.groceries.clearChecked(); setMenuOpen(false); }} />
         </ListSection>
         <ListSection>
           <ListRow icon="trash" iconColor={colors.danger} title="Clear the whole list" destructive onPress={() => { db.groceries.clearAll(); setMenuOpen(false); }} />
@@ -198,47 +165,49 @@ export function GroceriesScreen() {
   );
 }
 
-function GroceryRow({ item, first, onMore }: { item: GroceryItem; first: boolean; onMore: () => void }) {
+function GroceryCard({ item, onEdit }: { item: GroceryItem; onEdit: () => void }) {
   const db = useDb();
   const recipes = useRecipes();
-  const { colors, space } = useTheme();
+  const { colors, radius, space } = useTheme();
+  const formatted = useMemo(() => formatIngredient(parseIngredient(item.text)), [item.text]);
   const from = item.recipeIds
     .map((id) => recipes.find((r) => r.id === id)?.name)
     .filter(Boolean)
     .join(', ');
   return (
-    <View style={[styles.itemRow, { paddingHorizontal: space.md, gap: space.md, borderTopWidth: first ? 0 : StyleSheet.hairlineWidth, borderTopColor: colors.separator }]}>
-      <Tap
-        feedback="none"
-        style={[styles.itemMain, { gap: space.md }]}
-        onPress={() => {
-          haptic();
-          db.groceries.toggle(item.id);
-        }}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: item.checked }}
-        accessibilityLabel={item.text}
-      >
-        <Checkbox checked={item.checked} />
-        <View style={styles.flex}>
-          <Text variant="body" tone={item.checked ? 'tertiary' : 'primary'} style={item.checked ? styles.strike : null}>
-            {item.text}
+    <Tap
+      feedback="none"
+      onPress={() => {
+        haptic();
+        db.groceries.toggle(item.id);
+      }}
+      onLongPress={onEdit}
+      delayLongPress={350}
+      accessibilityHint="Long press to edit"
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: item.checked }}
+      accessibilityLabel={item.text}
+      style={[styles.card, { backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: space.md, gap: space.md, opacity: item.checked ? 0.55 : 1 }]}
+    >
+      <Checkbox checked={item.checked} size={28} />
+      <View style={styles.flex}>
+        <Text variant="body" style={item.checked ? styles.strike : null} numberOfLines={2}>
+          {formatted.amount ? <Text tone="accent">{formatted.amount} </Text> : null}
+          {formatted.name}
+        </Text>
+        {from ? (
+          <Text variant="caption" tone="tertiary" numberOfLines={1}>
+            {from}
           </Text>
-          {from ? (
-            <Text variant="caption" tone="tertiary" numberOfLines={1}>
-              {from}
-            </Text>
-          ) : null}
-        </View>
-      </Tap>
-      <IconButton icon="more" size={30} onPress={onMore} accessibilityLabel={`More for ${item.text}`} />
-    </View>
+        ) : null}
+      </View>
+    </Tap>
   );
 }
 
 function ItemSheet({ item, onClose }: { item: GroceryItem | null; onClose: () => void }) {
   const db = useDb();
-  const { colors, space } = useTheme();
+  const { space } = useTheme();
   const [text, setText] = useState('');
   const [lastId, setLastId] = useState<string | null>(null);
   if (item && item.id !== lastId) {
@@ -252,19 +221,11 @@ function ItemSheet({ item, onClose }: { item: GroceryItem | null; onClose: () =>
         <Field value={text} onChangeText={setText} onSubmitEditing={() => { db.groceries.edit(item.id, text); onClose(); }} />
         <ListSection title="Aisle">
           {AISLES.map((aisle) => (
-            <ListRow
-              key={aisle.id}
-              title={aisle.name}
-              accessory={item.aisle === aisle.id ? 'check' : 'none'}
-              onPress={() => {
-                db.groceries.setAisle(item.id, aisle.id);
-                onClose();
-              }}
-            />
+            <ListRow key={aisle.id} title={aisle.name} accessory={item.aisle === aisle.id ? 'check' : 'none'} onPress={() => { db.groceries.setAisle(item.id, aisle.id); onClose(); }} />
           ))}
         </ListSection>
         <View style={[styles.sheetActions, { gap: space.sm }]}>
-          <Button title="Delete" variant="tinted" icon="trash" onPress={() => { db.groceries.remove(item.id); onClose(); }} style={[styles.flex, { backgroundColor: colors.fill }]} />
+          <Button title="Delete" variant="tinted" icon="trash" onPress={() => { db.groceries.remove(item.id); onClose(); }} style={styles.flex} />
           <Button title="Save" onPress={() => { db.groceries.edit(item.id, text); onClose(); }} style={styles.flex} disabled={!text.trim()} />
         </View>
       </View>
@@ -275,12 +236,10 @@ function ItemSheet({ item, onClose }: { item: GroceryItem | null; onClose: () =>
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   flex: { flex: 1 },
-  addRow: { flexDirection: 'row', alignItems: 'center', minHeight: 52 },
-  addInput: { flex: 1, fontSize: 17, height: 52, outlineStyle: 'none' } as never,
-  groupHeader: { flexDirection: 'row', alignItems: 'center' },
-  itemRow: { flexDirection: 'row', alignItems: 'center', minHeight: 54 },
-  itemMain: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', minHeight: 58, paddingVertical: 8 },
   strike: { textDecorationLine: 'line-through' },
-  allDone: { flexDirection: 'row', alignItems: 'center' },
+  allDone: { alignItems: 'center', paddingVertical: 24 },
+  checkedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 },
   sheetActions: { flexDirection: 'row' },
+  panelWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center' },
 });

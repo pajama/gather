@@ -163,19 +163,27 @@ export function Stepper({
   );
 }
 
-export function Checkbox({ checked, size = 24 }: { checked: boolean; size?: number }) {
+export function Checkbox({ checked, size = 24, shape = 'square' }: { checked: boolean; size?: number; shape?: 'square' | 'circle' }) {
   const { colors } = useTheme();
+  const corner = shape === 'circle' ? size / 2 : size * 0.3;
   const [scale] = useState(() => new Animated.Value(checked ? 1 : 0));
   useEffect(() => {
     Animated.spring(scale, { toValue: checked ? 1 : 0, useNativeDriver: true, speed: 30, bounciness: 10 }).start();
   }, [checked, scale]);
   return (
-    <View style={[styles.checkbox, { width: size, height: size, borderRadius: size / 2, borderColor: checked ? colors.accent : colors.textTertiary }]}>
+    <View
+      style={[
+        styles.checkbox,
+        shape === 'circle'
+          ? { width: size, height: size, borderRadius: corner, borderWidth: 2, borderColor: checked ? colors.accent : colors.textTertiary }
+          : { width: size, height: size, borderRadius: corner, backgroundColor: colors.fill },
+      ]}
+    >
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
           styles.checkFill,
-          { borderRadius: size / 2, backgroundColor: colors.accent, transform: [{ scale }], opacity: scale },
+          { borderRadius: corner, backgroundColor: colors.accent, transform: [{ scale }], opacity: scale },
         ]}
       >
         <Icon name="check" size={size * 0.68} color={colors.onAccent} />
@@ -254,7 +262,7 @@ const styles = StyleSheet.create({
   stepper: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 4 },
   stepperButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   stepperValue: { minWidth: 34, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  checkbox: { borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  checkbox: { alignItems: 'center', justifyContent: 'center' },
   checkFill: { alignItems: 'center', justifyContent: 'center' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34 },
   empty: { alignItems: 'center', justifyContent: 'center' },
