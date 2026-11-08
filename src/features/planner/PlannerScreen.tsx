@@ -7,7 +7,7 @@ import { coverImage } from '@/core/model/recipe';
 import type { DayKey, MealPlanEntry, MealSlot } from '@/core/model/types';
 import { addDays, dayKey, daysFrom, parseDayKey, shortDate } from '@/core/planner/planner';
 import { useDb, useFolders, usePlanEntries, useRecipes, useSettings } from '@/data/react';
-import { RecipeRow } from '@/features/library/RecipeCard';
+import { RecipeRow } from '@/features/library';
 import {
   Button,
   Chip,

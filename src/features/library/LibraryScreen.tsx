@@ -1,7 +1,7 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { hostLabel } from '@/core/import/html';
@@ -9,7 +9,7 @@ import { LIBRARY_SORTS, queryLibrary, type LibrarySort } from '@/core/model/libr
 import type { Recipe } from '@/core/model/types';
 import { useDb, useFolders, useRecipes } from '@/data/react';
 import { RecipeDetail } from '@/features/recipe';
-import { Button, EmptyState, Icon, IconButton, LargeHeader, ListRow, ListSection, SearchField, Sheet, Text, useTheme } from '@/ui';
+import { Button, EmptyState, Icon, IconButton, LargeHeader, ListRow, ListSection, SearchField, Sheet, Text, useAppLayout, useTheme } from '@/ui';
 
 import { RecipeCard, RecipeRow } from './RecipeCard';
 
@@ -25,7 +25,7 @@ export function LibraryScreen() {
   const folders = useFolders();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { screenWidth: width, hasSidebar } = useAppLayout();
   const [text, setText] = useState('');
   const [sort, setSort] = useState<LibrarySort>('recent');
   const [addOpen, setAddOpen] = useState(false);
@@ -37,14 +37,15 @@ export function LibraryScreen() {
   const folder = folders.find((f) => f.id === scopeParam);
   const title = tag ?? folder?.name ?? (scopeParam === 'favorites' ? 'Favorites' : 'All Recipes');
 
-  // Wide windows (iPad landscape, desktop browsers) show the list beside the open recipe.
-  const split = width >= 1100;
+  // Very wide screens show the list beside the open recipe; otherwise a grid of cards, as on Crouton for Mac.
+  const split = width >= 1000;
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const listWidth = split ? 420 : width;
-  const contentWidth = Math.min(listWidth, 1100);
+  const contentWidth = Math.min(listWidth, 1400);
   const gutter = width >= 720 ? 24 : 16;
-  const columns = split ? 1 : contentWidth >= 900 ? 3 : contentWidth >= 600 ? 2 : 1;
   const gap = 16;
+  // Phones get one full-width card per row; wider screens fit cards of about 260pt.
+  const columns = split ? 1 : contentWidth < 600 ? 1 : Math.max(2, Math.floor((contentWidth - gutter * 2 + gap) / (260 + gap)));
   const cardWidth = Math.floor((contentWidth - gutter * 2 - gap * (columns - 1)) / columns);
 
   const results = useMemo(
@@ -85,7 +86,7 @@ export function LibraryScreen() {
     <View style={{ gap: space.md, marginBottom: space.lg }}>
       <LargeHeader
         title={title}
-        back={{ label: 'Collections', onPress: () => (router.canGoBack() ? router.back() : router.replace('/collections')) }}
+        {...(hasSidebar ? {} : { back: { label: 'Collections', onPress: () => (router.canGoBack() ? router.back() : router.replace('/collections')) } })}
         right={
           <>
             <IconButton icon="add" variant="tinted" onPress={() => setAddOpen(true)} accessibilityLabel="Add recipe" />

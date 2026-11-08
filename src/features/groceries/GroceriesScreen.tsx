@@ -72,7 +72,7 @@ export function GroceriesScreen() {
             }
           />
         }
-        contentContainerStyle={{ paddingBottom: adding ? 520 : insets.bottom + 96 }}
+        contentStyle={{ paddingBottom: adding ? 520 : insets.bottom + 96 }}
       >
         {items.length === 0 ? (
           <EmptyState

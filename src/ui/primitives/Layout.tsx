@@ -10,6 +10,17 @@ import { Text } from './Text';
 /** Max content width on tablets and desktop browsers; phones use the full width. */
 export const CONTENT_MAX_WIDTH = 720;
 
+/** Windows at least this wide (iPad landscape, desktop browsers) get a sidebar instead of a tab bar. */
+export const SIDEBAR_BREAKPOINT = 1000;
+export const SIDEBAR_WIDTH = 272;
+
+/** Whether the app shows its sidebar, and how much width is left for the screen beside it. */
+export function useAppLayout(): { hasSidebar: boolean; screenWidth: number } {
+  const { width } = useWindowDimensions();
+  const hasSidebar = width >= SIDEBAR_BREAKPOINT;
+  return { hasSidebar, screenWidth: hasSidebar ? width - SIDEBAR_WIDTH : width };
+}
+
 export function useContentWidth(): { width: number; gutter: number; wide: boolean } {
   const { width } = useWindowDimensions();
   const wide = width >= 720;
@@ -70,6 +81,7 @@ export function Screen({
   scroll = true,
   contentStyle,
   topInset = true,
+  contentContainerStyle,
   ...scrollProps
 }: ScrollViewProps & {
   children: ReactNode;
@@ -99,7 +111,7 @@ export function Screen({
   return (
     <ScrollView
       style={[styles.fill, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.column, padding, contentStyle]}
+      contentContainerStyle={[styles.column, padding, contentStyle, contentContainerStyle]}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       {...scrollProps}

@@ -37,6 +37,8 @@ export interface Palette {
   background: string;
   /** Cards, rows and sheets. */
   surface: string;
+  /** The wide-screen sidebar. */
+  sidebar: string;
   /** Surfaces raised above cards (menus, popovers). */
   surfaceRaised: string;
   /** Subtle fills: chips, search fields, inactive segments, card header bands. */
@@ -71,6 +73,7 @@ export interface Palette {
 export const LIGHT: Palette = {
   background: '#F2F3F5',
   surface: '#FFFFFF',
+  sidebar: '#E9EAEE',
   surfaceRaised: '#FFFFFF',
   fill: 'rgba(118, 118, 128, 0.10)',
   fillStrong: 'rgba(118, 118, 128, 0.20)',
@@ -98,6 +101,7 @@ export const LIGHT: Palette = {
 export const DARK: Palette = {
   background: '#000000',
   surface: '#1C1C1E',
+  sidebar: '#121214',
   surfaceRaised: '#2C2C2E',
   fill: 'rgba(118, 118, 128, 0.24)',
   fillStrong: 'rgba(118, 118, 128, 0.36)',

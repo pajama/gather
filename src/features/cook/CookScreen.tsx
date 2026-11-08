@@ -7,11 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Recipe } from '@/core/model/types';
 import { findDurations, formatDuration } from '@/core/recipe/durations';
 import { useDb, useRecipe } from '@/data/react';
-import { IngredientCallout, IngredientLine, StepText, useIngredientViews, type IngredientView } from '@/features/recipe/RecipeText';
+import { IngredientCallout, IngredientLine, StepText, useIngredientViews, type IngredientView } from '@/features/recipe';
+import { TimerSheet, useTimers } from '@/features/timers';
 import { Button, haptic, Icon, IconButton, Sheet, Text, useTheme } from '@/ui';
 
-import { TimerSheet } from './TimerSheet';
-import { useTimers } from './timers';
 import { speak, stopSpeaking, useVoiceCommands, voiceCommandsSupported, type VoiceCommand } from './voice';
 
 interface FlatStep {

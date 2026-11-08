@@ -15,8 +15,7 @@ import { formatNumber } from '@/core/recipe/quantity';
 import { useDb, useFolders, useRecipe, useSettings } from '@/data/react';
 import { shareTextFile } from '@/data/services/pick-file';
 import { printHtml, shareHtmlAsPdf } from '@/data/services/print-recipe';
-import { TimerSheet } from '@/features/cook/TimerSheet';
-import { useTimers } from '@/features/cook/timers';
+import { TimerSheet, useTimers } from '@/features/timers';
 import {
   Button,
   Card,

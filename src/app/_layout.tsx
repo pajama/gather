@@ -10,7 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DatabaseProvider, useSettings } from '@/data/react';
 import { seedDatabase } from '@/features/onboarding/seed';
 import { registerSeedImages } from '@/features/onboarding/seed-images';
-import { TimersProvider } from '@/features/cook/timers';
+import { TimersProvider } from '@/features/timers';
 import { ThemeProvider, useTheme } from '@/ui';
 
 registerSeedImages();
