@@ -58,17 +58,24 @@ export function RecipeScreen() {
   return <RecipeDetail recipe={recipe} />;
 }
 
-function RecipeDetail({ recipe }: { recipe: Recipe }) {
+/**
+ * The recipe page. `embedded` renders it as the detail pane of the wide-screen
+ * library (no back button, sized to its container rather than the window).
+ */
+export function RecipeDetail({ recipe, embedded = false }: { recipe: Recipe; embedded?: boolean }) {
   const db = useDb();
   const settings = useSettings();
   const folders = useFolders();
   const timers = useTimers();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  useTimerHudOffset(insets.bottom + 16);
+  useTimerHudOffset(embedded ? undefined : insets.bottom + 16);
   const [scrollY] = useState(() => new Animated.Value(0));
   const [solid, setSolid] = useState(false);
-  const { width, height } = useWindowDimensions();
+  const windowSize = useWindowDimensions();
+  const [paneWidth, setPaneWidth] = useState(windowSize.width);
+  const width = embedded ? paneWidth : windowSize.width;
+  const height = windowSize.height;
   const wide = width >= 900;
   const baseServings = recipe.servings ?? 0;
   const [servings, setServings] = useState(baseServings || 1);
@@ -236,7 +243,10 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
   const recipeFolders = folders.filter((f) => recipe.folderIds.includes(f.id));
 
   return (
-    <View style={[styles.fill, { backgroundColor: colors.background }]}>
+    <View
+      style={[styles.fill, { backgroundColor: colors.background }]}
+      onLayout={embedded ? (e) => setPaneWidth(Math.round(e.nativeEvent.layout.width)) : undefined}
+    >
       <Animated.ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 48 }}
         scrollEventThrottle={16}
@@ -377,13 +387,17 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
       </Animated.View>
 
       <View style={[styles.topBar, { top: insets.top + 6, paddingHorizontal: gutter }]} pointerEvents="box-none">
-        <IconButton
-          icon="back"
-          variant={solid ? 'plain' : 'glass'}
-          size={38}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-          accessibilityLabel="Back"
-        />
+        {embedded ? (
+          <View />
+        ) : (
+          <IconButton
+            icon="back"
+            variant={solid ? 'plain' : 'glass'}
+            size={38}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            accessibilityLabel="Back"
+          />
+        )}
         <View style={[styles.topActions, { gap: space.sm }]}>
           {solid ? null : (
             <>

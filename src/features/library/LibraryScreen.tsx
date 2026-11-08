@@ -8,6 +8,7 @@ import { hostLabel } from '@/core/import/html';
 import { LIBRARY_SORTS, queryLibrary, type LibrarySort } from '@/core/model/library';
 import type { Recipe } from '@/core/model/types';
 import { useDb, useFolders, useRecipes } from '@/data/react';
+import { RecipeDetail } from '@/features/recipe';
 import {
   Button,
   Chip,
@@ -26,7 +27,7 @@ import {
   useTheme,
 } from '@/ui';
 
-import { RecipeCard } from './RecipeCard';
+import { RecipeCard, RecipeRow } from './RecipeCard';
 
 type Scope = 'all' | 'favorites' | string;
 
@@ -46,9 +47,13 @@ export function LibraryScreen() {
   const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
   const dismissedUrls = useRef(new Set<string>());
 
-  const contentWidth = Math.min(width, CONTENT_MAX_WIDTH);
+  // Wide windows (iPad landscape, desktop browsers) show the library beside the open recipe.
+  const split = width >= 1100;
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const listWidth = split ? 420 : width;
+  const contentWidth = Math.min(listWidth, CONTENT_MAX_WIDTH);
   const gutter = width >= 720 ? 24 : 16;
-  const columns = contentWidth >= 700 ? 4 : contentWidth >= 520 ? 3 : 2;
+  const columns = split ? 1 : contentWidth >= 700 ? 4 : contentWidth >= 520 ? 3 : 2;
   const gap = 14;
   const cardWidth = Math.floor((contentWidth - gutter * 2 - gap * (columns - 1)) / columns);
 
@@ -56,6 +61,7 @@ export function LibraryScreen() {
     () => queryLibrary(recipes, { text, scope: scope === 'all' ? undefined : scope, sort }),
     [recipes, text, scope, sort],
   );
+  const selected = split ? (results.find((r) => r.id === selectedId) ?? results[0]) : undefined;
 
   // Offer to import a recipe URL found on the clipboard (native only; the web needs a user gesture).
   useFocusEffect(
@@ -156,14 +162,28 @@ export function LibraryScreen() {
       <EmptyState icon="search" title="No matches" message="Try a different word, or search for an ingredient." />
     );
 
-  return (
-    <View style={[styles.fill, { backgroundColor: colors.background }]}>
+  const list = (
       <FlatList
         key={columns}
+        style={split ? { width: listWidth, flexGrow: 0, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: colors.separator } : undefined}
         data={results}
         keyExtractor={(r: Recipe) => r.id}
         numColumns={columns}
-        renderItem={({ item }) => <RecipeCard recipe={item} width={cardWidth} />}
+        renderItem={({ item }) =>
+          split ? (
+            <View
+              style={{
+                backgroundColor: item.id === selected?.id ? colors.accentSoft : 'transparent',
+                borderRadius: radius.lg,
+                paddingHorizontal: space.sm,
+              }}
+            >
+              <RecipeRow recipe={item} onPress={() => setSelectedId(item.id)} />
+            </View>
+          ) : (
+            <RecipeCard recipe={item} width={cardWidth} />
+          )
+        }
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         columnWrapperStyle={columns > 1 ? { gap, marginBottom: space.xl } : undefined}
@@ -177,6 +197,18 @@ export function LibraryScreen() {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       />
+  );
+
+  return (
+    <View style={[styles.fill, { backgroundColor: colors.background }]}>
+      {split ? (
+        <View style={styles.split}>
+          {list}
+          <View style={styles.fill}>{selected ? <RecipeDetail key={selected.id} recipe={selected} embedded /> : null}</View>
+        </View>
+      ) : (
+        list
+      )}
 
       <Sheet visible={addOpen} onClose={() => setAddOpen(false)} title="Add a recipe">
         <ListSection>
@@ -328,4 +360,5 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   banner: { flexDirection: 'row', alignItems: 'center' },
   scopeRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 },
+  split: { flex: 1, flexDirection: 'row' },
 });

@@ -158,10 +158,11 @@ export function TimersProvider({ children }: { children: ReactNode }) {
  * (recipe, cook mode) move it closer to the bottom edge or above their own
  * footer. Screens that do not call this get the tab-bar default.
  */
-export function useTimerHudOffset(bottom: number): void {
+export function useTimerHudOffset(bottom: number | undefined): void {
   const { setHudBottom } = useTimers();
   useFocusEffect(
     useCallback(() => {
+      if (bottom === undefined) return;
       setHudBottom(bottom);
       return () => setHudBottom(undefined);
     }, [bottom, setHudBottom]),
