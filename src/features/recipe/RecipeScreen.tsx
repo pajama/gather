@@ -81,7 +81,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
   const [multiplier, setMultiplier] = useState(1);
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const [units, setUnits] = useState<UnitPreference>(settings.units);
-  const [sheet, setSheet] = useState<'plan' | 'groceries' | 'more' | 'folders' | 'scale' | 'units' | 'timers' | null>(null);
+  const [sheet, setSheet] = useState<'plan' | 'groceries' | 'more' | 'share' | 'folders' | 'scale' | 'units' | 'timers' | null>(null);
   // One bubble at a time inside a step card: an ingredient's amount, or Crouton's "Start Timer" prompt.
   const [callout, setCallout] = useState<
     { stepId: string; kind: 'ingredient'; view: IngredientView } | { stepId: string; kind: 'timer'; seconds: number; label: string } | null
@@ -194,7 +194,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
             <Button title="Start" icon="play" variant="green" size="lg" onPress={() => router.push(`/recipe/${recipe.id}/cook`)} style={styles.startButton} />
             <View style={styles.flex} />
             <IconButton icon="basket" variant="tinted" tint="yellow" size={56} onPress={() => setSheet('groceries')} accessibilityLabel="Add to groceries" />
-            <IconButton icon="send" variant="tinted" tint="purple" size={56} onPress={() => void share()} accessibilityLabel="Share recipe" />
+            <IconButton icon="send" variant="tinted" tint="purple" size={56} onPress={() => setSheet('share')} accessibilityLabel="Share recipe" />
           </View>
 
           {/* Servings and times. */}
@@ -526,6 +526,15 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
           <ListRow icon="copy" iconColor="#8A9A5B" title="Duplicate" onPress={() => { const copy = db.recipes.duplicate(recipe.id); setSheet(null); if (copy) router.push(`/recipe/${copy.id}`); }} />
         </ListSection>
         <ListSection>
+          <ListRow icon="send" iconColor="#5E5CE6" title="Share and export" onPress={() => setSheet('share')} />
+        </ListSection>
+        <ListSection>
+          <ListRow icon="trash" iconColor={colors.danger} title="Delete recipe" destructive onPress={() => { setSheet(null); remove(); }} />
+        </ListSection>
+      </Sheet>
+
+      <Sheet visible={sheet === 'share'} onClose={() => setSheet(null)} title="Share">
+        <ListSection>
           <ListRow icon="share" iconColor="#7C6FD6" title="Share as text" onPress={() => { setSheet(null); void share(); }} />
           <ListRow icon="print" iconColor="#5E8BD6" title="Print" onPress={() => { setSheet(null); void printHtml(printable()); }} />
           {Platform.OS !== 'web' ? (
@@ -554,9 +563,6 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
               void shareTextFile(`${slug}.crumb`, JSON.stringify(crumb), 'application/json');
             }}
           />
-        </ListSection>
-        <ListSection>
-          <ListRow icon="trash" iconColor={colors.danger} title="Delete recipe" destructive onPress={() => { setSheet(null); remove(); }} />
         </ListSection>
       </Sheet>
 

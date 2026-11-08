@@ -11,6 +11,7 @@ import { useDb, useFolders, useRecipes } from '@/data/react';
 import { RecipeDetail } from '@/features/recipe';
 import { Button, EmptyState, Icon, IconButton, LargeHeader, ListRow, ListSection, SearchField, Sheet, Text, useAppLayout, useTheme } from '@/ui';
 
+import { QuickActions } from './QuickActions';
 import { RecipeCard, RecipeRow } from './RecipeCard';
 
 /**
@@ -31,6 +32,7 @@ export function LibraryScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
+  const [quick, setQuick] = useState<Recipe | null>(null);
   const dismissedUrls = useRef(new Set<string>());
 
   const tag = scopeParam.startsWith('tag:') ? decodeURIComponent(scopeParam.slice(4)) : undefined;
@@ -156,7 +158,7 @@ export function LibraryScreen() {
           </View>
         ) : (
           <View style={columns === 1 ? { marginBottom: gap } : null}>
-            <RecipeCard recipe={item} width={cardWidth} from={title} />
+            <RecipeCard recipe={item} width={cardWidth} from={title} onLongPress={() => setQuick(item)} />
           </View>
         )
       }
@@ -185,6 +187,8 @@ export function LibraryScreen() {
       ) : (
         list
       )}
+
+      <QuickActions recipe={quick} onClose={() => setQuick(null)} />
 
       <Sheet visible={addOpen} onClose={() => setAddOpen(false)} title="Add a recipe">
         <ListSection>
