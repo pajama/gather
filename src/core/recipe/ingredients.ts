@@ -6,7 +6,7 @@
  */
 
 import { formatQuantity, parseLeadingQuantity, scaleQuantity, type Quantity } from './quantity';
-import { convertToSystem, getUnit, humanize, matchUnitAt, unitLabel, type UnitDef } from './units';
+import { canConvert, convert, convertToSystem, getUnit, humanize, matchUnitAt, unitLabel, type UnitDef } from './units';
 
 export interface ParsedIngredient {
   /** The line as written, trimmed. */
@@ -16,8 +16,13 @@ export interface ParsedIngredient {
   unit?: string;
   /** Package size between the quantity and the unit: "2 (14 oz) cans" -> "14 oz". Never scaled. */
   size?: string;
-  /** Alternative measure after the unit: "1 cup (240ml) milk" -> "240ml". Scaled with the quantity. */
+  /**
+   * Alternative measure after the unit: "1 cup (240ml) milk" or "200g/7oz butter" -> "240ml", "7oz".
+   * Scaled with the quantity; when converting to its system it replaces the main measure.
+   */
   alt?: string;
+  /** A second amount added to the first: "½ cup + 2 tbsp sugar" -> 2 tbsp. Folded into the first when scaling or converting. */
+  extra?: { quantity: Quantity; unit: string; text: string };
   /** The ingredient itself. */
   name: string;
   /** Preparation or comment: "sifted", "to taste", "optional". */
@@ -59,6 +64,14 @@ function readParenthetical(text: string, pos: number): { inner: string; end: num
 function skipSpaces(text: string, pos: number): number {
   while (text[pos] === ' ') pos++;
   return pos;
+}
+
+/** A number followed by a unit at `pos` ("2 tbsp", "7oz"), or null. */
+function measureAt(text: string, pos: number): { quantity: Quantity; unit: UnitDef; end: number } | null {
+  const q = parseLeadingQuantity(text.slice(pos), { words: false });
+  if (!q) return null;
+  const unit = matchUnitAt(text, skipSpaces(text, pos + q.end));
+  return unit ? { quantity: q.quantity, unit: unit.unit, end: unit.end } : null;
 }
 
 /** Splits at the first comma that is not inside parentheses. */
@@ -124,6 +137,24 @@ export function parseIngredient(line: string): ParsedIngredient {
     if (alt && /\d/.test(alt.inner)) {
       result.alt = alt.inner;
       pos = skipSpaces(text, alt.end);
+    }
+    // "200g/7oz butter": the same amount in the other system.
+    const slash = /^\/\s*/.exec(text.slice(pos));
+    if (!result.alt && slash) {
+      const measure = measureAt(text, pos + slash[0].length);
+      if (measure) {
+        result.alt = text.slice(pos + slash[0].length, measure.end).trim();
+        pos = skipSpaces(text, measure.end);
+      }
+    }
+    // "½ cup + 2 tbsp sugar", "1 cup plus 2 tablespoons flour"
+    const addend = /^(?:\+|plus|and)\s*/i.exec(text.slice(pos));
+    if (q && addend) {
+      const measure = measureAt(text, pos + addend[0].length);
+      if (measure && canConvert(measure.unit, unit.unit)) {
+        result.extra = { quantity: measure.quantity, unit: measure.unit.id, text: text.slice(pos, measure.end).trim() };
+        pos = skipSpaces(text, measure.end);
+      }
     }
   }
 
@@ -203,15 +234,42 @@ function scaleInlineAmount(text: string, factor: number): string {
   return `${formatQuantity(scaleQuantity(q.quantity, factor), style)}${text.slice(q.end)}`;
 }
 
+/** Adds the second amount into the first, in the first's unit ("½ cup + 2 tbsp" -> ⅝ cup). */
+export function foldExtra(ingredient: ParsedIngredient): ParsedIngredient {
+  if (!ingredient.extra) return ingredient;
+  const { extra, ...rest } = ingredient;
+  const main = getUnit(ingredient.unit);
+  const added = getUnit(extra.unit);
+  if (!ingredient.quantity || !main || !added || !canConvert(added, main)) return rest;
+  const delta = convert(extra.quantity.value, added, main);
+  const q = ingredient.quantity;
+  return { ...rest, quantity: q.max === undefined ? { value: q.value + delta } : { value: q.value + delta, max: q.max + delta } };
+}
+
+/** The alternative measure as a number and unit, when it is exactly that ("240ml", "7 oz"). */
+function altMeasure(alt: string): { quantity: Quantity; unit: UnitDef } | undefined {
+  const measure = measureAt(alt, 0);
+  return measure && skipSpaces(alt, measure.end) === alt.length ? measure : undefined;
+}
+
 export function formatIngredient(ingredient: ParsedIngredient, options: FormatOptions = {}): FormattedIngredient {
   const factor = options.scale ?? 1;
   const system = options.system ?? 'original';
-  let unit: UnitDef | undefined = getUnit(ingredient.unit);
-  let quantity = ingredient.quantity ? scaleQuantity(ingredient.quantity, factor) : undefined;
+  // As written, "½ cup + 2 tbsp" stays two amounts; scaled or converted it becomes one.
+  const asWritten = factor === 1 && system === 'original';
+  const source = asWritten ? ingredient : foldExtra(ingredient);
+  let unit: UnitDef | undefined = getUnit(source.unit);
+  let quantity = source.quantity ? scaleQuantity(source.quantity, factor) : undefined;
 
   if (quantity && unit) {
+    // The author's own measure in the target system beats a conversion: "1 cup (120g) flour" -> 120 g.
+    const alt = system !== 'original' && ingredient.alt && !ingredient.extra ? altMeasure(ingredient.alt) : undefined;
+    if (alt && unit.system !== system && alt.unit.system === system && alt.unit.dimension !== 'count') {
+      quantity = scaleQuantity(alt.quantity, factor);
+      unit = alt.unit;
+    }
     let converted = { value: quantity.value, unit };
-    if (system !== 'original' && unit.system !== 'neutral') converted = convertToSystem(quantity.value, unit, system);
+    if (system !== 'original' && unit.system !== 'neutral' && unit.system !== system) converted = convertToSystem(quantity.value, unit, system);
     else if (options.humanize !== false && factor !== 1) converted = humanize(quantity.value, unit);
     if (converted.unit !== unit) {
       const ratio = converted.value / quantity.value;
@@ -225,9 +283,11 @@ export function formatIngredient(ingredient: ParsedIngredient, options: FormatOp
   const plural = quantity ? (quantity.max ?? quantity.value) > 1 + 1e-9 : false;
   const unitText = unit ? unitLabel(unit, plural) : '';
   const sizeText = ingredient.size ? `(${ingredient.size})` : '';
-  const altText = ingredient.alt ? `(${scaleInlineAmount(ingredient.alt, factor)})` : '';
+  // A converted line shows one system; the alternative measure would repeat it.
+  const altText = ingredient.alt && system === 'original' ? `(${scaleInlineAmount(ingredient.alt, factor)})` : '';
+  const extraText = asWritten && ingredient.extra ? ingredient.extra.text : '';
 
-  const amount = [quantityText, sizeText, unitText].filter(Boolean).join(' ');
+  const amount = [quantityText, sizeText, unitText, extraText].filter(Boolean).join(' ');
   const name = [altText, ingredient.name].filter(Boolean).join(' ');
   const full = [amount, name].filter(Boolean).join(' ') + (ingredient.note ? `, ${ingredient.note}` : '');
   return { amount, quantity: quantityText, unit: unitText, name, note: ingredient.note, full };

@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } 
 import { Platform, ScrollView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { Recipe } from '@/core/model/types';
+import type { Recipe, UnitPreference } from '@/core/model/types';
 import { findDurations, formatDuration } from '@/core/recipe/durations';
-import { useDb, useRecipe } from '@/data/react';
+import { useDb, useRecipe, useSettings } from '@/data/react';
 import { IngredientCallout, IngredientLine, StepText, useIngredientViews, type IngredientView } from '@/features/recipe';
 import { TimerSheet, useTimerActions } from '@/features/timers';
 import { Button, haptic, Icon, IconButton, Sheet, Text, useTheme } from '@/ui';
@@ -20,14 +20,17 @@ interface FlatStep {
 }
 
 export function CookScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const recipe = useRecipe(id);
+  const params = useLocalSearchParams<{ id: string; scale?: string; units?: string }>();
+  const recipe = useRecipe(params.id);
+  const settings = useSettings();
+  const scale = Number(params.scale) > 0 ? Number(params.scale) : 1;
+  const units: UnitPreference = params.units === 'us' || params.units === 'metric' || params.units === 'original' ? params.units : settings.units;
   if (!recipe) return null;
-  return <CookMode recipe={recipe} />;
+  return <CookMode recipe={recipe} scale={scale} units={units} />;
 }
 
 /** Step-by-step mode, after Crouton's: one step per page, tappable ingredients and timers, arrows and dots. */
-function CookMode({ recipe }: { recipe: Recipe }) {
+function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; units: UnitPreference }) {
   const db = useDb();
   const timers = useTimerActions();
   const { colors, space, radius } = useTheme();
@@ -40,7 +43,7 @@ function CookMode({ recipe }: { recipe: Recipe }) {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [handsFree, setHandsFree] = useState(false);
   const [callout, setCallout] = useState<{ stepId: string; view: IngredientView } | null>(null);
-  const views = useIngredientViews(recipe, 1, 'original');
+  const views = useIngredientViews(recipe, scale, units);
 
   const steps: FlatStep[] = useMemo(
     () => recipe.steps.flatMap((s) => s.items.map((item) => ({ id: item.id, text: item.text, ...(s.title ? { section: s.title } : {}) }))),
@@ -208,6 +211,7 @@ function CookMode({ recipe }: { recipe: Recipe }) {
                 text={step.text}
                 recipe={recipe}
                 views={views}
+                units={units}
                 variant={textVariant}
                 onStartTimer={(seconds, label) => timers.start(label, seconds, recipe.id)}
                 onIngredientPress={(view) => {

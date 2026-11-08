@@ -198,6 +198,8 @@ function trimDecimal(n: number, digits: number): string {
 export function formatNumber(n: number, style: NumberStyle = 'fraction'): string {
   if (!Number.isFinite(n)) return '';
   if (n < 0) return `-${formatNumber(-n, style)}`;
+  // Never print 0 for an amount that isn't zero ("⅛ tsp" at ⅛ scale).
+  if (n > 0 && n < 0.03) return Number(n.toPrecision(1)).toString();
   if (style === 'decimal') {
     if (n >= 100) return Math.round(n).toString();
     if (n >= 10) return trimDecimal(n, 1);

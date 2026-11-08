@@ -167,8 +167,10 @@ export function convert(value: number, from: UnitDef, to: UnitDef): number {
 }
 
 /** Display ladders: the unit chosen is the largest one the value reaches. */
+// US volume stops at cups: recipes say "6 cups flour", not "1½ quarts". A line written in quarts
+// or gallons keeps its unit (humanize leaves units that aren't on the ladder alone).
 const LADDERS: Record<string, string[]> = {
-  'volume:us': ['tsp', 'tbsp', 'cup', 'quart', 'gallon'],
+  'volume:us': ['tsp', 'tbsp', 'cup'],
   'volume:metric': ['ml', 'l'],
   'mass:us': ['oz', 'lb'],
   'mass:metric': ['g', 'kg'],
@@ -194,7 +196,7 @@ const LADDER_THRESHOLDS: Record<string, number> = {
 export function humanize(value: number, unit: UnitDef, system: 'us' | 'metric' = unit.system === 'metric' ? 'metric' : 'us'): { value: number; unit: UnitDef } {
   if (unit.toBase === undefined) return { value, unit };
   const ladder = LADDERS[`${unit.dimension}:${system}`];
-  if (!ladder) return { value, unit };
+  if (!ladder || (unit.system === system && !ladder.includes(unit.id))) return { value, unit };
   const base = value * unit.toBase;
   let chosen = getUnit(ladder[0])!;
   for (const id of ladder) {

@@ -130,4 +130,37 @@ Combine everything in a bowl and season generously with salt and lime juice to t
     expect(draft.ingredients[0]!.lines).toEqual(['2 tomatoes, diced', '1/2 red onion']);
     expect(draft.steps[0]!.lines).toHaveLength(1);
   });
+
+  it('keeps numbered steps out of the ingredients when there are no markers', () => {
+    const draft = parseRecipeText(`Weeknight Spaghetti
+1 lb spaghetti
+2 tbsp olive oil
+1. Bring a large pot of salted water to a boil.
+2. Cook the spaghetti for 9 minutes, then drain.
+Step 3: Toss with the oil.`);
+    expect(draft.ingredients[0]!.lines).toEqual(['1 lb spaghetti', '2 tbsp olive oil']);
+    expect(draft.steps[0]!.lines).toEqual([
+      'Bring a large pot of salted water to a boil.',
+      'Cook the spaghetti for 9 minutes, then drain.',
+      'Toss with the oil.',
+    ]);
+  });
+
+  it('reads short time and yield lines as metadata, but keeps sentences', () => {
+    const draft = parseRecipeText(`Pasta
+Prep: 10 min
+Cook Time 25 minutes
+Total time: 1 hr 5 mins
+Makes 4
+2 cups pasta
+Cook the spaghetti in salted water for 10 minutes until al dente, then drain well.
+Makes a great lunch the next day.`);
+    expect(draft.prepSeconds).toBe(600);
+    expect(draft.cookSeconds).toBe(1500);
+    expect(draft.totalSeconds).toBe(3900);
+    expect(draft.servings).toBe(4);
+    const text = [...draft.steps.flatMap((s) => s.lines), draft.description ?? ''].join(' | ');
+    expect(text).toContain('Cook the spaghetti in salted water');
+    expect(text).toContain('Makes a great lunch');
+  });
 });

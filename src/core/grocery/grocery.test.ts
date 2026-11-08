@@ -60,3 +60,13 @@ describe('grocery lines', () => {
     expect(merged.map((l) => l.text)).toEqual(['3 eggs', 'salt']);
   });
 });
+
+describe('merging two-part and alternative amounts', () => {
+  it('drops an alternative measure once amounts are added', () => {
+    expect(combineLines(groceryLineFrom('1 cup (240ml) milk'), groceryLineFrom('½ cup milk'))?.text).toBe('1½ cups milk');
+  });
+
+  it('counts a two-part amount as one', () => {
+    expect(combineLines(groceryLineFrom('1/2 cup + 2 tbsp sugar'), groceryLineFrom('1 cup sugar'))?.text).toBe('1⅝ cups sugar');
+  });
+});

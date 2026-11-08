@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { findDurations, formatClock, formatDuration, parseDurationText, parseIsoDuration } from './durations';
 import { findIngredientMentions, mentionPhrases, segmentText } from './mentions';
+import { convertTemperatures } from './temperature';
 
 describe('durations', () => {
   it('finds simple durations', () => {
@@ -18,6 +19,15 @@ describe('durations', () => {
     expect(findDurations('Let it rise for an hour')[0]).toMatchObject({ seconds: 3600 });
     expect(findDurations('Let it rest for half an hour')[0]).toMatchObject({ seconds: 1800 });
     expect(findDurations('Microwave 30s')[0]).toMatchObject({ seconds: 30 });
+  });
+
+  it('reads mixed numbers whole', () => {
+    expect(findDurations('Braise 1 1/2 hours')[0]).toMatchObject({ seconds: 5400, text: '1 1/2 hours' });
+    expect(findDurations('Rest 2 1/2 minutes')[0]).toMatchObject({ seconds: 150 });
+    expect(findDurations('Bake 1-1/2 hours')[0]).toMatchObject({ seconds: 5400 });
+    expect(findDurations('Simmer 1 1/2-2 hours')[0]).toMatchObject({ seconds: 5400, maxSeconds: 7200 });
+    expect(findDurations('Rise 1-2 hours')[0]).toMatchObject({ seconds: 3600, maxSeconds: 7200 });
+    expect(parseDurationText('1 1/2 hours')).toBe(5400);
   });
 
   it('finds several durations in one step', () => {
@@ -85,5 +95,23 @@ describe('ingredient mentions', () => {
       { start: 19, end: 29, seconds: 600 },
     ]);
     expect(segments.map((s) => s.kind)).toEqual(['text', 'ingredient', 'text', 'duration']);
+  });
+});
+
+describe('temperatures', () => {
+  it('converts oven and food temperatures for the reader', () => {
+    expect(convertTemperatures('Heat the oven to 425°F.', 'metric')).toBe('Heat the oven to 220°C.');
+    expect(convertTemperatures('Bake at 350 degrees F until set', 'metric')).toBe('Bake at 180°C until set');
+    expect(convertTemperatures('Roast until it reaches 165°F', 'metric')).toBe('Roast until it reaches 74°C');
+    expect(convertTemperatures('Preheat to 350F', 'metric')).toBe('Preheat to 180°C');
+    expect(convertTemperatures('Bake at 375-400°F', 'metric')).toBe('Bake at 190–200°C');
+    expect(convertTemperatures('Heat the oven to 180°C (160°C fan)', 'us')).toBe('Heat the oven to 350°F (325°F fan)');
+    expect(convertTemperatures('Cook to 74 degrees Celsius', 'us')).toBe('Cook to 165°F');
+  });
+
+  it('leaves text alone when written in the reader’s units or shown as written', () => {
+    expect(convertTemperatures('Heat the oven to 425°F.', 'us')).toBe('Heat the oven to 425°F.');
+    expect(convertTemperatures('Heat the oven to 425°F.', 'original')).toBe('Heat the oven to 425°F.');
+    expect(convertTemperatures('Use 2 cups of flour and 3 eggs', 'metric')).toBe('Use 2 cups of flour and 3 eggs');
   });
 });

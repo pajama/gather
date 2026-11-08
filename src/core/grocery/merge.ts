@@ -3,7 +3,7 @@
  * the same ingredient ("1 cup milk" + "½ cup milk" -> "1½ cups milk").
  */
 
-import { formatIngredient, parseIngredient, type ParsedIngredient } from '../recipe/ingredients';
+import { foldExtra, formatIngredient, parseIngredient, type ParsedIngredient } from '../recipe/ingredients';
 import { addQuantities, scaleQuantity } from '../recipe/quantity';
 import { canConvert, convert, getUnit, humanize } from '../recipe/units';
 import { aisleFor } from './aisles';
@@ -66,10 +66,17 @@ export function groceryLineFrom(ingredientText: string, options: { recipeId?: st
  * Combines two lines for the same ingredient when their amounts can be
  * added; returns null when they should stay separate.
  */
+function withoutAlt(p: ParsedIngredient): ParsedIngredient {
+  const { alt: _alt, ...rest } = p;
+  return rest;
+}
+
 export function combineLines(a: GroceryLine, b: GroceryLine): GroceryLine | null {
   if (groceryKey(a.name) !== groceryKey(b.name)) return null;
-  const pa = parseIngredient(a.text);
-  const pb = parseIngredient(b.text);
+  // Two-part amounts ("½ cup + 2 tbsp") count as one; an alternative measure ("(240ml)") no longer
+  // matches once amounts are added, so it is dropped.
+  const pa = withoutAlt(foldExtra(parseIngredient(a.text)));
+  const pb = withoutAlt(foldExtra(parseIngredient(b.text)));
   const recipeIds = [...new Set([...a.recipeIds, ...b.recipeIds])];
   // Neither has an amount ("salt" + "salt"): keep one.
   if (!pa.quantity && !pb.quantity) return { ...a, recipeIds };

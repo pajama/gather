@@ -147,3 +147,31 @@ describe('ingredient parsing', () => {
     expect(isIngredientHeading('salt')).toBe(false);
   });
 });
+
+describe('two-part and alternative amounts', () => {
+  const f = (line: string, options = {}) => formatIngredient(parseIngredient(line), options).full;
+
+  it('keeps an added amount as written, and adds it in when scaling', () => {
+    expect(parseIngredient('1/2 cup + 2 tbsp sugar')).toMatchObject({ unit: 'cup', name: 'sugar', extra: { unit: 'tbsp' } });
+    expect(f('1/2 cup + 2 tbsp sugar')).toBe('½ cup + 2 tbsp sugar');
+    expect(f('1/2 cup + 2 tbsp sugar', { scale: 2 })).toBe('1¼ cups sugar');
+    expect(f('1 cup plus 2 tablespoons flour', { scale: 2 })).toBe('2¼ cups flour');
+  });
+
+  it('scales a slash measure and prefers the author’s measure when converting', () => {
+    expect(parseIngredient('200g/7oz butter')).toMatchObject({ unit: 'g', alt: '7oz', name: 'butter' });
+    expect(f('200g/7oz butter', { scale: 2 })).toBe('400 g (14oz) butter');
+    expect(f('200g/7oz butter', { system: 'us' })).toBe('7 oz butter');
+    expect(f('1 cup (120g) flour', { system: 'metric' })).toBe('120 g flour');
+    expect(f('12 oz (340g) chocolate chips', { system: 'metric' })).toBe('340 g chocolate chips');
+    expect(f('1 cup (240ml) milk', { system: 'us' })).toBe('1 cup milk');
+  });
+
+  it('never prints 0, and keeps US volumes in cups', () => {
+    expect(f('⅛ tsp salt', { scale: 0.125 })).toBe('0.02 tsp salt');
+    expect(f('1 1/2 cups flour', { scale: 4 })).toBe('6 cups flour');
+    expect(f('1 1/2 cups flour', { scale: 4, system: 'us' })).toBe('6 cups flour');
+    expect(f('3 tbsp butter', { scale: 8, system: 'us' })).toBe('1½ cups butter');
+    expect(f('2 quarts stock', { scale: 2 })).toBe('4 qt stock');
+  });
+});

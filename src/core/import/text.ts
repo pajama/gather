@@ -4,7 +4,7 @@
  * shape otherwise.
  */
 
-import { parseDurationText } from '../recipe/durations';
+import { findDurations, parseDurationText } from '../recipe/durations';
 import { headingText, isIngredientHeading } from '../recipe/ingredients';
 import { parseLeadingQuantity } from '../recipe/quantity';
 import { emptyDraft, type DraftSection, type RecipeDraft } from './draft';
@@ -18,6 +18,8 @@ const MARKERS: [Zone, RegExp][] = [
 ];
 
 const BULLET_OR_NUMBER = /^\s*(?:[-–—*•·▢☐□]|\d+[.)])\s+/;
+/** "1. …", "2) …", "Step 3: …" start a step, not an ingredient with an amount of 1. */
+const STEP_MARKER = /^\s*(?:step\s*\d+\s*[:.)-]?|\d+\s*[.)])\s+/i;
 
 function zoneFor(line: string): Zone | undefined {
   const cleaned = line.replace(/^#+\s*/, '').trim();
@@ -25,8 +27,17 @@ function zoneFor(line: string): Zone | undefined {
 }
 
 function looksLikeIngredient(line: string): boolean {
+  if (STEP_MARKER.test(line)) return false;
   const stripped = line.replace(/^\s*[-–—*•·▢☐□]\s+/, '');
   return stripped.length <= 90 && (!!parseLeadingQuantity(stripped, { words: false }) || /^\s*[-–—*•·▢☐□]\s+/.test(line));
+}
+
+/** True when the text is a duration and nothing more ("1 hr 20 mins", "45 minutes", "PT30M"). */
+function isOnlyDuration(text: string): boolean {
+  if (/^\s*(?:PT?[\dHMS.]+|\d+)\s*$/i.test(text)) return true;
+  let rest = text;
+  for (const d of findDurations(text).reverse()) rest = rest.slice(0, d.start) + rest.slice(d.end);
+  return rest !== text && /^[\s,&+.]*(?:and)?[\s,&+.]*$/i.test(rest);
 }
 
 function pushTo(sections: DraftSection[], line: string) {
@@ -58,16 +69,20 @@ export function parseRecipeText(input: string): RecipeDraft {
       draft.name = line.replace(/^#+\s*/, '');
       continue;
     }
+    // Metadata lines are short and say nothing else ("Serves 4", "Prep time: 10 minutes"). A
+    // sentence that happens to start with "Cook" or "Makes" is part of the recipe and is kept.
     const meta = /^(serves|servings|yield|yields|makes)\s*:?\s*(.+)$/i.exec(line);
-    if (meta && zone !== 'steps') {
+    if (meta && zone !== 'steps' && line.length <= 40) {
       const n = /(\d+)/.exec(meta[2]!);
-      if (n) draft.servings = Number(n[1]);
-      draft.yieldText = line;
-      continue;
+      if (n) {
+        draft.servings = Number(n[1]);
+        draft.yieldText = line;
+        continue;
+      }
     }
-    const time = /^(prep|cook|cooking|total)\s*(?:time)?\s*:?\s*(.+)$/i.exec(line);
-    if (time && zone !== 'steps') {
-      const secs = parseDurationText(time[2]!);
+    const time = /^(prep|cook|cooking|total)(\s*time)?\s*([:\-–])?\s*(.+)$/i.exec(line);
+    if (time && zone !== 'steps' && (time[2] || time[3]) && isOnlyDuration(time[4]!)) {
+      const secs = parseDurationText(time[4]!);
       if (secs) {
         const kind = time[1]!.toLowerCase();
         if (kind === 'prep') draft.prepSeconds = secs;
@@ -79,7 +94,7 @@ export function parseRecipeText(input: string): RecipeDraft {
 
     let target: Zone = zone;
     if (!hasMarkers && zone === 'intro') target = looksLikeIngredient(line) ? 'ingredients' : line.length > 60 || BULLET_OR_NUMBER.test(line) ? 'steps' : 'intro';
-    if (!hasMarkers && zone === 'ingredients' && !looksLikeIngredient(line) && line.length > 60) target = 'steps';
+    if (!hasMarkers && zone === 'ingredients' && (STEP_MARKER.test(line) || (!looksLikeIngredient(line) && line.length > 60))) target = 'steps';
     if (!hasMarkers) zone = target === 'intro' ? zone : target;
 
     switch (target) {

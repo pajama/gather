@@ -44,7 +44,8 @@ const WORDS: Record<string, number> = {
   'a half': 0.5,
 };
 
-const NUM = String.raw`(?:\d+(?:[.,]\d+)?(?:\s*[½⅓⅔¼¾⅛])?|\d+\s*/\s*\d+|[½⅓⅔¼¾⅛]|half an?|a half|forty-five|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|half)`;
+// Mixed numbers ("1 1/2", "1-1/2") come first so the regex doesn't stop at the whole part.
+const NUM = String.raw`(?:\d+(?:\s+|-)\d+\s*/\s*\d+|\d+(?:[.,]\d+)?(?:\s*[½⅓⅔¼¾⅛])?|\d+\s*/\s*\d+|[½⅓⅔¼¾⅛]|half an?|a half|forty-five|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|half)`;
 const UNIT_LONG = String.raw`(?:seconds?|secs?|minutes?|mins?|hours?|hrs?|days?)`;
 const UNIT_SHORT = String.raw`(?:h|m|s)`;
 const PAIR = new RegExp(
@@ -55,6 +56,8 @@ const PAIR = new RegExp(
 function readNumber(raw: string): number | null {
   const text = raw.trim().toLowerCase();
   if (text in WORDS) return WORDS[text]!;
+  const mixedFraction = /^(\d+)(?:\s+|-)(\d+)\s*\/\s*(\d+)$/.exec(text);
+  if (mixedFraction) return Number(mixedFraction[3]) === 0 ? null : Number(mixedFraction[1]) + Number(mixedFraction[2]) / Number(mixedFraction[3]);
   const frac = /^(\d+)\s*\/\s*(\d+)$/.exec(text);
   if (frac) return Number(frac[2]) === 0 ? null : Number(frac[1]) / Number(frac[2]);
   const glyphOnly = FRACTION_GLYPHS[text];

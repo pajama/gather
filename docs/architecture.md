@@ -35,6 +35,8 @@ Dependencies point down only: `app → features → (ui, data) → core`. ESLint
 | --- | --- |
 | `recipe/quantity.ts` | Parses `1 1/2`, `1½`, `2-3`, `½ to 1`; formats as kitchen fractions or metric decimals |
 | `recipe/units.ts` | Unit table (aliases such as `T` vs `t`), conversion, readable-unit choice (`48 tsp → 1 cup`), US/metric |
+| `recipe/ingredients.ts` | Ingredient lines: amount, package size, alternative measure (`(240ml)`, `200g/7oz`), a second added amount (`½ cup + 2 tbsp`), name and note; formatting for a scale and units, preferring the author's own measure in the target system |
+| `recipe/temperature.ts` | Temperatures in step text shown in the reader's units (`425°F → 220°C`), rounded like oven dials |
 | `recipe/ingredients.ts` | Ingredient line parsing (amount, package size, alternate measure, name, note) and formatting with scale/units |
 | `recipe/durations.ts` | Finds `25-30 minutes` / `1 hour 15 minutes` in steps (timers); ISO 8601 metadata |
 | `recipe/mentions.ts` | Finds which ingredients a step mentions, for cook mode callouts |

@@ -12,6 +12,7 @@ import type { Ingredient, Recipe, UnitPreference } from '@/core/model/types';
 import { findDurations, formatDuration } from '@/core/recipe/durations';
 import { formatIngredient, parseIngredient, type FormattedIngredient } from '@/core/recipe/ingredients';
 import { findIngredientMentions, segmentText } from '@/core/recipe/mentions';
+import { convertTemperatures } from '@/core/recipe/temperature';
 import { Checkbox, Tap, Text, useTheme, type TextProps } from '@/ui';
 
 export interface IngredientView {
@@ -92,6 +93,7 @@ export function StepText({
   onStartTimer,
   onIngredientPress,
   variant = 'body',
+  units = 'original',
 }: {
   text: string;
   recipe: Recipe;
@@ -99,14 +101,17 @@ export function StepText({
   onStartTimer?: (seconds: number, label: string) => void;
   onIngredientPress?: (view: IngredientView) => void;
   variant?: TextProps['variant'];
+  /** Temperatures in the step are shown in these units. */
+  units?: UnitPreference;
 }) {
   const segments = useMemo(() => {
+    const shown = convertTemperatures(text, units);
     const targets = [...views.values()].map((v) => ({ id: v.ingredient.id, name: v.parsedName }));
-    const mentions = findIngredientMentions(text, targets);
-    const durations = findDurations(text);
+    const mentions = findIngredientMentions(shown, targets);
+    const durations = findDurations(shown);
     const marks = [...durations, ...mentions.filter((m) => !durations.some((d) => m.start < d.end && d.start < m.end))];
-    return segmentText(text, marks);
-  }, [text, views]);
+    return segmentText(shown, marks);
+  }, [text, views, units]);
 
   return (
     <Text variant={variant}>

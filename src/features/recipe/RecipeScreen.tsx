@@ -130,6 +130,9 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
     }
   };
 
+  // Step-by-step keeps the scale and units chosen here.
+  const startCooking = () => router.push({ pathname: '/recipe/[id]/cook', params: { id: recipe.id, scale: String(scale), units } });
+
   const printable = async () => {
     // Stored photos are files; the print view gets them embedded.
     const stored = coverImage(recipe);
@@ -195,7 +198,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
 
           {/* Actions: Start (green), groceries (yellow), share (purple). */}
           <View style={[styles.actions, { gap: space.md }]}>
-            <Button title="Start" icon="play" variant="green" size="lg" onPress={() => router.push(`/recipe/${recipe.id}/cook`)} style={styles.startButton} />
+            <Button title="Start" icon="play" variant="green" size="lg" onPress={startCooking} style={styles.startButton} />
             <View style={styles.flex} />
             <IconButton icon="basket" variant="tinted" tint="yellow" size={56} onPress={() => setSheet('groceries')} accessibilityLabel="Add to groceries" />
             <IconButton icon="send" variant="tinted" tint="purple" size={56} onPress={() => setSheet('share')} accessibilityLabel="Share recipe" />
@@ -296,7 +299,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
                 <Text variant="title3" weight="600" style={styles.flex}>
                   Steps
                 </Text>
-                <Button title="Step by step" variant="tinted" size="sm" icon="play" onPress={() => router.push(`/recipe/${recipe.id}/cook`)} />
+                <Button title="Step by step" variant="tinted" size="sm" icon="play" onPress={startCooking} />
               </View>
               {recipe.steps.map((section) => (
                 <View key={section.id} style={{ gap: space.md }}>
@@ -332,6 +335,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
                             text={step.text}
                             recipe={recipe}
                             views={views}
+                            units={units}
                             onStartTimer={(seconds, label) => {
                               haptic();
                               setCallout({ stepId: step.id, kind: 'timer', seconds, label });
