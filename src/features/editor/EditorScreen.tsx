@@ -102,7 +102,7 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={[styles.fill, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? insets.top + space.md : space.lg, paddingHorizontal: space.lg, borderBottomColor: colors.separator }]}>
+      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md, paddingHorizontal: space.lg, borderBottomColor: colors.separator }]}>
         <Tap onPress={() => router.back()} hitSlop={10}>
           <Text variant="body" tone="accent">
             Cancel
