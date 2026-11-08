@@ -6,7 +6,9 @@ import { Icon, useAppLayout, useTheme, type IconName } from '@/ui';
 
 function tabIcon(outline: IconName, filled: IconName) {
   // eslint-disable-next-line react/display-name
-  return ({ color, focused }: { color: ColorValue; focused: boolean }) => <Icon name={focused ? filled : outline} color={color} size={25} />;
+  return ({ color, focused }: { color: ColorValue; focused: boolean }) => (
+    <Icon name={focused ? filled : outline} color={color} size={25} />
+  );
 }
 
 /**
@@ -32,11 +34,26 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontFamily: 'Nunito_600SemiBold' },
       }}
     >
-      <Tabs.Screen name="plan" options={{ title: 'Meal Plan', tabBarIcon: tabIcon('calendar', 'calendarFilled') }} />
-      <Tabs.Screen name="(recipes)" options={{ title: 'Recipes', tabBarIcon: tabIcon('recipes', 'recipesFilled') }} />
-      <Tabs.Screen name="groceries" options={{ title: 'Groceries', tabBarIcon: tabIcon('basket', 'basketFilled') }} />
-      <Tabs.Screen name="discover" options={{ title: 'Discover', tabBarIcon: tabIcon('sparkles', 'sparklesFilled') }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('moreCircle', 'moreCircleFilled') }} />
+      <Tabs.Screen
+        name="plan"
+        options={{ title: 'Meal Plan', tabBarIcon: tabIcon('calendar', 'calendarFilled') }}
+      />
+      <Tabs.Screen
+        name="(recipes)"
+        options={{ title: 'Recipes', tabBarIcon: tabIcon('recipes', 'recipesFilled') }}
+      />
+      <Tabs.Screen
+        name="groceries"
+        options={{ title: 'Groceries', tabBarIcon: tabIcon('basket', 'basketFilled') }}
+      />
+      <Tabs.Screen
+        name="discover"
+        options={{ title: 'Discover', tabBarIcon: tabIcon('sparkles', 'sparklesFilled') }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{ title: 'Settings', tabBarIcon: tabIcon('moreCircle', 'moreCircleFilled') }}
+      />
     </Tabs>
   );
 }

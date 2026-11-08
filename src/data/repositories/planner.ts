@@ -14,10 +14,17 @@ export class PlannerRepository {
     return this.c.plan
       .all()
       .filter((e) => set.has(e.day))
-      .sort((a, b) => a.day.localeCompare(b.day) || slotOrder[a.slot] - slotOrder[b.slot] || a.sortIndex - b.sortIndex);
+      .sort(
+        (a, b) =>
+          a.day.localeCompare(b.day) || slotOrder[a.slot] - slotOrder[b.slot] || a.sortIndex - b.sortIndex,
+      );
   }
 
-  add(day: DayKey, slot: MealSlot, entry: { recipeId?: ID; title?: string; servings?: number }): MealPlanEntry {
+  add(
+    day: DayKey,
+    slot: MealSlot,
+    entry: { recipeId?: ID; title?: string; servings?: number },
+  ): MealPlanEntry {
     const stamp = now();
     const siblings = this.c.plan.all().filter((e) => e.day === day && e.slot === slot);
     const created: MealPlanEntry = {
@@ -49,7 +56,12 @@ export class PlannerRepository {
 
   clearDays(days: readonly DayKey[]): void {
     const set = new Set(days);
-    this.c.plan.remove(...this.c.plan.all().filter((e) => set.has(e.day)).map((e) => e.id));
+    this.c.plan.remove(
+      ...this.c.plan
+        .all()
+        .filter((e) => set.has(e.day))
+        .map((e) => e.id),
+    );
   }
 
   /** The next upcoming day each recipe is planned for (for "Planned" badges). */
@@ -77,8 +89,19 @@ export class PlannerRepository {
       favorite: r.favorite,
       ...(lastPlanned.has(r.id) ? { lastPlannedDay: lastPlanned.get(r.id)! } : {}),
     }));
-    const occupied = new Set(this.c.plan.all().filter((e) => e.slot === slot).map((e) => e.day));
-    const picks = generatePlan({ days, slot, candidates, occupiedDays: occupied, ...(random ? { random } : {}) });
+    const occupied = new Set(
+      this.c.plan
+        .all()
+        .filter((e) => e.slot === slot)
+        .map((e) => e.day),
+    );
+    const picks = generatePlan({
+      days,
+      slot,
+      candidates,
+      occupiedDays: occupied,
+      ...(random ? { random } : {}),
+    });
     return picks.map((p) => this.add(p.day, slot, { recipeId: p.recipeId }));
   }
 }

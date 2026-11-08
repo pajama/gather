@@ -5,7 +5,8 @@ import { Icon, type IconName } from './Icon';
 import { Tap } from './Tap';
 import { Text } from './Text';
 
-export type ButtonVariant = 'filled' | 'tinted' | 'plain' | 'outline' | 'destructive' | 'green' | 'yellow' | 'purple';
+export type ButtonVariant =
+  'filled' | 'tinted' | 'plain' | 'outline' | 'destructive' | 'green' | 'yellow' | 'purple';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 /** Soft pastel pairs used across the app (Start = green, groceries = yellow, share = purple). */
@@ -105,7 +106,13 @@ export function Button({
       ) : (
         <View style={styles.row}>
           {icon ? <Icon name={icon} size={size === 'lg' ? 24 : size === 'sm' ? 16 : 19} color={fg} /> : null}
-          <Text variant={size === 'sm' ? 'subhead' : size === 'lg' ? 'title3' : 'headline'} rounded weight="700" color={fg} numberOfLines={1}>
+          <Text
+            variant={size === 'sm' ? 'subhead' : size === 'lg' ? 'title3' : 'headline'}
+            rounded
+            weight="700"
+            color={fg}
+            numberOfLines={1}
+          >
             {title}
           </Text>
         </View>
@@ -164,7 +171,13 @@ export function IconButton({
       hitSlop={8}
       style={[
         styles.iconButton,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: bg, opacity: disabled ? 0.4 : 1 },
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: bg,
+          opacity: disabled ? 0.4 : 1,
+        },
         style,
       ]}
     >

@@ -5,13 +5,22 @@
 
 import { parseDurationText } from '../recipe/durations';
 import { emptyDraft, normalizeDraft, NUTRITION_KEYS, type DraftSection, type RecipeDraft } from './draft';
-import { cleanText, decodeEntities, getMetaContent, getTitle, hostLabel, htmlToText, resolveUrl } from './html';
+import {
+  cleanText,
+  decodeEntities,
+  getMetaContent,
+  getTitle,
+  hostLabel,
+  htmlToText,
+  resolveUrl,
+} from './html';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type JsonObject = { [key: string]: Json };
 
 const isObject = (v: Json | undefined): v is JsonObject => !!v && typeof v === 'object' && !Array.isArray(v);
-const asArray = (v: Json | undefined): Json[] => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
+const asArray = (v: Json | undefined): Json[] =>
+  v === undefined || v === null ? [] : Array.isArray(v) ? v : [v];
 
 function typesOf(node: JsonObject): string[] {
   return asArray(node['@type'])
@@ -108,7 +117,9 @@ export function splitInstructionText(text: string): string[] {
     .map((l) => l.replace(/^\s*(?:step\s*)?\d+[.):]\s+/i, '').trim())
     .filter(Boolean);
   if (lines.length > 1) return lines;
-  const numbered = plain.split(/\s(?=\d{1,2}[.)]\s+[A-Z])/).map((s) => s.replace(/^\d{1,2}[.)]\s+/, '').trim());
+  const numbered = plain
+    .split(/\s(?=\d{1,2}[.)]\s+[A-Z])/)
+    .map((s) => s.replace(/^\d{1,2}[.)]\s+/, '').trim());
   return numbered.filter(Boolean).length > 1 ? numbered.filter(Boolean) : lines;
 }
 
@@ -213,7 +224,8 @@ export function recipeFromMicrodata(html: string, pageUrl?: string): RecipeDraft
       `<([a-z0-9]+)[^>]*itemprop\\s*=\\s*["'][^"']*\\b${name}\\b[^"']*["'][^>]*?(?:content\\s*=\\s*["']([^"']*)["'][^>]*)?>([\\s\\S]*?)<\\/\\1>`,
       'gi',
     );
-    for (let m = re.exec(html); m; m = re.exec(html)) out.push(m[2] !== undefined ? decodeEntities(m[2]) : htmlToText(m[3] ?? ''));
+    for (let m = re.exec(html); m; m = re.exec(html))
+      out.push(m[2] !== undefined ? decodeEntities(m[2]) : htmlToText(m[3] ?? ''));
     const selfClosing = new RegExp(`<(?:meta|img|link)[^>]*itemprop\\s*=\\s*["']${name}["'][^>]*>`, 'gi');
     for (let m = selfClosing.exec(html); m; m = selfClosing.exec(html)) {
       const attr = /(?:content|src|href)\s*=\s*["']([^"']*)["']/i.exec(m[0]);
@@ -222,7 +234,9 @@ export function recipeFromMicrodata(html: string, pageUrl?: string): RecipeDraft
     return out.map((s) => s.trim()).filter(Boolean);
   };
   const draft = emptyDraft(props('name')[0] ?? getTitle(html) ?? '');
-  const ingredients = [...props('recipeIngredient'), ...props('ingredients')].flatMap((l) => l.split('\n')).filter(Boolean);
+  const ingredients = [...props('recipeIngredient'), ...props('ingredients')]
+    .flatMap((l) => l.split('\n'))
+    .filter(Boolean);
   if (ingredients.length) draft.ingredients = [{ lines: ingredients }];
   const steps = props('recipeInstructions').flatMap(splitInstructionText);
   if (steps.length) draft.steps = [{ lines: steps }];
@@ -255,6 +269,7 @@ export function extractRecipesFromHtml(html: string, pageUrl?: string): RecipeDr
     if (!draft.name) draft.name = getMetaContent(html, 'og:title') ?? getTitle(html) ?? 'Untitled recipe';
     if (draft.imageUrls.length === 0 && ogImage) draft.imageUrls = [resolveUrl(ogImage, pageUrl)];
   }
-  const score = (d: RecipeDraft) => d.ingredients.reduce((n, s) => n + s.lines.length, 0) * 2 + d.steps.length;
+  const score = (d: RecipeDraft) =>
+    d.ingredients.reduce((n, s) => n + s.lines.length, 0) * 2 + d.steps.length;
   return drafts.map(normalizeDraft).sort((a, b) => score(b) - score(a));
 }

@@ -5,15 +5,34 @@
  */
 
 import { usePathname } from 'expo-router';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatClock } from '@/core/recipe/durations';
-import { timerRemaining, timerStatus, type KitchenTimer as StoredTimer, type TimerStatus } from '@/core/timers/timers';
+import {
+  timerRemaining,
+  timerStatus,
+  type KitchenTimer as StoredTimer,
+  type TimerStatus,
+} from '@/core/timers/timers';
 import { useDb, useKitchenTimers } from '@/data/react';
-import { cancelTimerAlert, reconcileTimerAlerts, scheduleTimerAlert, timerFinished } from '@/data/services/timer-alerts';
+import {
+  cancelTimerAlert,
+  reconcileTimerAlerts,
+  scheduleTimerAlert,
+  timerFinished,
+} from '@/data/services/timer-alerts';
 import { haptic, IconButton, Tap, Text, useTheme } from '@/ui';
 
 /** A stored timer with its status worked out from the clock. */
@@ -51,7 +70,10 @@ export function TimersProvider({ children }: { children: ReactNode }) {
   const stored = useKitchenTimers();
   const [now, setNow] = useState(() => Date.now());
   const [mountedAt] = useState(() => Date.now());
-  const timers = useMemo(() => stored.map((t) => ({ ...t, state: timerStatus(t, now) })).sort((a, b) => a.createdAt - b.createdAt), [stored, now]);
+  const timers = useMemo(
+    () => stored.map((t) => ({ ...t, state: timerStatus(t, now) })).sort((a, b) => a.createdAt - b.createdAt),
+    [stored, now],
+  );
   const anyRunning = timers.some((t) => t.state === 'running');
   const latest = useRef(stored);
   const notified = useRef(new Set<string>());
@@ -73,7 +95,10 @@ export function TimersProvider({ children }: { children: ReactNode }) {
     if (!anyRunning) return;
     const handle = setInterval(() => {
       const tick = Date.now();
-      const finishing = latest.current.filter((t) => t.state === 'running' && t.endsAt !== undefined && t.endsAt <= tick && !notified.current.has(t.id));
+      const finishing = latest.current.filter(
+        (t) =>
+          t.state === 'running' && t.endsAt !== undefined && t.endsAt <= tick && !notified.current.has(t.id),
+      );
       let alerted = false;
       for (const t of finishing) {
         notified.current.add(t.id);
@@ -117,7 +142,8 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       addTime: (id, seconds) => {
         notified.current.delete(id);
         const timer = db.timers.addTime(id, seconds);
-        if (timer?.state === 'running' && timer.endsAt) void scheduleTimerAlert(id, timer.label, timer.endsAt);
+        if (timer?.state === 'running' && timer.endsAt)
+          void scheduleTimerAlert(id, timer.label, timer.endsAt);
         setNow(Date.now());
       },
     }),
@@ -159,7 +185,17 @@ export function splitTimerLabel(label: string): { title: string; subtitle?: stri
   return { title: rest.charAt(0).toUpperCase() + rest.slice(1), subtitle: label.slice(0, at) };
 }
 
-function Ring({ progress, size, color, track }: { progress: number; size: number; color: string; track: string }) {
+function Ring({
+  progress,
+  size,
+  color,
+  track,
+}: {
+  progress: number;
+  size: number;
+  color: string;
+  track: string;
+}) {
   const stroke = Math.max(4, size * 0.16);
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
@@ -216,11 +252,21 @@ function TimerHud() {
               {subtitle}
             </Text>
           ) : null}
-          <Text rounded weight="800" color={done ? colors.danger : colors.timerText} style={[styles.digits, compact ? null : styles.digitsLarge]}>
+          <Text
+            rounded
+            weight="800"
+            color={done ? colors.danger : colors.timerText}
+            style={[styles.digits, compact ? null : styles.digitsLarge]}
+          >
             {done ? 'Done!' : formatClock(left)}
           </Text>
         </View>
-        <Ring progress={t.totalSeconds ? 1 - left / t.totalSeconds : 1} size={compact ? 42 : 46} color={tone} track={colors.fill} />
+        <Ring
+          progress={t.totalSeconds ? 1 - left / t.totalSeconds : 1}
+          size={compact ? 42 : 46}
+          color={tone}
+          track={colors.fill}
+        />
       </View>
     );
   };
@@ -231,10 +277,24 @@ function TimerHud() {
         <Tap
           onPress={() => setExpanded(true)}
           accessibilityLabel="Show timers"
-          style={[styles.pill, { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, boxShadow: shadow }]}
+          style={[
+            styles.pill,
+            { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, boxShadow: shadow },
+          ]}
         >
-          <Ring progress={first.totalSeconds ? 1 - remaining(first) / first.totalSeconds : 1} size={22} color={first.state === 'done' ? colors.danger : colors.timer} track={colors.fill} />
-          <Text variant="headline" rounded weight="800" color={first.state === 'done' ? colors.danger : colors.timerText} style={styles.pillDigits}>
+          <Ring
+            progress={first.totalSeconds ? 1 - remaining(first) / first.totalSeconds : 1}
+            size={22}
+            color={first.state === 'done' ? colors.danger : colors.timer}
+            track={colors.fill}
+          />
+          <Text
+            variant="headline"
+            rounded
+            weight="800"
+            color={first.state === 'done' ? colors.danger : colors.timerText}
+            style={styles.pillDigits}
+          >
             {first.state === 'done' ? 'Done' : formatClock(remaining(first))}
           </Text>
           {timers.length > 1 ? (
@@ -247,7 +307,15 @@ function TimerHud() {
         <Tap
           onPress={() => setExpanded(true)}
           accessibilityLabel="Show timers"
-          style={[styles.hud, { backgroundColor: colors.surfaceRaised, borderRadius: radius.xl, padding: space.md, boxShadow: shadow }]}
+          style={[
+            styles.hud,
+            {
+              backgroundColor: colors.surfaceRaised,
+              borderRadius: radius.xl,
+              padding: space.md,
+              boxShadow: shadow,
+            },
+          ]}
         >
           {card(first, true)}
           {timers.length > 1 ? (
@@ -259,16 +327,41 @@ function TimerHud() {
           ) : null}
         </Tap>
       ) : (
-        <View style={[styles.hud, styles.hudOpen, { backgroundColor: colors.surfaceRaised, borderRadius: radius.xl, padding: space.md, gap: space.md, boxShadow: shadow }]}>
+        <View
+          style={[
+            styles.hud,
+            styles.hudOpen,
+            {
+              backgroundColor: colors.surfaceRaised,
+              borderRadius: radius.xl,
+              padding: space.md,
+              gap: space.md,
+              boxShadow: shadow,
+            },
+          ]}
+        >
           <View style={styles.hudHeader}>
             <Text variant="title3">Timers</Text>
-            <IconButton icon="chevronUp" variant="tinted" size={30} onPress={() => setExpanded(false)} accessibilityLabel="Collapse timers" />
+            <IconButton
+              icon="chevronUp"
+              variant="tinted"
+              size={30}
+              onPress={() => setExpanded(false)}
+              accessibilityLabel="Collapse timers"
+            />
           </View>
           {sorted.map((t) => (
             <View key={t.id} style={{ gap: space.sm }}>
               {card(t, false)}
               <View style={[styles.controls, { gap: space.sm }]}>
-                <IconButton icon="add" variant="tinted" tint="yellow" size={34} onPress={() => addTime(t.id, 60)} accessibilityLabel="Add one minute" />
+                <IconButton
+                  icon="add"
+                  variant="tinted"
+                  tint="yellow"
+                  size={34}
+                  onPress={() => addTime(t.id, 60)}
+                  accessibilityLabel="Add one minute"
+                />
                 {t.state !== 'done' ? (
                   <IconButton
                     icon={t.state === 'paused' ? 'play' : 'pause'}
@@ -279,7 +372,14 @@ function TimerHud() {
                     accessibilityLabel={t.state === 'paused' ? 'Resume' : 'Pause'}
                   />
                 ) : null}
-                <IconButton icon="close" variant="tinted" tint="red" size={34} onPress={() => cancel(t.id)} accessibilityLabel="Remove timer" />
+                <IconButton
+                  icon="close"
+                  variant="tinted"
+                  tint="red"
+                  size={34}
+                  onPress={() => cancel(t.id)}
+                  accessibilityLabel="Remove timer"
+                />
               </View>
             </View>
           ))}
@@ -302,5 +402,15 @@ const styles = StyleSheet.create({
   controls: { flexDirection: 'row', justifyContent: 'flex-end' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, height: 40 },
   pillDigits: { fontVariant: ['tabular-nums'] },
-  more: { position: 'absolute', top: -6, right: -6, minWidth: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  more: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
 });

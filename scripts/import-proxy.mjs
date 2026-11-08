@@ -24,14 +24,21 @@ createServer(async (req, res) => {
     return res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Expected GET /?url=https://...');
   }
   try {
-    const upstream = await fetch(target, { headers: { 'User-Agent': UA, Accept: 'text/html,*/*;q=0.8' }, redirect: 'follow' });
+    const upstream = await fetch(target, {
+      headers: { 'User-Agent': UA, Accept: 'text/html,*/*;q=0.8' },
+      redirect: 'follow',
+    });
     const type = upstream.headers.get('content-type') ?? '';
     if (!type.includes('html') && !type.includes('xml')) {
-      return res.writeHead(415, { 'Content-Type': 'text/plain' }).end(`Not an HTML page (${type || 'unknown type'})`);
+      return res
+        .writeHead(415, { 'Content-Type': 'text/plain' })
+        .end(`Not an HTML page (${type || 'unknown type'})`);
     }
     res.writeHead(upstream.status, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(await upstream.text());
   } catch (error) {
-    res.writeHead(502, { 'Content-Type': 'text/plain' }).end(`Fetch failed: ${error instanceof Error ? error.message : error}`);
+    res
+      .writeHead(502, { 'Content-Type': 'text/plain' })
+      .end(`Fetch failed: ${error instanceof Error ? error.message : error}`);
   }
 }).listen(PORT, () => console.log(`Gather import proxy on http://localhost:${PORT}`));

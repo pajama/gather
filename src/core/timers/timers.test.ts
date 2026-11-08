@@ -1,13 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { addTimerTime, createTimer, isStale, pauseTimer, resumeTimer, timerProgress, timerRemaining, timerStatus } from './timers';
+import {
+  addTimerTime,
+  createTimer,
+  isStale,
+  pauseTimer,
+  resumeTimer,
+  timerProgress,
+  timerRemaining,
+  timerStatus,
+} from './timers';
 
 const T0 = 1_000_000;
 
 describe('kitchen timers', () => {
   it('runs down and finishes on the clock', () => {
     const t = createTimer('a', 'Rice', 600, T0, 'recipe-1');
-    expect(t).toMatchObject({ totalSeconds: 600, state: 'running', endsAt: T0 + 600_000, recipeId: 'recipe-1' });
+    expect(t).toMatchObject({
+      totalSeconds: 600,
+      state: 'running',
+      endsAt: T0 + 600_000,
+      recipeId: 'recipe-1',
+    });
     expect(timerRemaining(t, T0 + 60_000)).toBe(540);
     expect(timerProgress(t, T0 + 300_000)).toBeCloseTo(0.5);
     expect(timerStatus(t, T0 + 599_000)).toBe('running');

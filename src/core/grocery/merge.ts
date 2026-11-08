@@ -50,7 +50,10 @@ export interface GroceryLine {
 }
 
 /** Builds a grocery line from an ingredient, scaled for the servings being cooked. */
-export function groceryLineFrom(ingredientText: string, options: { recipeId?: string; scale?: number } = {}): GroceryLine {
+export function groceryLineFrom(
+  ingredientText: string,
+  options: { recipeId?: string; scale?: number } = {},
+): GroceryLine {
   const parsed = parseIngredient(ingredientText);
   const name = groceryName(parsed);
   const scaled: ParsedIngredient = { ...parsed, name, note: undefined };
@@ -96,12 +99,21 @@ export function combineLines(a: GroceryLine, b: GroceryLine): GroceryLine | null
       unitId = readable.unit.id;
     }
   } else return null;
-  const merged: ParsedIngredient = { ...pa, quantity, ...(unitId ? { unit: unitId } : {}), name: a.name, note: undefined };
+  const merged: ParsedIngredient = {
+    ...pa,
+    quantity,
+    ...(unitId ? { unit: unitId } : {}),
+    name: a.name,
+    note: undefined,
+  };
   return { ...a, text: formatIngredient(merged).full, recipeIds };
 }
 
 /** Adds lines to a list, merging with matching entries; returns the new list. */
-export function mergeGroceryLines(existing: readonly GroceryLine[], incoming: readonly GroceryLine[]): GroceryLine[] {
+export function mergeGroceryLines(
+  existing: readonly GroceryLine[],
+  incoming: readonly GroceryLine[],
+): GroceryLine[] {
   const result = [...existing];
   for (const line of incoming) {
     let merged = false;

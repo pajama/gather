@@ -13,7 +13,14 @@ export interface DurationMatch {
   maxSeconds?: number;
 }
 
-const FRACTION_GLYPHS: Record<string, number> = { '½': 0.5, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
+const FRACTION_GLYPHS: Record<string, number> = {
+  '½': 0.5,
+  '⅓': 1 / 3,
+  '⅔': 2 / 3,
+  '¼': 0.25,
+  '¾': 0.75,
+  '⅛': 0.125,
+};
 
 const WORDS: Record<string, number> = {
   a: 1,
@@ -57,7 +64,10 @@ function readNumber(raw: string): number | null {
   const text = raw.trim().toLowerCase();
   if (text in WORDS) return WORDS[text]!;
   const mixedFraction = /^(\d+)(?:\s+|-)(\d+)\s*\/\s*(\d+)$/.exec(text);
-  if (mixedFraction) return Number(mixedFraction[3]) === 0 ? null : Number(mixedFraction[1]) + Number(mixedFraction[2]) / Number(mixedFraction[3]);
+  if (mixedFraction)
+    return Number(mixedFraction[3]) === 0
+      ? null
+      : Number(mixedFraction[1]) + Number(mixedFraction[2]) / Number(mixedFraction[3]);
   const frac = /^(\d+)\s*\/\s*(\d+)$/.exec(text);
   if (frac) return Number(frac[2]) === 0 ? null : Number(frac[1]) / Number(frac[2]);
   const glyphOnly = FRACTION_GLYPHS[text];
@@ -106,7 +116,12 @@ export function findDurations(text: string): DurationMatch[] {
   for (const pair of pairs) {
     const prev = merged[merged.length - 1] as Pair | undefined;
     const gap = prev ? text.slice(prev.end, pair.start) : '';
-    if (prev && prev.maxSeconds === undefined && /^\s*(?:,|and|&|\+)?\s*$/i.test(gap) && pair.unitSize < prev.unitSize) {
+    if (
+      prev &&
+      prev.maxSeconds === undefined &&
+      /^\s*(?:,|and|&|\+)?\s*$/i.test(gap) &&
+      pair.unitSize < prev.unitSize
+    ) {
       prev.end = pair.end;
       prev.text = text.slice(prev.start, pair.end);
       prev.seconds += pair.seconds;
@@ -117,16 +132,19 @@ export function findDurations(text: string): DurationMatch[] {
     merged.push({ ...pair });
   }
   return merged.map(({ start, end, text: t, seconds, maxSeconds }) =>
-    maxSeconds === undefined ? { start, end, text: t, seconds } : { start, end, text: t, seconds, maxSeconds },
+    maxSeconds === undefined
+      ? { start, end, text: t, seconds }
+      : { start, end, text: t, seconds, maxSeconds },
   );
 }
 
 /** Parses an ISO 8601 duration ("PT1H30M", "P1DT2H", "PT90M") into seconds. */
 export function parseIsoDuration(iso: string | undefined | null): number | null {
   if (!iso) return null;
-  const m = /^P(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)W)?(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i.exec(
-    iso.trim(),
-  );
+  const m =
+    /^P(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)W)?(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i.exec(
+      iso.trim(),
+    );
   if (!m || m[0] === 'P' || m[0] === 'PT') return null;
   const [, y, mo, w, d, h, mi, s] = m.map((v) => (v === undefined ? 0 : Number(v)));
   return Math.round(
@@ -155,12 +173,16 @@ export function parseDurationText(text: string | undefined | null): number | nul
 
 /** "1 hr 30 min" (short), "1 hour 30 minutes" (long), "1h 30m" (compact). */
 export function formatDuration(seconds: number, style: 'short' | 'long' | 'compact' = 'short'): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return style === 'long' ? '0 minutes' : style === 'compact' ? '0m' : '0 min';
+  if (!Number.isFinite(seconds) || seconds <= 0)
+    return style === 'long' ? '0 minutes' : style === 'compact' ? '0m' : '0 min';
   if (style === 'compact') {
     const d = Math.floor(seconds / 86400);
     const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.round((seconds % 3600) / 60);
-    return [d ? `${d}d` : '', h ? `${h}h` : '', m && !d ? `${m}m` : ''].filter(Boolean).join(' ') || `${Math.round(seconds)}s`;
+    return (
+      [d ? `${d}d` : '', h ? `${h}h` : '', m && !d ? `${m}m` : ''].filter(Boolean).join(' ') ||
+      `${Math.round(seconds)}s`
+    );
   }
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);

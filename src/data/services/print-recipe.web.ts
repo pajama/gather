@@ -2,7 +2,14 @@
 export async function printHtml(html: string): Promise<void> {
   const frame = document.createElement('iframe');
   frame.setAttribute('aria-hidden', 'true');
-  Object.assign(frame.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' });
+  Object.assign(frame.style, {
+    position: 'fixed',
+    right: '0',
+    bottom: '0',
+    width: '0',
+    height: '0',
+    border: '0',
+  });
   document.body.appendChild(frame);
   const doc = frame.contentDocument!;
   doc.open();

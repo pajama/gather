@@ -32,7 +32,10 @@ function AppStack() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="recipe/[id]/index" />
-        <Stack.Screen name="recipe/[id]/cook" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen
+          name="recipe/[id]/cook"
+          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+        />
         <Stack.Screen name="recipe/[id]/edit" options={{ presentation: 'modal' }} />
         <Stack.Screen name="recipe/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="import" options={{ presentation: 'modal' }} />
@@ -54,7 +57,12 @@ function ThemedApp() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({ Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
+  const [fontsLoaded, fontError] = useFonts({
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+    Nunito_900Black,
+  });
   const ready = fontsLoaded || !!fontError;
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync().catch(() => undefined);
@@ -63,7 +71,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.fill}>
       <SafeAreaProvider>
-        <DatabaseProvider seed={seedDatabase} renderError={(error, retry) => <StorageErrorScreen error={error} retry={retry} />}>
+        <DatabaseProvider
+          seed={seedDatabase}
+          renderError={(error, retry) => <StorageErrorScreen error={error} retry={retry} />}
+        >
           <ThemedApp />
         </DatabaseProvider>
       </SafeAreaProvider>

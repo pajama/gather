@@ -54,7 +54,9 @@ export class FeedsRepository {
 
   /** Latest posts across all feeds, newest first. */
   items(): DiscoverItem[] {
-    const all = this.c.feeds.all().flatMap((feed) => feed.items.map((item) => ({ ...item, feedId: feed.id, feedTitle: feed.title })));
+    const all = this.c.feeds
+      .all()
+      .flatMap((feed) => feed.items.map((item) => ({ ...item, feedId: feed.id, feedTitle: feed.title })));
     const time = (item: FeedItem) => (item.published ? Date.parse(item.published) || 0 : 0);
     return all.sort((a, b) => time(b) - time(a));
   }

@@ -30,7 +30,9 @@ export class SQLiteStore implements DocumentStore {
   }
 
   loadAll(collection: string): Promise<StoredDocument[]> {
-    return this.queue.run(() => this.db.getAllAsync<StoredDocument>('SELECT id, json FROM documents WHERE collection = ?', collection));
+    return this.queue.run(() =>
+      this.db.getAllAsync<StoredDocument>('SELECT id, json FROM documents WHERE collection = ?', collection),
+    );
   }
 
   putMany(collection: string, docs: StoredDocument[]): Promise<void> {
@@ -53,7 +55,8 @@ export class SQLiteStore implements DocumentStore {
     if (ids.length === 0) return Promise.resolve();
     return this.queue.run(() =>
       this.db.withTransactionAsync(async () => {
-        for (const id of ids) await this.db.runAsync('DELETE FROM documents WHERE collection = ? AND id = ?', collection, id);
+        for (const id of ids)
+          await this.db.runAsync('DELETE FROM documents WHERE collection = ? AND id = ?', collection, id);
       }),
     );
   }
@@ -65,7 +68,9 @@ export class SQLiteStore implements DocumentStore {
   replaceCollections(contents: Record<string, StoredDocument[]>): Promise<void> {
     return this.queue.run(() =>
       this.db.withTransactionAsync(async () => {
-        const insert = await this.db.prepareAsync('INSERT INTO documents (collection, id, json) VALUES (?, ?, ?)');
+        const insert = await this.db.prepareAsync(
+          'INSERT INTO documents (collection, id, json) VALUES (?, ?, ?)',
+        );
         try {
           for (const [collection, docs] of Object.entries(contents)) {
             await this.db.runAsync('DELETE FROM documents WHERE collection = ?', collection);
@@ -87,7 +92,11 @@ export class SQLiteStore implements DocumentStore {
 
   async setMeta(key: string, value: string): Promise<void> {
     await this.queue.run(() =>
-      this.db.runAsync('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', key, value),
+      this.db.runAsync(
+        'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        key,
+        value,
+      ),
     );
   }
 

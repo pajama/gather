@@ -36,7 +36,15 @@ function CollectionRow({
     <Tap
       onPress={onPress}
       onLongPress={onLongPress}
-      style={[styles.row, { paddingHorizontal: space.lg, gap: space.md, borderTopWidth: first ? 0 : StyleSheet.hairlineWidth, borderTopColor: colors.separator }]}
+      style={[
+        styles.row,
+        {
+          paddingHorizontal: space.lg,
+          gap: space.md,
+          borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
+        },
+      ]}
       accessibilityLabel={title}
     >
       <Icon name={icon} size={24} color={iconColor ?? colors.accent} />
@@ -62,7 +70,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <Text variant="subhead" tone="secondary" style={{ marginBottom: space.sm, marginLeft: space.xs }}>
         {title}
       </Text>
-      <View style={{ backgroundColor: colors.surface, borderRadius: radius.xl, overflow: 'hidden' }}>{children}</View>
+      <View style={{ backgroundColor: colors.surface, borderRadius: radius.xl, overflow: 'hidden' }}>
+        {children}
+      </View>
     </View>
   );
 }
@@ -117,16 +127,38 @@ export function CollectionsScreen() {
           title="Collections"
           right={
             <>
-              <IconButton icon={editing ? 'check' : 'edit'} variant="tinted" onPress={() => setEditing(!editing)} accessibilityLabel={editing ? 'Done editing' : 'Edit folders'} />
-              <IconButton icon="add" variant="tinted" onPress={() => setFolderSheet({})} accessibilityLabel="New folder" />
+              <IconButton
+                icon={editing ? 'check' : 'edit'}
+                variant="tinted"
+                onPress={() => setEditing(!editing)}
+                accessibilityLabel={editing ? 'Done editing' : 'Edit folders'}
+              />
+              <IconButton
+                icon="add"
+                variant="tinted"
+                onPress={() => setFolderSheet({})}
+                accessibilityLabel="New folder"
+              />
             </>
           }
         />
       }
     >
       <Section title="Library">
-        <CollectionRow first icon="recipes" title="All Recipes" subtitle={count(recipes.length)} onPress={() => router.navigate('/')} />
-        <CollectionRow icon="heart" iconColor="#FF2D55" title="Favorites" subtitle={count(favorites)} onPress={() => router.push({ pathname: '/collection/[id]', params: { id: 'favorites' } })} />
+        <CollectionRow
+          first
+          icon="recipes"
+          title="All Recipes"
+          subtitle={count(recipes.length)}
+          onPress={() => router.navigate('/')}
+        />
+        <CollectionRow
+          icon="heart"
+          iconColor="#FF2D55"
+          title="Favorites"
+          subtitle={count(favorites)}
+          onPress={() => router.push({ pathname: '/collection/[id]', params: { id: 'favorites' } })}
+        />
       </Section>
 
       <Section title="Folders">
@@ -137,18 +169,32 @@ export function CollectionsScreen() {
             icon={f.tags?.length ? 'sparkles' : 'folderFilled'}
             title={f.name}
             subtitle={`${count(folderCounts.get(f.id) ?? 0)}${f.tags?.length ? ` · tagged ${f.tags.join(f.tagMatch === 'all' ? ' + ' : ' or ')}` : ''}`}
-            onPress={editing ? () => setFolderSheet({ folder: f }) : () => router.push({ pathname: '/collection/[id]', params: { id: f.id } })}
+            onPress={
+              editing
+                ? () => setFolderSheet({ folder: f })
+                : () => router.push({ pathname: '/collection/[id]', params: { id: f.id } })
+            }
             onLongPress={() => setFolderSheet({ folder: f })}
             right={
               editing ? (
-                <Tap onPress={() => db.folders.delete(f.id)} accessibilityLabel={`Delete ${f.name}`} hitSlop={8}>
+                <Tap
+                  onPress={() => db.folders.delete(f.id)}
+                  accessibilityLabel={`Delete ${f.name}`}
+                  hitSlop={8}
+                >
                   <Icon name="trash" size={20} tone="danger" />
                 </Tap>
               ) : undefined
             }
           />
         ))}
-        <CollectionRow first={folders.length === 0} icon="add" title="New Folder" onPress={() => setFolderSheet({})} right={<View />} />
+        <CollectionRow
+          first={folders.length === 0}
+          icon="add"
+          title="New Folder"
+          onPress={() => setFolderSheet({})}
+          right={<View />}
+        />
       </Section>
 
       {tags.length ? (
@@ -162,7 +208,15 @@ export function CollectionsScreen() {
               title={t.label}
               titleColor={colorFor(t.label)}
               subtitle={count(t.n)}
-              onPress={editing ? () => setColorTag(t.label) : () => router.push({ pathname: '/collection/[id]', params: { id: `tag:${encodeURIComponent(t.label)}` } })}
+              onPress={
+                editing
+                  ? () => setColorTag(t.label)
+                  : () =>
+                      router.push({
+                        pathname: '/collection/[id]',
+                        params: { id: `tag:${encodeURIComponent(t.label)}` },
+                      })
+              }
               onLongPress={() => setColorTag(t.label)}
             />
           ))}
@@ -177,7 +231,11 @@ export function CollectionsScreen() {
         onCreated={(folder) => router.push({ pathname: '/collection/[id]', params: { id: folder.id } })}
       />
 
-      <Sheet visible={!!colorTag} onClose={() => setColorTag(null)} title={colorTag ? `Color for “${colorTag}”` : ''}>
+      <Sheet
+        visible={!!colorTag}
+        onClose={() => setColorTag(null)}
+        title={colorTag ? `Color for “${colorTag}”` : ''}
+      >
         <View style={[styles.swatches, { gap: space.md }]}>
           {TAG_COLORS.map((color) => {
             const selected = !!colorTag && colorFor(colorTag) === color;
@@ -186,12 +244,17 @@ export function CollectionsScreen() {
                 key={color}
                 onPress={() => {
                   if (!colorTag) return;
-                  db.updateSettings({ tagColors: { ...settings.tagColors, [colorTag.toLowerCase()]: color } });
+                  db.updateSettings({
+                    tagColors: { ...settings.tagColors, [colorTag.toLowerCase()]: color },
+                  });
                   setColorTag(null);
                 }}
                 accessibilityLabel={`Use ${color}`}
                 accessibilityState={{ selected }}
-                style={[styles.swatch, { backgroundColor: color, borderColor: selected ? colors.text : 'transparent' }]}
+                style={[
+                  styles.swatch,
+                  { backgroundColor: color, borderColor: selected ? colors.text : 'transparent' },
+                ]}
               >
                 {selected ? <Icon name="check" size={20} color="#FFFFFF" /> : null}
               </Tap>
@@ -209,6 +272,13 @@ export function CollectionsScreen() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 58, paddingVertical: 8 },
   swatches: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-  swatch: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  swatch: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   flex: { flex: 1 },
 });

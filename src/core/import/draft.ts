@@ -75,7 +75,9 @@ export function safeLink(url: unknown): string | undefined {
 export function safeImageUrl(url: unknown): string | undefined {
   if (typeof url !== 'string') return undefined;
   const trimmed = url.trim();
-  return /^https?:\/\/\S+$/i.test(trimmed) || /^data:image\/[a-z0-9.+-]+;base64,/i.test(trimmed) || /^asset:\/\/seed\/[\w-]+$/.test(trimmed)
+  return /^https?:\/\/\S+$/i.test(trimmed) ||
+    /^data:image\/[a-z0-9.+-]+;base64,/i.test(trimmed) ||
+    /^asset:\/\/seed\/[\w-]+$/.test(trimmed)
     ? trimmed
     : undefined;
 }
@@ -83,7 +85,8 @@ export function safeImageUrl(url: unknown): string | undefined {
 type Loose = Record<string, unknown>;
 const isObject = (v: unknown): v is Loose => !!v && typeof v === 'object' && !Array.isArray(v);
 const text = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
-const amount = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined);
+const amount = (v: unknown): number | undefined =>
+  typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined;
 const texts = (v: unknown): string[] => (Array.isArray(v) ? v.map(text).filter((s): s is string => !!s) : []);
 
 function sections(value: unknown): DraftSection[] {
@@ -113,7 +116,9 @@ export function normalizeDraft(raw: unknown): RecipeDraft {
     const value = amount(r[key]);
     if (value !== undefined) draft[key] = value;
   }
-  draft.imageUrls = (Array.isArray(r.imageUrls) ? r.imageUrls : []).map(safeImageUrl).filter((u): u is string => !!u);
+  draft.imageUrls = (Array.isArray(r.imageUrls) ? r.imageUrls : [])
+    .map(safeImageUrl)
+    .filter((u): u is string => !!u);
   draft.ingredients = sections(r.ingredients);
   draft.steps = sections(r.steps);
   draft.tags = texts(r.tags);
@@ -132,4 +137,3 @@ export function normalizeDraft(raw: unknown): RecipeDraft {
   }
   return draft;
 }
-

@@ -99,9 +99,17 @@ export function findIngredientMentions(text: string, ingredients: readonly Menti
   for (const [phrase, ids] of owners) {
     if (ids.size !== 1) continue;
     const [ingredientId] = ids;
-    const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(phrase).replace(/ /g, '\\s+')}(?![\\p{L}\\p{N}])`, 'giu');
+    const re = new RegExp(
+      `(?<![\\p{L}\\p{N}])${escapeRegExp(phrase).replace(/ /g, '\\s+')}(?![\\p{L}\\p{N}])`,
+      'giu',
+    );
     for (let m = re.exec(text); m; m = re.exec(text)) {
-      candidates.push({ start: m.index, end: m.index + m[0].length, text: m[0], ingredientId: ingredientId! });
+      candidates.push({
+        start: m.index,
+        end: m.index + m[0].length,
+        text: m[0],
+        ingredientId: ingredientId!,
+      });
     }
   }
   candidates.sort((a, b) => b.end - b.start - (a.end - a.start) || a.start - b.start);
@@ -121,8 +129,10 @@ export type TextSegment =
 /** Splits text into plain, ingredient and duration segments for rich rendering. */
 export function segmentText(
   text: string,
-  marks: readonly (| { start: number; end: number; ingredientId: string }
-    | { start: number; end: number; seconds: number; maxSeconds?: number })[],
+  marks: readonly (
+    | { start: number; end: number; ingredientId: string }
+    | { start: number; end: number; seconds: number; maxSeconds?: number }
+  )[],
 ): TextSegment[] {
   const sorted = [...marks].sort((a, b) => a.start - b.start);
   const segments: TextSegment[] = [];
@@ -131,7 +141,8 @@ export function segmentText(
     if (mark.start < pos) continue;
     if (mark.start > pos) segments.push({ kind: 'text', text: text.slice(pos, mark.start) });
     const slice = text.slice(mark.start, mark.end);
-    if ('ingredientId' in mark) segments.push({ kind: 'ingredient', text: slice, ingredientId: mark.ingredientId });
+    if ('ingredientId' in mark)
+      segments.push({ kind: 'ingredient', text: slice, ingredientId: mark.ingredientId });
     else
       segments.push(
         mark.maxSeconds === undefined

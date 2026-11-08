@@ -51,7 +51,13 @@ export class RecipesRepository {
   duplicate(id: ID): Recipe | undefined {
     const source = this.get(id);
     if (!source) return undefined;
-    const { id: _id, createdAt: _created, updatedAt: _updated, lastCookedAt: _cooked, ...content } = JSON.parse(JSON.stringify(source)) as Recipe;
+    const {
+      id: _id,
+      createdAt: _created,
+      updatedAt: _updated,
+      lastCookedAt: _cooked,
+      ...content
+    } = JSON.parse(JSON.stringify(source)) as Recipe;
     const copy = createRecipe({
       ...content,
       ...withFreshIds(content),
@@ -78,7 +84,12 @@ export class RecipesRepository {
 
   markCooked(id: ID): void {
     const stamp = now();
-    this.c.recipes.update(id, (r) => ({ ...r, lastCookedAt: stamp, cookCount: r.cookCount + 1, updatedAt: stamp }));
+    this.c.recipes.update(id, (r) => ({
+      ...r,
+      lastCookedAt: stamp,
+      cookCount: r.cookCount + 1,
+      updatedAt: stamp,
+    }));
   }
 
   /** Deletes a recipe and everything that pointed at it. */
@@ -88,7 +99,9 @@ export class RecipesRepository {
     this.c.plan.remove(...planned.map((e) => e.id));
     const items = this.c.groceries.all().filter((g) => g.recipeIds.includes(id));
     const stamp = now();
-    this.c.groceries.upsert(...items.map((g) => ({ ...g, recipeIds: g.recipeIds.filter((r) => r !== id), updatedAt: stamp })));
+    this.c.groceries.upsert(
+      ...items.map((g) => ({ ...g, recipeIds: g.recipeIds.filter((r) => r !== id), updatedAt: stamp })),
+    );
   }
 
   /** Distinct tags in use, most used first. */
@@ -102,6 +115,8 @@ export class RecipesRepository {
         counts.set(key, entry);
       }
     }
-    return [...counts.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label)).map((e) => e.label);
+    return [...counts.values()]
+      .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label))
+      .map((e) => e.label);
   }
 }

@@ -12,9 +12,27 @@ import { pickBackupFile, saveBackupFile } from '@/data/services/backup-file';
 import { shareBinaryFile } from '@/data/services/pick-file';
 import { exactAlertStatus, requestExactAlerts, type ExactAlertStatus } from '@/data/services/timer-alerts';
 import { inlineBackupPhotos, inlineRecipePhotos, storeBackupPhotos } from '@/data/services/photo-files';
-import { ACCENTS, Chip, haptic, Icon, LargeHeader, ListRow, ListSection, Screen, SegmentedControl, Tap, Text, useTheme } from '@/ui';
+import {
+  ACCENTS,
+  Chip,
+  haptic,
+  Icon,
+  LargeHeader,
+  ListRow,
+  ListSection,
+  Screen,
+  SegmentedControl,
+  Tap,
+  Text,
+  useTheme,
+} from '@/ui';
 
-const SLOT_LABELS: Record<MealSlot, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
+const SLOT_LABELS: Record<MealSlot, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+};
 
 function confirm(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
@@ -69,8 +87,11 @@ export function SettingsScreen() {
     let count = 0;
     try {
       parsed = JSON.parse(text);
-      count = Array.isArray((parsed as { recipes?: unknown }).recipes) ? (parsed as { recipes: unknown[] }).recipes.length : 0;
-      if ((parsed as { format?: unknown }).format !== 'gather-backup') throw new BackupError('That file isn’t a Gather backup.');
+      count = Array.isArray((parsed as { recipes?: unknown }).recipes)
+        ? (parsed as { recipes: unknown[] }).recipes.length
+        : 0;
+      if ((parsed as { format?: unknown }).format !== 'gather-backup')
+        throw new BackupError('That file isn’t a Gather backup.');
     } catch (error) {
       setStatus(error instanceof BackupError ? error.message : 'That file isn’t a Gather backup.');
       return;
@@ -86,7 +107,11 @@ export function SettingsScreen() {
             setCanUndo(true);
           })
           .catch((error: unknown) => {
-            setStatus(error instanceof BackupError ? error.message : `Restore failed, so nothing was changed. (${String(error)})`);
+            setStatus(
+              error instanceof BackupError
+                ? error.message
+                : `Restore failed, so nothing was changed. (${String(error)})`,
+            );
           });
       },
     );
@@ -106,7 +131,9 @@ export function SettingsScreen() {
   const toggleSlot = (slot: MealSlot) => {
     const has = settings.plannerSlots.includes(slot);
     if (has && settings.plannerSlots.length === 1) return;
-    const next = has ? settings.plannerSlots.filter((s) => s !== slot) : MEAL_SLOTS.filter((s) => s === slot || settings.plannerSlots.includes(s));
+    const next = has
+      ? settings.plannerSlots.filter((s) => s !== slot)
+      : MEAL_SLOTS.filter((s) => s === slot || settings.plannerSlots.includes(s));
     db.updateSettings({ plannerSlots: next });
   };
 
@@ -128,7 +155,12 @@ export function SettingsScreen() {
                 accessibilityState={{ selected }}
                 style={styles.swatchWrap}
               >
-                <View style={[styles.swatch, { backgroundColor: color, borderColor: selected ? colors.text : 'transparent' }]}>
+                <View
+                  style={[
+                    styles.swatch,
+                    { backgroundColor: color, borderColor: selected ? colors.text : 'transparent' },
+                  ]}
+                >
                   {selected ? <Icon name="check" size={18} color={accent.onAccent} /> : null}
                 </View>
                 <Text variant="caption" tone={selected ? 'primary' : 'secondary'} numberOfLines={1}>
@@ -196,19 +228,46 @@ export function SettingsScreen() {
           </Text>
           <View style={[styles.chips, { gap: space.sm }]}>
             {MEAL_SLOTS.map((slot) => (
-              <Chip key={slot} label={SLOT_LABELS[slot]} selected={settings.plannerSlots.includes(slot)} onPress={() => toggleSlot(slot)} />
+              <Chip
+                key={slot}
+                label={SLOT_LABELS[slot]}
+                selected={settings.plannerSlots.includes(slot)}
+                onPress={() => toggleSlot(slot)}
+              />
             ))}
           </View>
         </View>
       </ListSection>
 
       <ListSection title="Your data" footer={status ?? `${recipes.length} recipes stored on this device.`}>
-        <ListRow icon="upload" iconColor="#5E8BD6" title="Export a backup" subtitle="Everything, as one file" onPress={() => void exportBackup()} />
-        <ListRow icon="download" iconColor="#2F9E5B" title="Restore from backup" onPress={() => void importBackup()} />
-        {canUndo ? <ListRow icon="undo" iconColor="#8E8E93" title="Undo last restore" subtitle="Put back the library from before it" onPress={undoRestore} /> : null}
+        <ListRow
+          icon="upload"
+          iconColor="#5E8BD6"
+          title="Export a backup"
+          subtitle="Everything, as one file"
+          onPress={() => void exportBackup()}
+        />
+        <ListRow
+          icon="download"
+          iconColor="#2F9E5B"
+          title="Restore from backup"
+          onPress={() => void importBackup()}
+        />
+        {canUndo ? (
+          <ListRow
+            icon="undo"
+            iconColor="#8E8E93"
+            title="Undo last restore"
+            subtitle="Put back the library from before it"
+            onPress={undoRestore}
+          />
+        ) : null}
       </ListSection>
 
-      <ListSection title="Other apps" footer="Crouton opens .crumb files, so recipes can move between the two apps in either direction.">
+      <ListSection
+        title="Other apps"
+        footer="Crouton opens .crumb files, so recipes can move between the two apps in either direction."
+      >
         <ListRow
           icon="download"
           iconColor="#F5A623"
@@ -244,7 +303,14 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   swatches: { flexDirection: 'row', flexWrap: 'wrap' },
   swatchWrap: { alignItems: 'center', width: 64, gap: 6 },
-  swatch: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
+  swatch: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap' },
   about: { alignItems: 'center', paddingVertical: 24 },
 });

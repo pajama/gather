@@ -1,5 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, Platform, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import {
+  Animated,
+  Platform,
+  StyleSheet,
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputProps,
+  type ViewStyle,
+} from 'react-native';
 
 import { useTheme } from '../theme/theme';
 import { Icon, type IconName } from './Icon';
@@ -54,7 +63,11 @@ export function Field({
   multiline,
   minInputHeight,
   ...props
-}: TextInputProps & { label?: string; style?: StyleProp<ViewStyle>; /** Height of a multiline field before it scrolls. */ minInputHeight?: number }) {
+}: TextInputProps & {
+  label?: string;
+  style?: StyleProp<ViewStyle>;
+  /** Height of a multiline field before it scrolls. */ minInputHeight?: number;
+}) {
   const { colors, radius, space } = useTheme();
   return (
     <View style={[{ gap: space.xs }, style]}>
@@ -97,7 +110,10 @@ export function SegmentedControl<T extends string>({
 }) {
   const { colors, radius } = useTheme();
   return (
-    <View style={[styles.segmented, { backgroundColor: colors.fill, borderRadius: radius.sm + 2 }, style]} accessibilityRole="tablist">
+    <View
+      style={[styles.segmented, { backgroundColor: colors.fill, borderRadius: radius.sm + 2 }, style]}
+      accessibilityRole="tablist"
+    >
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -119,8 +135,15 @@ export function SegmentedControl<T extends string>({
               },
             ]}
           >
-            {option.icon ? <Icon name={option.icon} size={16} tone={selected ? 'primary' : 'secondary'} /> : null}
-            <Text variant="subhead" weight={selected ? '600' : '500'} tone={selected ? 'primary' : 'secondary'} numberOfLines={1}>
+            {option.icon ? (
+              <Icon name={option.icon} size={16} tone={selected ? 'primary' : 'secondary'} />
+            ) : null}
+            <Text
+              variant="subhead"
+              weight={selected ? '600' : '500'}
+              tone={selected ? 'primary' : 'secondary'}
+              numberOfLines={1}
+            >
               {option.label}
             </Text>
           </Tap>
@@ -173,19 +196,38 @@ export function Stepper({
   );
 }
 
-export function Checkbox({ checked, size = 24, shape = 'square' }: { checked: boolean; size?: number; shape?: 'square' | 'circle' }) {
+export function Checkbox({
+  checked,
+  size = 24,
+  shape = 'square',
+}: {
+  checked: boolean;
+  size?: number;
+  shape?: 'square' | 'circle';
+}) {
   const { colors } = useTheme();
   const corner = shape === 'circle' ? size / 2 : size * 0.3;
   const [scale] = useState(() => new Animated.Value(checked ? 1 : 0));
   useEffect(() => {
-    Animated.spring(scale, { toValue: checked ? 1 : 0, useNativeDriver: true, speed: 30, bounciness: 10 }).start();
+    Animated.spring(scale, {
+      toValue: checked ? 1 : 0,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 10,
+    }).start();
   }, [checked, scale]);
   return (
     <View
       style={[
         styles.checkbox,
         shape === 'circle'
-          ? { width: size, height: size, borderRadius: corner, borderWidth: 2, borderColor: checked ? colors.accent : colors.textTertiary }
+          ? {
+              width: size,
+              height: size,
+              borderRadius: corner,
+              borderWidth: 2,
+              borderColor: checked ? colors.accent : colors.textTertiary,
+            }
           : { width: size, height: size, borderRadius: corner, backgroundColor: colors.fill },
       ]}
     >
@@ -221,7 +263,11 @@ export function Chip({
       haptic
       onPress={onPress}
       accessibilityState={{ selected: !!selected }}
-      style={[styles.chip, { borderRadius: radius.pill, backgroundColor: selected ? colors.accent : colors.fill }, style]}
+      style={[
+        styles.chip,
+        { borderRadius: radius.pill, backgroundColor: selected ? colors.accent : colors.fill },
+        style,
+      ]}
     >
       {icon ? <Icon name={icon} size={15} color={selected ? colors.onAccent : colors.textSecondary} /> : null}
       <Text variant="subhead" weight="600" color={selected ? colors.onAccent : colors.text} numberOfLines={1}>
@@ -268,7 +314,15 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 17, height: 40, ...noFocusRing },
   field: { fontSize: 17, paddingHorizontal: 14, ...noFocusRing },
   segmented: { flexDirection: 'row', padding: 2, gap: 2 },
-  segment: { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 8 },
+  segment: {
+    flex: 1,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
   stepper: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 4 },
   stepperButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   stepperValue: { minWidth: 34, textAlign: 'center', fontVariant: ['tabular-nums'] },
@@ -276,5 +330,12 @@ const styles = StyleSheet.create({
   checkFill: { alignItems: 'center', justifyContent: 'center' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34 },
   empty: { alignItems: 'center', justifyContent: 'center' },
-  emptyIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
 });

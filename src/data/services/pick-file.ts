@@ -16,7 +16,11 @@ export async function pickFile(): Promise<PickedFile | null> {
 }
 
 /** Writes bytes to a temporary file and opens the share sheet. */
-export async function shareBinaryFile(name: string, bytes: Uint8Array, mimeType = 'application/zip'): Promise<void> {
+export async function shareBinaryFile(
+  name: string,
+  bytes: Uint8Array,
+  mimeType = 'application/zip',
+): Promise<void> {
   const file = new File(Paths.cache, name);
   if (file.exists) file.delete();
   file.create();
@@ -25,7 +29,11 @@ export async function shareBinaryFile(name: string, bytes: Uint8Array, mimeType 
 }
 
 /** Writes text to a temporary file and opens the share sheet. */
-export async function shareTextFile(name: string, text: string, mimeType = 'application/json'): Promise<void> {
+export async function shareTextFile(
+  name: string,
+  text: string,
+  mimeType = 'application/json',
+): Promise<void> {
   const file = new File(Paths.cache, name);
   if (file.exists) file.delete();
   file.create();

@@ -12,7 +12,10 @@ import { emptyDraft, type DraftSection, type RecipeDraft } from './draft';
 type Zone = 'intro' | 'ingredients' | 'steps' | 'notes';
 
 const MARKERS: [Zone, RegExp][] = [
-  ['ingredients', /^(?:ingredients?|what you(?:'|’)ll need|you(?:'|’)ll need|you will need|shopping list)\s*:?$/i],
+  [
+    'ingredients',
+    /^(?:ingredients?|what you(?:'|’)ll need|you(?:'|’)ll need|you will need|shopping list)\s*:?$/i,
+  ],
   ['steps', /^(?:directions?|instructions?|method|steps|preparation|how to make(?: it)?|to make)\s*:?$/i],
   ['notes', /^(?:notes?|tips?|cook(?:'|’)s notes?|variations?)\s*:?$/i],
 ];
@@ -29,7 +32,10 @@ function zoneFor(line: string): Zone | undefined {
 function looksLikeIngredient(line: string): boolean {
   if (STEP_MARKER.test(line)) return false;
   const stripped = line.replace(/^\s*[-–—*•·▢☐□]\s+/, '');
-  return stripped.length <= 90 && (!!parseLeadingQuantity(stripped, { words: false }) || /^\s*[-–—*•·▢☐□]\s+/.test(line));
+  return (
+    stripped.length <= 90 &&
+    (!!parseLeadingQuantity(stripped, { words: false }) || /^\s*[-–—*•·▢☐□]\s+/.test(line))
+  );
 }
 
 /** True when the text is a duration and nothing more ("1 hr 20 mins", "45 minutes", "PT30M"). */
@@ -93,8 +99,18 @@ export function parseRecipeText(input: string): RecipeDraft {
     }
 
     let target: Zone = zone;
-    if (!hasMarkers && zone === 'intro') target = looksLikeIngredient(line) ? 'ingredients' : line.length > 60 || BULLET_OR_NUMBER.test(line) ? 'steps' : 'intro';
-    if (!hasMarkers && zone === 'ingredients' && (STEP_MARKER.test(line) || (!looksLikeIngredient(line) && line.length > 60))) target = 'steps';
+    if (!hasMarkers && zone === 'intro')
+      target = looksLikeIngredient(line)
+        ? 'ingredients'
+        : line.length > 60 || BULLET_OR_NUMBER.test(line)
+          ? 'steps'
+          : 'intro';
+    if (
+      !hasMarkers &&
+      zone === 'ingredients' &&
+      (STEP_MARKER.test(line) || (!looksLikeIngredient(line) && line.length > 60))
+    )
+      target = 'steps';
     if (!hasMarkers) zone = target === 'intro' ? zone : target;
 
     switch (target) {

@@ -28,28 +28,233 @@ const U = (def: UnitDef): UnitDef => def;
 
 export const UNITS: readonly UnitDef[] = [
   // US volume
-  U({ id: 'tsp', dimension: 'volume', system: 'us', toBase: 4.92892, singular: 'teaspoon', plural: 'teaspoons', short: 'tsp', aliases: ['tsp', 'tsps', 'tsp.', 'teaspoon', 'teaspoons', 'teasp'], caseSensitiveAliases: ['t'], numberStyle: 'fraction' }),
-  U({ id: 'tbsp', dimension: 'volume', system: 'us', toBase: 14.7868, singular: 'tablespoon', plural: 'tablespoons', short: 'tbsp', aliases: ['tbsp', 'tbsps', 'tbsp.', 'tbs', 'tbl', 'tbl.', 'tblsp', 'tablespoon', 'tablespoons', 'tbls'], caseSensitiveAliases: ['T', 'Tb'], numberStyle: 'fraction' }),
-  U({ id: 'floz', dimension: 'volume', system: 'us', toBase: 29.5735, singular: 'fluid ounce', plural: 'fluid ounces', short: 'fl oz', aliases: ['fl oz', 'fl. oz.', 'fl. oz', 'fl.oz.', 'fl.oz', 'floz', 'fluid ounce', 'fluid ounces', 'fl ounce', 'fl ounces'], numberStyle: 'fraction' }),
-  U({ id: 'cup', dimension: 'volume', system: 'us', toBase: 236.588, singular: 'cup', plural: 'cups', short: 'cup', aliases: ['cup', 'cups', 'c', 'c.'], numberStyle: 'fraction' }),
-  U({ id: 'pint', dimension: 'volume', system: 'us', toBase: 473.176, singular: 'pint', plural: 'pints', short: 'pt', aliases: ['pint', 'pints', 'pt', 'pt.', 'pts'], numberStyle: 'fraction' }),
-  U({ id: 'quart', dimension: 'volume', system: 'us', toBase: 946.353, singular: 'quart', plural: 'quarts', short: 'qt', aliases: ['quart', 'quarts', 'qt', 'qt.', 'qts'], numberStyle: 'fraction' }),
-  U({ id: 'gallon', dimension: 'volume', system: 'us', toBase: 3785.41, singular: 'gallon', plural: 'gallons', short: 'gal', aliases: ['gallon', 'gallons', 'gal', 'gal.', 'gals'], numberStyle: 'fraction' }),
+  U({
+    id: 'tsp',
+    dimension: 'volume',
+    system: 'us',
+    toBase: 4.92892,
+    singular: 'teaspoon',
+    plural: 'teaspoons',
+    short: 'tsp',
+    aliases: ['tsp', 'tsps', 'tsp.', 'teaspoon', 'teaspoons', 'teasp'],
+    caseSensitiveAliases: ['t'],
+    numberStyle: 'fraction',
+  }),
+  U({
+    id: 'tbsp',
+    dimension: 'volume',
+    system: 'us',
+    toBase: 14.7868,
+    singular: 'tablespoon',
+    plural: 'tablespoons',
+    short: 'tbsp',
+    aliases: ['tbsp', 'tbsps', 'tbsp.', 'tbs', 'tbl', 'tbl.', 'tblsp', 'tablespoon', 'tablespoons', 'tbls'],
+    caseSensitiveAliases: ['T', 'Tb'],
+    numberStyle: 'fraction',
+  }),
+  U({
+    id: 'floz',
+    dimension: 'volume',
+    system: 'us',
+    toBase: 29.5735,
+    singular: 'fluid ounce',
+    plural: 'fluid ounces',
+    short: 'fl oz',
+    aliases: [
+      'fl oz',
+      'fl. oz.',
+      'fl. oz',
+      'fl.oz.',
+      'fl.oz',
+      'floz',
+      'fluid ounce',
+      'fluid ounces',
+      'fl ounce',
+      'fl ounces',
+    ],
+    numberStyle: 'fraction',
+  }),
+  U({
+    id: 'cup',
+    dimension: 'volume',
+    system: 'us',
+    toBase: 236.588,
+    singular: 'cup',
+    plural: 'cups',
+    short: 'cup',
+    aliases: ['cup', 'cups', 'c', 'c.'],
+    numberStyle: 'fraction',
+  }),
+  U({
+    id: 'pint',
+    dimension: 'volume',
+    system: 'us',
+    toBase: 473.176,
+    singular: 'pint',
+    plural: 'pints',
+    short: 'pt',
+    aliases: ['pint', 'pints', 'pt', 'pt.', 'pts'],
+    numberStyle: 'fraction',
+  }),
+  U({
+    id: 'quart',
+    dimension: 'volume',
+    system: 'us',
+    toBase: 946.353,
+    singular: 'quart',
+    plural: 'quarts',
+    short: 'qt',
+    aliases: ['quart', 'quarts', 'qt', 'qt.', 'qts'],
+    numberStyle: 'fraction',
+  }),
+  U({
+    id: 'gallon',
+    dimension: 'volume',
+    system: 'us',
+    toBase: 3785.41,
+    singular: 'gallon',
+    plural: 'gallons',
+    short: 'gal',
+    aliases: ['gallon', 'gallons', 'gal', 'gal.', 'gals'],
+    numberStyle: 'fraction',
+  }),
   // Metric volume
-  U({ id: 'ml', dimension: 'volume', system: 'metric', toBase: 1, singular: 'millilitre', plural: 'millilitres', short: 'ml', aliases: ['ml', 'ml.', 'mls', 'milliliter', 'milliliters', 'millilitre', 'millilitres', 'cc'], caseSensitiveAliases: ['mL'], numberStyle: 'decimal' }),
-  U({ id: 'cl', dimension: 'volume', system: 'metric', toBase: 10, singular: 'centilitre', plural: 'centilitres', short: 'cl', aliases: ['cl', 'centiliter', 'centiliters', 'centilitre', 'centilitres'], numberStyle: 'decimal' }),
-  U({ id: 'dl', dimension: 'volume', system: 'metric', toBase: 100, singular: 'decilitre', plural: 'decilitres', short: 'dl', aliases: ['dl', 'deciliter', 'deciliters', 'decilitre', 'decilitres'], numberStyle: 'decimal' }),
-  U({ id: 'l', dimension: 'volume', system: 'metric', toBase: 1000, singular: 'litre', plural: 'litres', short: 'l', aliases: ['l', 'l.', 'liter', 'liters', 'litre', 'litres', 'ltr', 'ltrs'], caseSensitiveAliases: ['L'], numberStyle: 'decimal' }),
+  U({
+    id: 'ml',
+    dimension: 'volume',
+    system: 'metric',
+    toBase: 1,
+    singular: 'millilitre',
+    plural: 'millilitres',
+    short: 'ml',
+    aliases: ['ml', 'ml.', 'mls', 'milliliter', 'milliliters', 'millilitre', 'millilitres', 'cc'],
+    caseSensitiveAliases: ['mL'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'cl',
+    dimension: 'volume',
+    system: 'metric',
+    toBase: 10,
+    singular: 'centilitre',
+    plural: 'centilitres',
+    short: 'cl',
+    aliases: ['cl', 'centiliter', 'centiliters', 'centilitre', 'centilitres'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'dl',
+    dimension: 'volume',
+    system: 'metric',
+    toBase: 100,
+    singular: 'decilitre',
+    plural: 'decilitres',
+    short: 'dl',
+    aliases: ['dl', 'deciliter', 'deciliters', 'decilitre', 'decilitres'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'l',
+    dimension: 'volume',
+    system: 'metric',
+    toBase: 1000,
+    singular: 'litre',
+    plural: 'litres',
+    short: 'l',
+    aliases: ['l', 'l.', 'liter', 'liters', 'litre', 'litres', 'ltr', 'ltrs'],
+    caseSensitiveAliases: ['L'],
+    numberStyle: 'decimal',
+  }),
   // Mass
-  U({ id: 'mg', dimension: 'mass', system: 'metric', toBase: 0.001, singular: 'milligram', plural: 'milligrams', short: 'mg', aliases: ['mg', 'mgs', 'milligram', 'milligrams', 'milligramme', 'milligrammes'], numberStyle: 'decimal' }),
-  U({ id: 'g', dimension: 'mass', system: 'metric', toBase: 1, singular: 'gram', plural: 'grams', short: 'g', aliases: ['g', 'g.', 'gr', 'gr.', 'grs', 'gram', 'grams', 'gramme', 'grammes', 'gm', 'gms'], numberStyle: 'decimal' }),
-  U({ id: 'kg', dimension: 'mass', system: 'metric', toBase: 1000, singular: 'kilogram', plural: 'kilograms', short: 'kg', aliases: ['kg', 'kg.', 'kgs', 'kilo', 'kilos', 'kilogram', 'kilograms', 'kilogramme', 'kilogrammes'], numberStyle: 'decimal' }),
-  U({ id: 'oz', dimension: 'mass', system: 'us', toBase: 28.3495, singular: 'ounce', plural: 'ounces', short: 'oz', aliases: ['oz', 'oz.', 'ozs', 'ounce', 'ounces'], numberStyle: 'fraction' }),
-  U({ id: 'lb', dimension: 'mass', system: 'us', toBase: 453.592, singular: 'pound', plural: 'pounds', short: 'lb', aliases: ['lb', 'lb.', 'lbs', 'lbs.', 'pound', 'pounds', '#'], numberStyle: 'fraction' }),
+  U({
+    id: 'mg',
+    dimension: 'mass',
+    system: 'metric',
+    toBase: 0.001,
+    singular: 'milligram',
+    plural: 'milligrams',
+    short: 'mg',
+    aliases: ['mg', 'mgs', 'milligram', 'milligrams', 'milligramme', 'milligrammes'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'g',
+    dimension: 'mass',
+    system: 'metric',
+    toBase: 1,
+    singular: 'gram',
+    plural: 'grams',
+    short: 'g',
+    aliases: ['g', 'g.', 'gr', 'gr.', 'grs', 'gram', 'grams', 'gramme', 'grammes', 'gm', 'gms'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'kg',
+    dimension: 'mass',
+    system: 'metric',
+    toBase: 1000,
+    singular: 'kilogram',
+    plural: 'kilograms',
+    short: 'kg',
+    aliases: ['kg', 'kg.', 'kgs', 'kilo', 'kilos', 'kilogram', 'kilograms', 'kilogramme', 'kilogrammes'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'oz',
+    dimension: 'mass',
+    system: 'us',
+    toBase: 28.3495,
+    singular: 'ounce',
+    plural: 'ounces',
+    short: 'oz',
+    aliases: ['oz', 'oz.', 'ozs', 'ounce', 'ounces'],
+    numberStyle: 'fraction',
+  }),
+  U({
+    id: 'lb',
+    dimension: 'mass',
+    system: 'us',
+    toBase: 453.592,
+    singular: 'pound',
+    plural: 'pounds',
+    short: 'lb',
+    aliases: ['lb', 'lb.', 'lbs', 'lbs.', 'pound', 'pounds', '#'],
+    numberStyle: 'fraction',
+  }),
   // Length
-  U({ id: 'mm', dimension: 'length', system: 'metric', toBase: 0.1, singular: 'millimetre', plural: 'millimetres', short: 'mm', aliases: ['mm', 'millimeter', 'millimeters', 'millimetre', 'millimetres'], numberStyle: 'decimal' }),
-  U({ id: 'cm', dimension: 'length', system: 'metric', toBase: 1, singular: 'centimetre', plural: 'centimetres', short: 'cm', aliases: ['cm', 'centimeter', 'centimeters', 'centimetre', 'centimetres'], numberStyle: 'decimal' }),
-  U({ id: 'in', dimension: 'length', system: 'us', toBase: 2.54, singular: 'inch', plural: 'inches', short: 'in', aliases: ['in', 'in.', 'inch', 'inches', '"', '″'], numberStyle: 'fraction' }),
+  U({
+    id: 'mm',
+    dimension: 'length',
+    system: 'metric',
+    toBase: 0.1,
+    singular: 'millimetre',
+    plural: 'millimetres',
+    short: 'mm',
+    aliases: ['mm', 'millimeter', 'millimeters', 'millimetre', 'millimetres'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'cm',
+    dimension: 'length',
+    system: 'metric',
+    toBase: 1,
+    singular: 'centimetre',
+    plural: 'centimetres',
+    short: 'cm',
+    aliases: ['cm', 'centimeter', 'centimeters', 'centimetre', 'centimetres'],
+    numberStyle: 'decimal',
+  }),
+  U({
+    id: 'in',
+    dimension: 'length',
+    system: 'us',
+    toBase: 2.54,
+    singular: 'inch',
+    plural: 'inches',
+    short: 'in',
+    aliases: ['in', 'in.', 'inch', 'inches', '"', '″'],
+    numberStyle: 'fraction',
+  }),
   // Neutral counts and vague amounts (never converted)
   ...(
     [
@@ -64,7 +269,12 @@ export const UNITS: readonly UnitDef[] = [
       ['can', 'can', 'cans', ['can', 'cans', 'tin', 'tins']],
       ['jar', 'jar', 'jars', ['jar', 'jars']],
       ['bottle', 'bottle', 'bottles', ['bottle', 'bottles']],
-      ['package', 'package', 'packages', ['package', 'packages', 'pkg', 'pkgs', 'packet', 'packets', 'pack', 'packs']],
+      [
+        'package',
+        'package',
+        'packages',
+        ['package', 'packages', 'pkg', 'pkgs', 'packet', 'packets', 'pack', 'packs'],
+      ],
       ['box', 'box', 'boxes', ['box', 'boxes']],
       ['bag', 'bag', 'bags', ['bag', 'bags']],
       ['bunch', 'bunch', 'bunches', ['bunch', 'bunches']],
@@ -85,7 +295,16 @@ export const UNITS: readonly UnitDef[] = [
       ['container', 'container', 'containers', ['container', 'containers', 'tub', 'tubs']],
     ] as const
   ).map(([id, singular, plural, aliases]) =>
-    U({ id, dimension: 'count', system: 'neutral', singular, plural, short: singular, aliases: [...aliases], numberStyle: 'fraction' }),
+    U({
+      id,
+      dimension: 'count',
+      system: 'neutral',
+      singular,
+      plural,
+      short: singular,
+      aliases: [...aliases],
+      numberStyle: 'fraction',
+    }),
   ),
 ];
 
@@ -103,7 +322,9 @@ interface AliasEntry {
 
 /** Longest aliases first so "fl oz" wins over "fl" and "tbsp" over "t". */
 const ALIASES: AliasEntry[] = UNITS.flatMap((unit) => {
-  const insensitive = new Set([unit.singular, unit.plural, unit.short, ...unit.aliases].map((a) => a.toLowerCase()));
+  const insensitive = new Set(
+    [unit.singular, unit.plural, unit.short, ...unit.aliases].map((a) => a.toLowerCase()),
+  );
   return [
     ...[...insensitive].map((alias) => ({ alias, unit, caseSensitive: false })),
     ...(unit.caseSensitiveAliases ?? []).map((alias) => ({ alias, unit, caseSensitive: true })),
@@ -193,7 +414,11 @@ const LADDER_THRESHOLDS: Record<string, number> = {
  * Picks a readable unit for an amount expressed in `unit`, within `system`
  * (e.g. 48 tsp -> 1 cup; 1500 g -> 1.5 kg). Returns the converted value.
  */
-export function humanize(value: number, unit: UnitDef, system: 'us' | 'metric' = unit.system === 'metric' ? 'metric' : 'us'): { value: number; unit: UnitDef } {
+export function humanize(
+  value: number,
+  unit: UnitDef,
+  system: 'us' | 'metric' = unit.system === 'metric' ? 'metric' : 'us',
+): { value: number; unit: UnitDef } {
   if (unit.toBase === undefined) return { value, unit };
   const ladder = LADDERS[`${unit.dimension}:${system}`];
   if (!ladder || (unit.system === system && !ladder.includes(unit.id))) return { value, unit };
@@ -208,8 +433,13 @@ export function humanize(value: number, unit: UnitDef, system: 'us' | 'metric' =
 }
 
 /** Converts an amount into the other measurement system, choosing a readable unit. */
-export function convertToSystem(value: number, unit: UnitDef, system: 'us' | 'metric'): { value: number; unit: UnitDef } {
-  if (unit.toBase === undefined || unit.system === system || unit.system === 'neutral') return { value, unit };
+export function convertToSystem(
+  value: number,
+  unit: UnitDef,
+  system: 'us' | 'metric',
+): { value: number; unit: UnitDef } {
+  if (unit.toBase === undefined || unit.system === system || unit.system === 'neutral')
+    return { value, unit };
   const ladder = LADDERS[`${unit.dimension}:${system}`];
   if (!ladder) return { value, unit };
   const target = getUnit(ladder[0])!;

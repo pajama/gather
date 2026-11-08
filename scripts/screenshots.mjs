@@ -25,7 +25,11 @@ function findChromium() {
   const cache = join(homedir(), '.cache', 'ms-playwright');
   if (!existsSync(cache)) return undefined;
   for (const dir of readdirSync(cache).sort().reverse()) {
-    for (const rel of ['chrome-linux64/chrome', 'chrome-linux/chrome', 'chrome-mac/Chromium.app/Contents/MacOS/Chromium']) {
+    for (const rel of [
+      'chrome-linux64/chrome',
+      'chrome-linux/chrome',
+      'chrome-mac/Chromium.app/Contents/MacOS/Chromium',
+    ]) {
       const candidate = join(cache, dir, rel);
       if (dir.startsWith('chromium-') && existsSync(candidate)) return candidate;
     }
@@ -33,10 +37,24 @@ function findChromium() {
   return undefined;
 }
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
+const TYPES = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+  '.ttf': 'font/ttf',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+};
 
 const server = createServer(async (req, res) => {
-  const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
+  const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(
+    /^(\.\.[/\\])+/,
+    '',
+  );
   const file = join(DIST, path);
   try {
     const body = await readFile(existsSync(file) && extname(file) ? file : join(DIST, 'index.html'));
@@ -53,12 +71,18 @@ await mkdir(OUT, { recursive: true });
 const browser = await chromium.launch({
   executablePath: findChromium(),
   args: ['--no-sandbox'],
-  ...(process.env.CHROMIUM_PROXY ? { proxy: { server: process.env.CHROMIUM_PROXY, bypass: 'localhost,127.0.0.1' } } : {}),
+  ...(process.env.CHROMIUM_PROXY
+    ? { proxy: { server: process.env.CHROMIUM_PROXY, bypass: 'localhost,127.0.0.1' } }
+    : {}),
 });
 const errors = [];
 
 async function session({ width, height, scheme = 'light', scale = 2 }) {
-  const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, colorScheme: scheme });
+  const context = await browser.newContext({
+    viewport: { width, height },
+    deviceScaleFactor: scale,
+    colorScheme: scheme,
+  });
   const page = await context.newPage();
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(`[${scheme} ${width}] ${msg.text()}`);
@@ -97,33 +121,79 @@ async function scrollMain(page, y) {
   await shot(page, '03-recipe-ingredients');
   await scrollMain(page, 640);
   await shot(page, '04-recipe-method');
-  await page.getByText('20 minutes', { exact: true }).first().click().catch(() => {});
-  await page.getByText('lemon', { exact: true }).first().click().catch(() => {});
-  await page.getByText('10 minutes', { exact: true }).first().click().catch(() => {});
+  await page
+    .getByText('20 minutes', { exact: true })
+    .first()
+    .click()
+    .catch(() => {});
+  await page
+    .getByText('lemon', { exact: true })
+    .first()
+    .click()
+    .catch(() => {});
+  await page
+    .getByText('10 minutes', { exact: true })
+    .first()
+    .click()
+    .catch(() => {});
   await shot(page, '04b-recipe-callouts');
-  await page.goto(page.url().replace(/[?#].*$/, '').replace(/\/?$/, '') + '/cook').catch(() => {});
-  await page.getByText(/^Step 1/).first().waitFor({ timeout: 10000 }).catch(() => {});
-  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next step' }).first().click().catch(() => {});
+  await page
+    .goto(
+      page
+        .url()
+        .replace(/[?#].*$/, '')
+        .replace(/\/?$/, '') + '/cook',
+    )
+    .catch(() => {});
+  await page
+    .getByText(/^Step 1/)
+    .first()
+    .waitFor({ timeout: 10000 })
+    .catch(() => {});
+  for (let i = 0; i < 4; i++)
+    await page
+      .getByRole('button', { name: 'Next step' })
+      .first()
+      .click()
+      .catch(() => {});
   await page.waitForTimeout(900);
   await shot(page, '05-cook-mode');
-  await page.getByText(/Start 1 hr 15 min timer/).first().click().catch(() => {});
+  await page
+    .getByText(/Start 1 hr 15 min timer/)
+    .first()
+    .click()
+    .catch(() => {});
   await page.waitForTimeout(600);
   await shot(page, '06-cook-timer');
   await page.goto(base + '/');
   await page.getByText('Fluffy Buttermilk Pancakes').first().click();
   await page.getByRole('button', { name: 'Add to groceries' }).first().click();
-  await page.getByText(/Add \d+ items/).first().click();
+  await page
+    .getByText(/Add \d+ items/)
+    .first()
+    .click();
   await page.goto(base + '/');
   await page.getByText('Thai Green Curry with Vegetables').first().click();
   await page.getByRole('button', { name: 'Add to groceries' }).first().click();
-  await page.getByText(/Add \d+ items/).first().click();
+  await page
+    .getByText(/Add \d+ items/)
+    .first()
+    .click();
   await page.goto(base + '/groceries');
   await page.getByText('Groceries').first().waitFor();
   await shot(page, '07-groceries');
   await page.getByRole('button', { name: 'Add an item' }).first().click();
   await page.getByLabel('Item name').fill('Tomatoes');
-  await page.getByRole('button', { name: '2', exact: true }).first().click().catch(() => {});
-  await page.getByRole('button', { name: 'Cup', exact: true }).first().click().catch(() => {});
+  await page
+    .getByRole('button', { name: '2', exact: true })
+    .first()
+    .click()
+    .catch(() => {});
+  await page
+    .getByRole('button', { name: 'Cup', exact: true })
+    .first()
+    .click()
+    .catch(() => {});
   await shot(page, '07b-groceries-add');
   await page.goto(base + '/plan');
   await page.getByText('Meal Plan').first().waitFor();

@@ -13,7 +13,10 @@ export function haptic(kind: 'light' | 'medium' | 'success' | 'warning' = 'light
   if (Platform.OS === 'web') return;
   if (kind === 'success') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   else if (kind === 'warning') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-  else void Haptics.impactAsync(kind === 'medium' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light);
+  else
+    void Haptics.impactAsync(
+      kind === 'medium' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
+    );
 }
 
 /** Pressable with consistent press feedback across the app. */

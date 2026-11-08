@@ -52,9 +52,13 @@ export function queryLibrary(recipes: readonly Recipe[], query: LibraryQuery): R
     case 'name':
       return filtered.sort(byName);
     case 'cooked':
-      return filtered.sort((a, b) => (b.lastCookedAt ?? '').localeCompare(a.lastCookedAt ?? '') || byName(a, b));
+      return filtered.sort(
+        (a, b) => (b.lastCookedAt ?? '').localeCompare(a.lastCookedAt ?? '') || byName(a, b),
+      );
     case 'quickest':
-      return filtered.sort((a, b) => (totalSeconds(a) ?? Infinity) - (totalSeconds(b) ?? Infinity) || byName(a, b));
+      return filtered.sort(
+        (a, b) => (totalSeconds(a) ?? Infinity) - (totalSeconds(b) ?? Infinity) || byName(a, b),
+      );
     case 'rating':
       return filtered.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || byName(a, b));
     default:

@@ -8,17 +8,36 @@ import { addDays, dayKey, relativeDayName, shortDate } from '@/core/planner/plan
 import { useDb, useSettings } from '@/data/react';
 import { Button, Checkbox, haptic, SegmentedControl, Sheet, Tap, Text, useTheme } from '@/ui';
 
-const SLOT_LABELS: Record<MealSlot, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
+const SLOT_LABELS: Record<MealSlot, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+};
 
-export function AddToPlanSheet({ recipe, visible, onClose }: { recipe: Recipe; visible: boolean; onClose: () => void }) {
+export function AddToPlanSheet({
+  recipe,
+  visible,
+  onClose,
+}: {
+  recipe: Recipe;
+  visible: boolean;
+  onClose: () => void;
+}) {
   const db = useDb();
   const settings = useSettings();
   const { colors, radius, space } = useTheme();
-  const defaultSlot: MealSlot = recipe.tags.some((t) => /breakfast|brunch/i.test(t)) ? 'breakfast' : recipe.tags.some((t) => /lunch/i.test(t)) ? 'lunch' : 'dinner';
+  const defaultSlot: MealSlot = recipe.tags.some((t) => /breakfast|brunch/i.test(t))
+    ? 'breakfast'
+    : recipe.tags.some((t) => /lunch/i.test(t))
+      ? 'lunch'
+      : 'dinner';
   const [slot, setSlot] = useState<MealSlot>(defaultSlot);
   const today = dayKey(new Date());
   const days = Array.from({ length: 14 }, (_, i) => addDays(today, i));
-  const slots = settings.plannerSlots.includes(slot) ? settings.plannerSlots : [...settings.plannerSlots, slot];
+  const slots = settings.plannerSlots.includes(slot)
+    ? settings.plannerSlots
+    : [...settings.plannerSlots, slot];
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Add to plan">
@@ -40,7 +59,10 @@ export function AddToPlanSheet({ recipe, visible, onClose }: { recipe: Recipe; v
                 haptic('success');
                 onClose();
               }}
-              style={[styles.dayRow, { backgroundColor: colors.surface, borderRadius: radius.md, padding: space.md }]}
+              style={[
+                styles.dayRow,
+                { backgroundColor: colors.surface, borderRadius: radius.md, padding: space.md },
+              ]}
               accessibilityLabel={`${relativeDayName(day, today)} ${shortDate(day)}`}
             >
               <View style={{ flex: 1 }}>
@@ -85,7 +107,10 @@ export function AddToGroceriesSheet({
       onClose={onClose}
       title="Add to groceries"
       headerRight={
-        <Tap onPress={() => setSelected(allSelected ? new Set() : new Set(ingredients.map((i) => i.id)))} hitSlop={8}>
+        <Tap
+          onPress={() => setSelected(allSelected ? new Set() : new Set(ingredients.map((i) => i.id)))}
+          hitSlop={8}
+        >
           <Text variant="subhead" tone="accent" weight="600">
             {allSelected ? 'None' : 'All'}
           </Text>
@@ -93,7 +118,9 @@ export function AddToGroceriesSheet({
       }
       footer={
         <Button
-          title={selected.size ? `Add ${selected.size} ${selected.size === 1 ? 'item' : 'items'}` : 'Select items'}
+          title={
+            selected.size ? `Add ${selected.size} ${selected.size === 1 ? 'item' : 'items'}` : 'Select items'
+          }
           icon="cart"
           disabled={selected.size === 0}
           full

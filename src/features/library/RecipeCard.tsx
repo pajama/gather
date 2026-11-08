@@ -40,10 +40,23 @@ export const RecipeCard = memo(function RecipeCard({
   return (
     <Tap
       feedback="scale"
-      onPress={onPress ?? (() => router.push({ pathname: '/recipe/[id]', params: { id: recipe.id, ...(from ? { from } : {}) } }))}
+      onPress={
+        onPress ??
+        (() =>
+          router.push({ pathname: '/recipe/[id]', params: { id: recipe.id, ...(from ? { from } : {}) } }))
+      }
       onLongPress={onLongPress}
       accessibilityLabel={recipe.name}
-      style={[styles.card, { width, height: cardHeight, borderRadius: radius.xl, backgroundColor: colors.imagePlaceholder, boxShadow: `0 4px 14px ${colors.shadow}` }]}
+      style={[
+        styles.card,
+        {
+          width,
+          height: cardHeight,
+          borderRadius: radius.xl,
+          backgroundColor: colors.imagePlaceholder,
+          boxShadow: `0 4px 14px ${colors.shadow}`,
+        },
+      ]}
     >
       <Photo uri={coverImage(recipe)} style={[StyleSheet.absoluteFill, { borderRadius: radius.xl }]} />
       <LinearGradient
@@ -51,7 +64,12 @@ export const RecipeCard = memo(function RecipeCard({
         locations={[0, 0.35, 0.6]}
         style={[StyleSheet.absoluteFill, { borderRadius: radius.xl }]}
       />
-      <Text variant="title3" tone="onImage" numberOfLines={2} style={[styles.title, { padding: space.md, paddingRight: space.xl }]}>
+      <Text
+        variant="title3"
+        tone="onImage"
+        numberOfLines={2}
+        style={[styles.title, { padding: space.md, paddingRight: space.xl }]}
+      >
         {recipe.name}
       </Text>
       {recipe.servings || total ? (
@@ -100,7 +118,11 @@ export function RecipeRow({
   const { radius, space } = useTheme();
   return (
     <Tap
-      onPress={onPress ?? (() => router.push({ pathname: '/recipe/[id]', params: { id: recipe.id, ...(from ? { from } : {}) } }))}
+      onPress={
+        onPress ??
+        (() =>
+          router.push({ pathname: '/recipe/[id]', params: { id: recipe.id, ...(from ? { from } : {}) } }))
+      }
       style={[styles.row, { gap: space.md }]}
       accessibilityLabel={recipe.name}
     >
@@ -122,7 +144,11 @@ export function RecipeRow({
 
 const styles = StyleSheet.create({
   card: { overflow: 'hidden' },
-  title: { textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+  title: {
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
   pill: {
     position: 'absolute',
     flexDirection: 'row',
@@ -134,7 +160,15 @@ const styles = StyleSheet.create({
     backdropFilter: 'blur(10px)',
   } as never,
   pillItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  favorite: { position: 'absolute', width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  favorite: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
   thumb: { width: 52, height: 52 },
   rowText: { flex: 1, gap: 2 },

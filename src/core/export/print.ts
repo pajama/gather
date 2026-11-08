@@ -19,7 +19,10 @@ export interface PrintOptions {
 }
 
 function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
+  return text.replace(
+    /[&<>"']/g,
+    (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!,
+  );
 }
 
 export function recipeToHtml(recipe: Recipe, options: PrintOptions = {}): string {
@@ -36,7 +39,10 @@ export function recipeToHtml(recipe: Recipe, options: PrintOptions = {}): string
     .map((section) => {
       const items = section.items
         .map((item) => {
-          const f = formatIngredient(parseIngredient(item.text), { scale, system: options.units ?? 'original' });
+          const f = formatIngredient(parseIngredient(item.text), {
+            scale,
+            system: options.units ?? 'original',
+          });
           const amount = f.amount ? `<strong>${escapeHtml(f.amount)}</strong> ` : '';
           const note = f.note ? `<span class="note">, ${escapeHtml(f.note)}</span>` : '';
           return `<li>${amount}${escapeHtml(f.name)}${note}</li>`;

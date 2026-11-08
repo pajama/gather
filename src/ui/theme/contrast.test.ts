@@ -18,7 +18,9 @@ describe('contrast', () => {
 
   it('gives every accent and the timer color a readable text shade in both themes', () => {
     for (const accent of ACCENTS) {
-      expect(contrastRatio(readableOn(accent.light, LIGHT.surface), LIGHT.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(readableOn(accent.light, LIGHT.surface), LIGHT.surface)).toBeGreaterThanOrEqual(
+        4.5,
+      );
       expect(contrastRatio(readableOn(accent.dark, DARK.surface), DARK.surface)).toBeGreaterThanOrEqual(4.5);
     }
     expect(contrastRatio(readableOn(LIGHT.timer, LIGHT.surface), LIGHT.surface)).toBeGreaterThanOrEqual(4.5);

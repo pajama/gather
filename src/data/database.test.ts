@@ -39,7 +39,12 @@ describe('Database', () => {
     const loaded = reopened.recipes.get(recipe.id);
     expect(loaded?.name).toBe('Pancakes');
     expect(loaded?.servings).toBe(4);
-    expect(loaded?.ingredients[0]?.items.map((i) => i.text)).toEqual(['1 cup flour', '1 cup milk', '2 eggs', 'Salt, to taste']);
+    expect(loaded?.ingredients[0]?.items.map((i) => i.text)).toEqual([
+      '1 cup flour',
+      '1 cup milk',
+      '2 eggs',
+      'Salt, to taste',
+    ]);
   });
 
   it('seeds once', async () => {
@@ -152,9 +157,12 @@ describe('Database', () => {
     expect(copy.name).toBe('Pancakes (copy)');
     expect(copy.cookCount).toBe(0);
     expect(copy.lastCookedAt).toBeUndefined();
-    const ids = (r: typeof copy) => [...r.ingredients, ...r.steps].flatMap((s) => [s.id, ...s.items.map((i) => i.id)]);
+    const ids = (r: typeof copy) =>
+      [...r.ingredients, ...r.steps].flatMap((s) => [s.id, ...s.items.map((i) => i.id)]);
     expect(ids(copy).some((id) => ids(kept).includes(id))).toBe(false);
-    expect(copy.ingredients[0]?.items.map((i) => i.text)).toEqual(kept.ingredients[0]?.items.map((i) => i.text));
+    expect(copy.ingredients[0]?.items.map((i) => i.text)).toEqual(
+      kept.ingredients[0]?.items.map((i) => i.text),
+    );
   });
 
   it('rejects a damaged backup and changes nothing', async () => {
@@ -219,7 +227,12 @@ describe('Database', () => {
     const { db } = await openDb(store);
     db.recipes.createFromDraft(parseRecipeText(CREPES));
     await db.flush();
-    await expect(store.replaceCollections({ recipes: [{ id: 'ok', json: '{}' }], plan: [{ id: 7 as unknown as string, json: '{}' }] })).rejects.toThrow();
+    await expect(
+      store.replaceCollections({
+        recipes: [{ id: 'ok', json: '{}' }],
+        plan: [{ id: 7 as unknown as string, json: '{}' }],
+      }),
+    ).rejects.toThrow();
     const reopened = await Database.open(store);
     expect(reopened.recipes.all().map((r) => r.name)).toEqual(['Crepes']);
   });

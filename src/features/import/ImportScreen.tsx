@@ -1,7 +1,14 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { draftLineCount, type RecipeDraft } from '@/core/import/draft';
@@ -16,7 +23,18 @@ import { fetchPage } from '@/data/services/page-fetcher';
 import { pickFile } from '@/data/services/pick-file';
 import { storeDraftPhotos } from '@/data/services/photo-files';
 import { recognizeText, scanSupported } from '@/data/services/scan-text';
-import { Button, Card, CONTENT_MAX_WIDTH, Field, Icon, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
+import {
+  Button,
+  Card,
+  CONTENT_MAX_WIDTH,
+  Field,
+  Icon,
+  Photo,
+  SegmentedControl,
+  Tap,
+  Text,
+  useTheme,
+} from '@/ui';
 
 type Mode = 'url' | 'text' | 'scan' | 'file';
 
@@ -41,10 +59,14 @@ export function ImportScreen() {
   const db = useDb();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<Mode>(params.mode === 'text' || params.mode === 'file' || params.mode === 'scan' ? params.mode : 'url');
+  const [mode, setMode] = useState<Mode>(
+    params.mode === 'text' || params.mode === 'file' || params.mode === 'scan' ? params.mode : 'url',
+  );
   const [scanProgress, setScanProgress] = useState<number | null>(null);
   const [scanned, setScanned] = useState(false);
-  const [batch, setBatch] = useState<{ format: string; drafts: RecipeDraft[]; skipped: string[] } | null>(null);
+  const [batch, setBatch] = useState<{ format: string; drafts: RecipeDraft[]; skipped: string[] } | null>(
+    null,
+  );
   const [url, setUrl] = useState(params.url ?? '');
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(Boolean(params.url));
@@ -88,8 +110,20 @@ export function ImportScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={[styles.fill, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md, paddingHorizontal: space.lg, borderBottomColor: colors.separator }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'web' ? undefined : 'padding'}
+      style={[styles.fill, { backgroundColor: colors.background }]}
+    >
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md,
+            paddingHorizontal: space.lg,
+            borderBottomColor: colors.separator,
+          },
+        ]}
+      >
         <Tap onPress={() => router.back()} hitSlop={10}>
           <Text variant="body" tone="accent">
             Cancel
@@ -98,7 +132,13 @@ export function ImportScreen() {
         <Text variant="headline">Import Recipe</Text>
         <View style={{ width: 52 }} />
       </View>
-      <ScrollView contentContainerStyle={[styles.body, { padding: space.lg, gap: space.lg, paddingBottom: insets.bottom + 48 }]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.body,
+          { padding: space.lg, gap: space.lg, paddingBottom: insets.bottom + 48 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         <SegmentedControl
           options={[
             { value: 'url', label: 'Website', icon: 'globe' },
@@ -128,30 +168,51 @@ export function ImportScreen() {
               onSubmitEditing={() => void fetchUrl()}
               autoFocus={!params.url}
             />
-            <Button title="Find recipe" icon="search" onPress={() => void fetchUrl()} loading={loading} disabled={!url.trim()} full />
+            <Button
+              title="Find recipe"
+              icon="search"
+              onPress={() => void fetchUrl()}
+              loading={loading}
+              disabled={!url.trim()}
+              full
+            />
             <Text variant="footnote" tone="secondary">
               Works with most recipe sites. Gather keeps the recipe and leaves the life story behind.
             </Text>
           </View>
         ) : mode === 'scan' ? (
           <View style={{ gap: space.md }}>
-            <Text variant="body">Take or choose a photo of a cookbook page. Gather reads the text, then you check it before saving.</Text>
+            <Text variant="body">
+              Take or choose a photo of a cookbook page. Gather reads the text, then you check it before
+              saving.
+            </Text>
             <Button
-              title={scanProgress !== null ? `Reading the page… ${Math.round(scanProgress * 100)}%` : 'Choose a photo'}
+              title={
+                scanProgress !== null
+                  ? `Reading the page… ${Math.round(scanProgress * 100)}%`
+                  : 'Choose a photo'
+              }
               icon="image"
               full
               disabled={!scanSupported || scanProgress !== null}
               onPress={async () => {
                 setError(null);
-                const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, base64: true });
+                const picked = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ['images'],
+                  quality: 1,
+                  base64: true,
+                });
                 const asset = picked.canceled ? undefined : picked.assets[0];
                 if (!asset) return;
-                const image = asset.base64 ? `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}` : asset.uri;
+                const image = asset.base64
+                  ? `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`
+                  : asset.uri;
                 setScanProgress(0);
                 try {
                   const raw = await recognizeText(image, setScanProgress);
                   const cleaned = cleanScannedText(raw);
-                  if (!cleaned.trim()) setError('No text found in that photo. Try a sharper, straight-on photo in good light.');
+                  if (!cleaned.trim())
+                    setError('No text found in that photo. Try a sharper, straight-on photo in good light.');
                   else {
                     setText(cleaned);
                     setScanned(true);
@@ -187,7 +248,8 @@ export function ImportScreen() {
                 try {
                   const result = readRecipeFile(file.name, file.bytes);
                   if (result.drafts.length === 0) setError('No recipes found in that file.');
-                  else if (result.drafts.length === 1 && result.skipped.length === 0) setDraft(result.drafts[0]!);
+                  else if (result.drafts.length === 1 && result.skipped.length === 0)
+                    setDraft(result.drafts[0]!);
                   else setBatch(result);
                 } catch (e) {
                   setError(e instanceof Error ? e.message : 'Gather couldn’t read that file.');
@@ -195,7 +257,8 @@ export function ImportScreen() {
               }}
             />
             <Text variant="footnote" tone="secondary">
-              Crouton recipes (.crumb, or a zip of them), Paprika exports (.paprikarecipes), Gather recipe files, saved web pages and plain text.
+              Crouton recipes (.crumb, or a zip of them), Paprika exports (.paprikarecipes), Gather recipe
+              files, saved web pages and plain text.
             </Text>
           </View>
         ) : (
@@ -211,12 +274,20 @@ export function ImportScreen() {
             <Field
               value={text}
               onChangeText={setText}
-              placeholder={'Paste a recipe: the title on the first line, then the ingredients and the method.'}
+              placeholder={
+                'Paste a recipe: the title on the first line, then the ingredients and the method.'
+              }
               multiline
               minInputHeight={scanned ? 360 : 240}
               autoFocus
             />
-            <Button title="Read recipe" icon="sparkles" onPress={() => setDraft(parseRecipeText(text))} disabled={!text.trim()} full />
+            <Button
+              title="Read recipe"
+              icon="sparkles"
+              onPress={() => setDraft(parseRecipeText(text))}
+              disabled={!text.trim()}
+              full
+            />
           </View>
         )}
 
@@ -231,7 +302,14 @@ export function ImportScreen() {
           </Card>
         ) : null}
 
-        {draft ? <DraftPreview draft={draft} onSave={() => void save(false)} onEdit={() => void save(true)} radius={radius.lg} /> : null}
+        {draft ? (
+          <DraftPreview
+            draft={draft}
+            onSave={() => void save(false)}
+            onEdit={() => void save(true)}
+            radius={radius.lg}
+          />
+        ) : null}
 
         {batch ? (
           <Card style={{ gap: space.md }}>
@@ -270,7 +348,17 @@ export function ImportScreen() {
   );
 }
 
-function DraftPreview({ draft, onSave, onEdit, radius }: { draft: RecipeDraft; onSave: () => void; onEdit: () => void; radius: number }) {
+function DraftPreview({
+  draft,
+  onSave,
+  onEdit,
+  radius,
+}: {
+  draft: RecipeDraft;
+  onSave: () => void;
+  onEdit: () => void;
+  radius: number;
+}) {
   const { space } = useTheme();
   const ingredientCount = draftLineCount(draft.ingredients);
   const stepCount = draftLineCount(draft.steps);
@@ -282,7 +370,12 @@ function DraftPreview({ draft, onSave, onEdit, radius }: { draft: RecipeDraft; o
   ].filter(Boolean);
   return (
     <Card padded={false}>
-      {draft.imageUrls[0] ? <Photo uri={draft.imageUrls[0]} style={{ height: 200, borderTopLeftRadius: radius, borderTopRightRadius: radius }} /> : null}
+      {draft.imageUrls[0] ? (
+        <Photo
+          uri={draft.imageUrls[0]}
+          style={{ height: 200, borderTopLeftRadius: radius, borderTopRightRadius: radius }}
+        />
+      ) : null}
       <View style={{ padding: space.lg, gap: space.sm }}>
         <Text variant="title2">{draft.name}</Text>
         {draft.sourceName ? (
@@ -315,7 +408,13 @@ function DraftPreview({ draft, onSave, onEdit, radius }: { draft: RecipeDraft; o
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   body: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   errorCard: { flexDirection: 'row', alignItems: 'center' },
   row: { flexDirection: 'row' },

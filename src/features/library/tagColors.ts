@@ -3,7 +3,16 @@ import { useCallback } from 'react';
 import { useSettings } from '@/data/react';
 
 /** Tag colors to pick from, in Crouton's spirit. */
-export const TAG_COLORS = ['#A050E0', '#3D8EF0', '#34C759', '#F5A623', '#FF2D55', '#20A889', '#5E5CE6', '#FF9500'];
+export const TAG_COLORS = [
+  '#A050E0',
+  '#3D8EF0',
+  '#34C759',
+  '#F5A623',
+  '#FF2D55',
+  '#20A889',
+  '#5E5CE6',
+  '#FF9500',
+];
 
 /** A color derived from the tag name, used until someone picks one. */
 export function tagColor(tag: string): string {

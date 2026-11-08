@@ -7,7 +7,8 @@ import { IndexedDBStore } from './indexeddb-store';
 let n = 0;
 const open = () => IndexedDBStore.open(`gather-test-${++n}`);
 const doc = (id: string, value: unknown = id) => ({ id, json: JSON.stringify(value) });
-const ids = async (store: IndexedDBStore, collection: string) => (await store.loadAll(collection)).map((d) => d.id).sort();
+const ids = async (store: IndexedDBStore, collection: string) =>
+  (await store.loadAll(collection)).map((d) => d.id).sort();
 
 describe('IndexedDBStore', () => {
   it('stores, deletes and reloads documents per collection', async () => {

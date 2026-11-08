@@ -17,7 +17,19 @@ import type { Difficulty, Recipe } from '@/core/model/types';
 import { useDb, useFolders, useRecipe } from '@/data/react';
 import { storePhoto } from '@/data/services/photos';
 import { RatingStars } from '@/features/recipe';
-import { Button, Chip, CONTENT_MAX_WIDTH, Field, Icon, IconButton, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
+import {
+  Button,
+  Chip,
+  CONTENT_MAX_WIDTH,
+  Field,
+  Icon,
+  IconButton,
+  Photo,
+  SegmentedControl,
+  Tap,
+  Text,
+  useTheme,
+} from '@/ui';
 
 export function NewRecipeScreen() {
   const initial = useMemo(() => createRecipe({ name: '' }), []);
@@ -86,14 +98,24 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
       else (next as unknown as Record<string, unknown>)[key] = value;
     }
     // The total is derived from prep + cook once they are edited.
-    if (prep !== secondsToMinutesField(initial.prepSeconds) || cook !== secondsToMinutesField(initial.cookSeconds)) delete next.totalSeconds;
+    if (
+      prep !== secondsToMinutesField(initial.prepSeconds) ||
+      cook !== secondsToMinutesField(initial.cookSeconds)
+    )
+      delete next.totalSeconds;
     const saved = db.recipes.save(next);
     if (isNew) router.replace(`/recipe/${saved.id}`);
     else router.back();
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8, allowsEditing: true, aspect: [4, 3], base64: Platform.OS === 'web' });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [4, 3],
+      base64: Platform.OS === 'web',
+    });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     // On the web the picked file is a short-lived blob URL, so keep a data URL. On device the
@@ -112,8 +134,20 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={[styles.fill, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md, paddingHorizontal: space.lg, borderBottomColor: colors.separator }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'web' ? undefined : 'padding'}
+      style={[styles.fill, { backgroundColor: colors.background }]}
+    >
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md,
+            paddingHorizontal: space.lg,
+            borderBottomColor: colors.separator,
+          },
+        ]}
+      >
         <Tap onPress={() => router.back()} hitSlop={10}>
           <Text variant="body" tone="accent">
             Cancel
@@ -126,10 +160,27 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
           </Text>
         </Tap>
       </View>
-      <ScrollView contentContainerStyle={[styles.body, { padding: space.lg, gap: space.lg, paddingBottom: insets.bottom + 48 }]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.body,
+          { padding: space.lg, gap: space.lg, paddingBottom: insets.bottom + 48 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={{ gap: space.sm }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-            <Tap onPress={pickImage} style={[styles.addPhoto, { backgroundColor: colors.surface, borderRadius: radius.lg, borderColor: colors.separator }]} accessibilityLabel="Add photo">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: space.sm }}
+          >
+            <Tap
+              onPress={pickImage}
+              style={[
+                styles.addPhoto,
+                { backgroundColor: colors.surface, borderRadius: radius.lg, borderColor: colors.separator },
+              ]}
+              accessibilityLabel="Add photo"
+            >
               <Icon name="camera" size={26} tone="accent" />
               <Text variant="footnote" tone="accent" weight="600">
                 Add photo
@@ -147,7 +198,9 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
                   accessibilityLabel="Remove photo"
                 />
                 {index === 0 ? (
-                  <View style={[styles.coverBadge, { backgroundColor: colors.accent, borderRadius: radius.pill }]}>
+                  <View
+                    style={[styles.coverBadge, { backgroundColor: colors.accent, borderRadius: radius.pill }]}
+                  >
                     <Text variant="caption" color={colors.onAccent}>
                       Cover
                     </Text>
@@ -157,7 +210,14 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
             ))}
           </ScrollView>
           <View style={[styles.row, { gap: space.sm }]}>
-            <Field value={imageUrl} onChangeText={setImageUrl} placeholder="…or paste an image link" style={styles.flex} autoCapitalize="none" keyboardType="url" />
+            <Field
+              value={imageUrl}
+              onChangeText={setImageUrl}
+              placeholder="…or paste an image link"
+              style={styles.flex}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
             <Button
               title="Add"
               variant="tinted"
@@ -170,31 +230,99 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
           </View>
         </View>
 
-        <Field label="Name" value={name} onChangeText={setName} placeholder="Grandma's apple pie" autoFocus={isNew} />
-        <Field label="Description" value={description} onChangeText={setDescription} placeholder="A short note about this recipe" multiline />
+        <Field
+          label="Name"
+          value={name}
+          onChangeText={setName}
+          placeholder="Grandma's apple pie"
+          autoFocus={isNew}
+        />
+        <Field
+          label="Description"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="A short note about this recipe"
+          multiline
+        />
         <View style={[styles.row, { gap: space.md }]}>
-          <Field label="Serves" value={servings} onChangeText={setServings} placeholder="4" keyboardType="numeric" style={styles.flex} />
-          <Field label="Prep (min)" value={prep} onChangeText={setPrep} placeholder="15" keyboardType="numeric" style={styles.flex} />
-          <Field label="Cook (min)" value={cook} onChangeText={setCook} placeholder="30" keyboardType="numeric" style={styles.flex} />
+          <Field
+            label="Serves"
+            value={servings}
+            onChangeText={setServings}
+            placeholder="4"
+            keyboardType="numeric"
+            style={styles.flex}
+          />
+          <Field
+            label="Prep (min)"
+            value={prep}
+            onChangeText={setPrep}
+            placeholder="15"
+            keyboardType="numeric"
+            style={styles.flex}
+          />
+          <Field
+            label="Cook (min)"
+            value={cook}
+            onChangeText={setCook}
+            placeholder="30"
+            keyboardType="numeric"
+            style={styles.flex}
+          />
         </View>
 
         <View style={{ gap: space.xs }}>
-          <Field label="Ingredients" value={ingredients} onChangeText={setIngredients} placeholder={'2 cups flour\n1 tsp salt\n\nFor the glaze:\n1 cup icing sugar'} multiline minInputHeight={200} />
+          <Field
+            label="Ingredients"
+            value={ingredients}
+            onChangeText={setIngredients}
+            placeholder={'2 cups flour\n1 tsp salt\n\nFor the glaze:\n1 cup icing sugar'}
+            multiline
+            minInputHeight={200}
+          />
           <Text variant="footnote" tone="secondary">
             One per line. End a line with a colon to start a section.
           </Text>
         </View>
         <View style={{ gap: space.xs }}>
-          <Field label="Method" value={steps} onChangeText={setSteps} placeholder={'Heat the oven to 350°F.\nMix the dry ingredients.\nBake for 25 minutes.'} multiline minInputHeight={240} />
+          <Field
+            label="Method"
+            value={steps}
+            onChangeText={setSteps}
+            placeholder={'Heat the oven to 350°F.\nMix the dry ingredients.\nBake for 25 minutes.'}
+            multiline
+            minInputHeight={240}
+          />
           <Text variant="footnote" tone="secondary">
             One step per line. Times like “25 minutes” become timers.
           </Text>
         </View>
-        <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Tips, substitutions, what you'd change next time" multiline minInputHeight={120} />
+        <Field
+          label="Notes"
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Tips, substitutions, what you'd change next time"
+          multiline
+          minInputHeight={120}
+        />
 
         <View style={[styles.row, { gap: space.md }]}>
-          <Field label="Source" value={sourceName} onChangeText={setSourceName} placeholder="Website or cookbook" style={styles.flex} />
-          <Field label="Link" value={sourceUrl} onChangeText={setSourceUrl} placeholder="https://" autoCapitalize="none" keyboardType="url" style={styles.flex} />
+          <Field
+            label="Source"
+            value={sourceName}
+            onChangeText={setSourceName}
+            placeholder="Website or cookbook"
+            style={styles.flex}
+          />
+          <Field
+            label="Link"
+            value={sourceUrl}
+            onChangeText={setSourceUrl}
+            placeholder="https://"
+            autoCapitalize="none"
+            keyboardType="url"
+            style={styles.flex}
+          />
         </View>
         <Field label="Tags" value={tags} onChangeText={setTags} placeholder="Dinner, Vegetarian, Quick" />
 
@@ -238,7 +366,9 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
                     label={f.name}
                     icon="folder"
                     selected={selected}
-                    onPress={() => setFolderIds(selected ? folderIds.filter((x) => x !== f.id) : [...folderIds, f.id])}
+                    onPress={() =>
+                      setFolderIds(selected ? folderIds.filter((x) => x !== f.id) : [...folderIds, f.id])
+                    }
                   />
                 );
               })}
@@ -246,7 +376,13 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
           </View>
         ) : null}
 
-        <Button title={isNew ? 'Save recipe' : 'Save changes'} onPress={save} disabled={!canSave} size="lg" full />
+        <Button
+          title={isNew ? 'Save recipe' : 'Save changes'}
+          onPress={save}
+          disabled={!canSave}
+          size="lg"
+          full
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -265,7 +401,15 @@ const styles = StyleSheet.create({
   body: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'flex-end' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  addPhoto: { width: 120, height: 90, alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderStyle: 'dashed' },
+  addPhoto: {
+    width: 120,
+    height: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
   thumb: { width: 120, height: 90 },
   removePhoto: { position: 'absolute', top: 6, right: 6 },
   coverBadge: { position: 'absolute', left: 6, bottom: 6, paddingHorizontal: 8, paddingVertical: 2 },

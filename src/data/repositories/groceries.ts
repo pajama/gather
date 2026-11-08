@@ -15,7 +15,13 @@ export class GroceriesRepository {
     const existing = this.c.lists.get(DEFAULT_LIST_ID);
     if (existing) return existing;
     const stamp = now();
-    const list: GroceryList = { id: DEFAULT_LIST_ID, createdAt: stamp, updatedAt: stamp, name: 'Groceries', sortIndex: 0 };
+    const list: GroceryList = {
+      id: DEFAULT_LIST_ID,
+      createdAt: stamp,
+      updatedAt: stamp,
+      name: 'Groceries',
+      sortIndex: 0,
+    };
     this.c.lists.upsert(list);
     return list;
   }
@@ -92,7 +98,13 @@ export class GroceriesRepository {
 
   edit(id: ID, text: string): void {
     const parsed = groceryLineFrom(text);
-    this.c.groceries.update(id, (g) => ({ ...g, text: text.trim(), name: parsed.name, aisle: aisleFor(parsed.name), updatedAt: now() }));
+    this.c.groceries.update(id, (g) => ({
+      ...g,
+      text: text.trim(),
+      name: parsed.name,
+      aisle: aisleFor(parsed.name),
+      updatedAt: now(),
+    }));
   }
 
   setAisle(id: ID, aisle: string): void {

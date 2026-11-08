@@ -42,12 +42,20 @@ describe('cleanScannedText', () => {
     const draft = parseRecipeText(cleanScannedText(OCR));
     expect(draft.name).toBe('Tomato Galette');
     expect(draft.servings).toBe(4);
-    expect(draft.ingredients.flatMap((s) => s.lines)).toEqual(['1 cup flour', '1 tbsp sugar', '½ tsp salt', '2½ cups cherry tomatoes']);
+    expect(draft.ingredients.flatMap((s) => s.lines)).toEqual([
+      '1 cup flour',
+      '1 tbsp sugar',
+      '½ tsp salt',
+      '2½ cups cherry tomatoes',
+    ]);
     expect(draft.steps.flatMap((s) => s.lines)).toHaveLength(2);
   });
 
   it('drops the blank line OCR puts after every printed line', () => {
-    const spaced = 'Toast\n\nServes 2\n\nIngredients\n\n2 slices bread\n\n1 tbsp butter\n\nMethod\n\nToast the bread.\n\nButter it.';
-    expect(cleanScannedText(spaced)).toBe('Toast\nServes 2\n\nIngredients\n2 slices bread\n1 tbsp butter\n\nMethod\nToast the bread.\nButter it.');
+    const spaced =
+      'Toast\n\nServes 2\n\nIngredients\n\n2 slices bread\n\n1 tbsp butter\n\nMethod\n\nToast the bread.\n\nButter it.';
+    expect(cleanScannedText(spaced)).toBe(
+      'Toast\nServes 2\n\nIngredients\n2 slices bread\n1 tbsp butter\n\nMethod\nToast the bread.\nButter it.',
+    );
   });
 });

@@ -4,7 +4,13 @@ import { inFolder, queryLibrary } from './library';
 import { createRecipe, mapRecipeImages } from './recipe';
 
 const recipes = [
-  createRecipe({ name: 'Banana Bread', createdAt: '2026-01-03T00:00:00Z', tags: ['Baking'], prepSeconds: 900, cookSeconds: 3600 }),
+  createRecipe({
+    name: 'Banana Bread',
+    createdAt: '2026-01-03T00:00:00Z',
+    tags: ['Baking'],
+    prepSeconds: 900,
+    cookSeconds: 3600,
+  }),
   createRecipe({
     name: 'Tomato Soup',
     createdAt: '2026-01-02T00:00:00Z',
@@ -13,12 +19,20 @@ const recipes = [
     ingredients: [{ id: 's', items: [{ id: 'i', text: '2 lb ripe tomatoes' }] }],
     cookSeconds: 1800,
   }),
-  createRecipe({ name: 'apple pie', createdAt: '2026-01-01T00:00:00Z', lastCookedAt: '2026-02-01T00:00:00Z' }),
+  createRecipe({
+    name: 'apple pie',
+    createdAt: '2026-01-01T00:00:00Z',
+    lastCookedAt: '2026-02-01T00:00:00Z',
+  }),
 ];
 
 describe('queryLibrary', () => {
   it('sorts by recency by default', () => {
-    expect(queryLibrary(recipes, {}).map((r) => r.name)).toEqual(['Banana Bread', 'Tomato Soup', 'apple pie']);
+    expect(queryLibrary(recipes, {}).map((r) => r.name)).toEqual([
+      'Banana Bread',
+      'Tomato Soup',
+      'apple pie',
+    ]);
   });
 
   it('searches ingredients and names with every word', () => {
@@ -35,11 +49,25 @@ describe('queryLibrary', () => {
   });
 
   it('sorts by name, cooked and quickest', () => {
-    expect(queryLibrary(recipes, { sort: 'name' }).map((r) => r.name)).toEqual(['apple pie', 'Banana Bread', 'Tomato Soup']);
+    expect(queryLibrary(recipes, { sort: 'name' }).map((r) => r.name)).toEqual([
+      'apple pie',
+      'Banana Bread',
+      'Tomato Soup',
+    ]);
     expect(queryLibrary(recipes, { sort: 'cooked' })[0]!.name).toBe('apple pie');
-    expect(queryLibrary(recipes, { sort: 'quickest' }).map((r) => r.name)).toEqual(['Tomato Soup', 'Banana Bread', 'apple pie']);
-    const rated = recipes.map((r) => (r.name === 'Tomato Soup' ? { ...r, rating: 5 } : r.name === 'apple pie' ? { ...r, rating: 3 } : r));
-    expect(queryLibrary(rated, { sort: 'rating' }).map((r) => r.name)).toEqual(['Tomato Soup', 'apple pie', 'Banana Bread']);
+    expect(queryLibrary(recipes, { sort: 'quickest' }).map((r) => r.name)).toEqual([
+      'Tomato Soup',
+      'Banana Bread',
+      'apple pie',
+    ]);
+    const rated = recipes.map((r) =>
+      r.name === 'Tomato Soup' ? { ...r, rating: 5 } : r.name === 'apple pie' ? { ...r, rating: 3 } : r,
+    );
+    expect(queryLibrary(rated, { sort: 'rating' }).map((r) => r.name)).toEqual([
+      'Tomato Soup',
+      'apple pie',
+      'Banana Bread',
+    ]);
   });
 });
 
@@ -47,10 +75,15 @@ describe('recipe drafts', () => {
   it('round-trips through the portable draft form', async () => {
     const { recipeFromDraft, recipeToDraft } = await import('./recipe');
     const { parseRecipeText } = await import('../import/text');
-    const original = recipeFromDraft(parseRecipeText('Scones\nServes 8\nIngredients\n2 cups flour\nFor the glaze:\n1 cup sugar\nMethod\n1. Bake 12 minutes.'), {
-      nutrition: { calories: '200 kcal' },
-      rating: 5,
-    });
+    const original = recipeFromDraft(
+      parseRecipeText(
+        'Scones\nServes 8\nIngredients\n2 cups flour\nFor the glaze:\n1 cup sugar\nMethod\n1. Bake 12 minutes.',
+      ),
+      {
+        nutrition: { calories: '200 kcal' },
+        rating: 5,
+      },
+    );
     const copy = recipeFromDraft(recipeToDraft(original));
     expect(copy.name).toBe('Scones');
     expect(copy.servings).toBe(8);
@@ -64,11 +97,17 @@ describe('recipe drafts', () => {
   });
 
   it('collects recipes into smart folders by tag', () => {
-    const tagged = recipes.map((r, i) => ({ ...r, tags: i === 0 ? ['Dinner', 'Quick'] : i === 1 ? ['dinner'] : ['Baking'] }));
+    const tagged = recipes.map((r, i) => ({
+      ...r,
+      tags: i === 0 ? ['Dinner', 'Quick'] : i === 1 ? ['dinner'] : ['Baking'],
+    }));
     const base = { id: 'smart', name: 'Weeknights', sortIndex: 0, createdAt: '', updatedAt: '' };
     const any = { ...base, tags: ['dinner'] };
     const all = { ...base, tags: ['Dinner', 'quick'], tagMatch: 'all' as const };
-    expect(tagged.filter((r) => inFolder(r, any)).map((r) => r.name)).toEqual([tagged[0]!.name, tagged[1]!.name]);
+    expect(tagged.filter((r) => inFolder(r, any)).map((r) => r.name)).toEqual([
+      tagged[0]!.name,
+      tagged[1]!.name,
+    ]);
     expect(tagged.filter((r) => inFolder(r, all)).map((r) => r.name)).toEqual([tagged[0]!.name]);
     const manual = { ...tagged[2]!, folderIds: ['smart'] };
     expect(inFolder(manual, all)).toBe(true);
@@ -78,8 +117,16 @@ describe('recipe drafts', () => {
 
 describe('mapRecipeImages', () => {
   it('maps every image URI and leaves the rest of the recipe alone', async () => {
-    const recipe = createRecipe({ name: 'Soup', images: [{ id: 'a', uri: 'photo://a.jpg' }, { id: 'b', uri: 'https://x/b.jpg' }] });
-    const mapped = await mapRecipeImages(recipe, async (uri) => (uri.startsWith('photo://') ? 'data:image/jpeg;base64,AAAA' : uri));
+    const recipe = createRecipe({
+      name: 'Soup',
+      images: [
+        { id: 'a', uri: 'photo://a.jpg' },
+        { id: 'b', uri: 'https://x/b.jpg' },
+      ],
+    });
+    const mapped = await mapRecipeImages(recipe, async (uri) =>
+      uri.startsWith('photo://') ? 'data:image/jpeg;base64,AAAA' : uri,
+    );
     expect(mapped.images.map((i) => i.uri)).toEqual(['data:image/jpeg;base64,AAAA', 'https://x/b.jpg']);
     expect(mapped.images.map((i) => i.id)).toEqual(['a', 'b']);
     expect(mapped.name).toBe('Soup');

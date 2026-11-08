@@ -3,9 +3,26 @@
  * hooks that subscribe screens to exactly the collections they read.
  */
 
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 
-import type { DayKey, Feed, Folder, GroceryItem, ID, MealPlanEntry, Recipe, Settings } from '@/core/model/types';
+import type {
+  DayKey,
+  Feed,
+  Folder,
+  GroceryItem,
+  ID,
+  MealPlanEntry,
+  Recipe,
+  Settings,
+} from '@/core/model/types';
 import type { KitchenTimer } from '@/core/timers/timers';
 
 import type { Collection, Identified, Singleton } from './collection';
@@ -78,11 +95,19 @@ export function useDb(): Database {
 }
 
 export function useCollection<T extends Identified>(collection: Collection<T>): readonly T[] {
-  return useSyncExternalStore(collection.subscribe, () => collection.all(), () => collection.all());
+  return useSyncExternalStore(
+    collection.subscribe,
+    () => collection.all(),
+    () => collection.all(),
+  );
 }
 
 function useSingleton<T extends object>(singleton: Singleton<T>): T {
-  return useSyncExternalStore(singleton.subscribe, () => singleton.get(), () => singleton.get());
+  return useSyncExternalStore(
+    singleton.subscribe,
+    () => singleton.get(),
+    () => singleton.get(),
+  );
 }
 
 export function useRecipes(): readonly Recipe[] {
@@ -97,7 +122,10 @@ export function useRecipe(id: ID | undefined): Recipe | undefined {
 export function useFolders(): Folder[] {
   const db = useDb();
   const folders = useCollection(db.collections.folders);
-  return useMemo(() => [...folders].sort((a, b) => a.sortIndex - b.sortIndex || a.name.localeCompare(b.name)), [folders]);
+  return useMemo(
+    () => [...folders].sort((a, b) => a.sortIndex - b.sortIndex || a.name.localeCompare(b.name)),
+    [folders],
+  );
 }
 
 export function usePlanEntries(days: readonly DayKey[]): MealPlanEntry[] {
@@ -115,7 +143,10 @@ export function useAllPlanEntries(): readonly MealPlanEntry[] {
 export function useGroceryItems(listId: ID = DEFAULT_LIST_ID): GroceryItem[] {
   const db = useDb();
   const items = useCollection(db.collections.groceries);
-  return useMemo(() => items.filter((g) => g.listId === listId).sort((a, b) => a.sortIndex - b.sortIndex), [items, listId]);
+  return useMemo(
+    () => items.filter((g) => g.listId === listId).sort((a, b) => a.sortIndex - b.sortIndex),
+    [items, listId],
+  );
 }
 
 /** Stored kitchen timers (running, paused or finished). */

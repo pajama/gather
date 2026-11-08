@@ -12,7 +12,10 @@ describe('durations', () => {
 
   it('finds ranges and compounds', () => {
     expect(findDurations('Simmer 25-30 mins.')[0]).toMatchObject({ seconds: 1500, maxSeconds: 1800 });
-    expect(findDurations('Roast for 1 hour 30 minutes')[0]).toMatchObject({ seconds: 5400, text: '1 hour 30 minutes' });
+    expect(findDurations('Roast for 1 hour 30 minutes')[0]).toMatchObject({
+      seconds: 5400,
+      text: '1 hour 30 minutes',
+    });
     expect(findDurations('Rest 1 hr and 15 min')[0]).toMatchObject({ seconds: 4500 });
     expect(findDurations('Chill for 1½ hours')[0]).toMatchObject({ seconds: 5400 });
     expect(findDurations('Cook 2 to 3 minutes per side')[0]).toMatchObject({ seconds: 120, maxSeconds: 180 });
@@ -70,7 +73,9 @@ describe('ingredient mentions', () => {
   ];
 
   it('builds phrases from names', () => {
-    expect(mentionPhrases('extra virgin olive oil')).toEqual(expect.arrayContaining(['virgin olive oil', 'olive oil', 'oil']));
+    expect(mentionPhrases('extra virgin olive oil')).toEqual(
+      expect.arrayContaining(['virgin olive oil', 'olive oil', 'oil']),
+    );
     expect(mentionPhrases('large eggs')).toEqual(expect.arrayContaining(['eggs', 'egg']));
     expect(mentionPhrases('fresh thyme leaves')).toEqual(expect.arrayContaining(['thyme leaves', 'thyme']));
     expect(mentionPhrases('fresh thyme leaves')).not.toContain('leaves');
@@ -105,13 +110,17 @@ describe('temperatures', () => {
     expect(convertTemperatures('Roast until it reaches 165°F', 'metric')).toBe('Roast until it reaches 74°C');
     expect(convertTemperatures('Preheat to 350F', 'metric')).toBe('Preheat to 180°C');
     expect(convertTemperatures('Bake at 375-400°F', 'metric')).toBe('Bake at 190–200°C');
-    expect(convertTemperatures('Heat the oven to 180°C (160°C fan)', 'us')).toBe('Heat the oven to 350°F (325°F fan)');
+    expect(convertTemperatures('Heat the oven to 180°C (160°C fan)', 'us')).toBe(
+      'Heat the oven to 350°F (325°F fan)',
+    );
     expect(convertTemperatures('Cook to 74 degrees Celsius', 'us')).toBe('Cook to 165°F');
   });
 
   it('leaves text alone when written in the reader’s units or shown as written', () => {
     expect(convertTemperatures('Heat the oven to 425°F.', 'us')).toBe('Heat the oven to 425°F.');
     expect(convertTemperatures('Heat the oven to 425°F.', 'original')).toBe('Heat the oven to 425°F.');
-    expect(convertTemperatures('Use 2 cups of flour and 3 eggs', 'metric')).toBe('Use 2 cups of flour and 3 eggs');
+    expect(convertTemperatures('Use 2 cups of flour and 3 eggs', 'metric')).toBe(
+      'Use 2 cups of flour and 3 eggs',
+    );
   });
 });

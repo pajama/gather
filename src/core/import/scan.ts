@@ -5,12 +5,15 @@
  * mix-ups in amounts ("l cup" -> "1 cup", "1/2" kept, "%" for "½").
  */
 
-const UNIT_WORD = '(?:cups?|tbsp|tsp|tablespoons?|teaspoons?|oz|ounces?|lbs?|pounds?|g|kg|ml|l|cloves?|cans?|pinch|bunch|sticks?)';
+const UNIT_WORD =
+  '(?:cups?|tbsp|tsp|tablespoons?|teaspoons?|oz|ounces?|lbs?|pounds?|g|kg|ml|l|cloves?|cans?|pinch|bunch|sticks?)';
 
 /** Lines that start a new ingredient or step rather than continuing a sentence. */
-const STARTS_ITEM = /^(?:[-–—*•·]|\d|[¼½¾⅓⅔⅛]|step\b|ingredients?\b|method\b|directions?\b|instructions?\b|for the\b)/i;
+const STARTS_ITEM =
+  /^(?:[-–—*•·]|\d|[¼½¾⅓⅔⅛]|step\b|ingredients?\b|method\b|directions?\b|instructions?\b|for the\b)/i;
 
-const HEADING = /^(ingredients?|method|directions?|instructions?|preparation|steps?|notes?|serves|makes|yield)\b/i;
+const HEADING =
+  /^(ingredients?|method|directions?|instructions?|preparation|steps?|notes?|serves|makes|yield)\b/i;
 const SECTION_HEADING = /^(ingredients?|method|directions?|instructions?|preparation|steps?|notes?)\b/i;
 
 function fixAmounts(line: string): string {

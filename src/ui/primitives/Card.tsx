@@ -19,7 +19,12 @@ export function Card({
 }) {
   const { colors, radius, space } = useTheme();
   const cardStyle = [
-    { backgroundColor: colors.surface, borderRadius: radius.lg, padding: padded ? space.lg : 0, overflow: 'hidden' as const },
+    {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: padded ? space.lg : 0,
+      overflow: 'hidden' as const,
+    },
     style,
   ];
   if (onPress) {
@@ -65,13 +70,19 @@ export function ListSection({
       <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden' }}>
         {rows.map((row, index) => (
           <Fragment key={row.key ?? index}>
-            {index > 0 ? <View style={[styles.separator, { backgroundColor: colors.separator, marginLeft: space.lg }]} /> : null}
+            {index > 0 ? (
+              <View style={[styles.separator, { backgroundColor: colors.separator, marginLeft: space.lg }]} />
+            ) : null}
             {row}
           </Fragment>
         ))}
       </View>
       {footer ? (
-        <Text variant="footnote" tone="secondary" style={{ paddingHorizontal: space.lg, marginTop: space.sm }}>
+        <Text
+          variant="footnote"
+          tone="secondary"
+          style={{ paddingHorizontal: space.lg, marginTop: space.sm }}
+        >
           {footer}
         </Text>
       ) : null}
@@ -106,9 +117,19 @@ export function ListRow({
 }) {
   const { colors, space, radius } = useTheme();
   const content = (
-    <View style={[styles.row, { paddingHorizontal: space.lg, minHeight: 50, paddingVertical: subtitle ? space.sm : 0 }]}>
+    <View
+      style={[
+        styles.row,
+        { paddingHorizontal: space.lg, minHeight: 50, paddingVertical: subtitle ? space.sm : 0 },
+      ]}
+    >
       {icon ? (
-        <View style={[styles.rowIcon, { backgroundColor: iconColor ?? colors.accent, borderRadius: radius.xs + 1 }]}>
+        <View
+          style={[
+            styles.rowIcon,
+            { backgroundColor: iconColor ?? colors.accent, borderRadius: radius.xs + 1 },
+          ]}
+        >
           <Icon name={icon} size={17} color="#FFFFFF" />
         </View>
       ) : null}

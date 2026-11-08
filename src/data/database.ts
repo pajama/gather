@@ -57,9 +57,14 @@ export class Database {
     const report = (error: unknown) => this.reportError(error);
     const collections: Record<string, unknown> = {};
     for (const name of COLLECTION_NAMES) {
-      collections[name] = new Collection<Identified>(store, name, { migrate: SCHEMA[name].migrate as (raw: unknown) => Identified, onError: report });
+      collections[name] = new Collection<Identified>(store, name, {
+        migrate: SCHEMA[name].migrate as (raw: unknown) => Identified,
+        onError: report,
+      });
     }
-    collections.settings = new Singleton<Settings>(store, 'settings', DEFAULT_SETTINGS, report, (raw) => migrateSettings(raw, DEFAULT_SETTINGS));
+    collections.settings = new Singleton<Settings>(store, 'settings', DEFAULT_SETTINGS, report, (raw) =>
+      migrateSettings(raw, DEFAULT_SETTINGS),
+    );
     this.collections = collections as Collections;
     this.recipes = new RecipesRepository(this.collections);
     this.folders = new FoldersRepository(this.collections);
@@ -74,7 +79,10 @@ export class Database {
     options: { seed?: (db: Database) => void | Promise<void>; onError?: (error: unknown) => void } = {},
   ): Promise<Database> {
     const db = new Database(store, options.onError ?? ((e) => console.warn('[gather] storage error', e)));
-    await Promise.all([...COLLECTION_NAMES.map((name) => db.collections[name].load()), db.collections.settings.load()]);
+    await Promise.all([
+      ...COLLECTION_NAMES.map((name) => db.collections[name].load()),
+      db.collections.settings.load(),
+    ]);
     if ((await store.getMeta('seeded')) === null) {
       await options.seed?.(db);
       await store.setMeta('seeded', new Date().toISOString());
@@ -84,9 +92,11 @@ export class Database {
     // Another browser tab wrote: reload what it changed, so the two don't overwrite each other.
     store.onExternalChange?.(({ collections, meta }) => {
       for (const name of collections) {
-        if ((COLLECTION_NAMES as string[]).includes(name)) void db.collections[name as keyof Docs].reload().catch((e: unknown) => db.reportError(e));
+        if ((COLLECTION_NAMES as string[]).includes(name))
+          void db.collections[name as keyof Docs].reload().catch((e: unknown) => db.reportError(e));
       }
-      if (meta.includes('settings')) void db.collections.settings.reload().catch((e: unknown) => db.reportError(e));
+      if (meta.includes('settings'))
+        void db.collections.settings.reload().catch((e: unknown) => db.reportError(e));
     });
     return db;
   }
@@ -101,12 +111,17 @@ export class Database {
 
   /** Waits for all pending writes (tests, backups, app backgrounding). */
   async flush(): Promise<void> {
-    await Promise.all([...COLLECTION_NAMES.map((name) => this.collections[name].flush()), this.collections.settings.flush()]);
+    await Promise.all([
+      ...COLLECTION_NAMES.map((name) => this.collections[name].flush()),
+      this.collections.settings.flush(),
+    ]);
   }
 
   /** Everything in the library, as one JSON-serializable backup. */
   exportBackup(): Backup {
-    const collections = Object.fromEntries(BACKUP_COLLECTIONS.map((name) => [name, [...this.collections[name].all()]]));
+    const collections = Object.fromEntries(
+      BACKUP_COLLECTIONS.map((name) => [name, [...this.collections[name].all()]]),
+    );
     return {
       format: BACKUP_FORMAT,
       version: BACKUP_VERSION,
@@ -125,12 +140,17 @@ export class Database {
   async restoreBackup(raw: unknown, options: { keepUndo?: boolean } = {}): Promise<{ recipes: number }> {
     const backup = parseBackup(raw);
     await this.flush();
-    if (options.keepUndo !== false) await this.store.setMeta(PRE_RESTORE_KEY, JSON.stringify(this.exportBackup()));
+    if (options.keepUndo !== false)
+      await this.store.setMeta(PRE_RESTORE_KEY, JSON.stringify(this.exportBackup()));
     const contents = Object.fromEntries(
-      BACKUP_COLLECTIONS.map((name) => [name, (backup[name] as Identified[]).map((doc) => ({ id: doc.id, json: JSON.stringify(doc) }))]),
+      BACKUP_COLLECTIONS.map((name) => [
+        name,
+        (backup[name] as Identified[]).map((doc) => ({ id: doc.id, json: JSON.stringify(doc) })),
+      ]),
     );
     await this.store.replaceCollections(contents);
-    for (const name of BACKUP_COLLECTIONS) (this.collections[name] as Collection<Identified>).replaceLocal(backup[name] as Identified[]);
+    for (const name of BACKUP_COLLECTIONS)
+      (this.collections[name] as Collection<Identified>).replaceLocal(backup[name] as Identified[]);
     this.collections.settings.set(backup.settings);
     this.groceries.ensureDefaultList();
     return { recipes: backup.recipes.length };
@@ -153,12 +173,14 @@ export class Database {
   /** Every image URI the library refers to, including the library kept for undoing a restore. */
   async imageReferences(): Promise<Set<string>> {
     const uris = new Set<string>();
-    for (const recipe of this.collections.recipes.all()) for (const image of recipe.images) uris.add(image.uri);
+    for (const recipe of this.collections.recipes.all())
+      for (const image of recipe.images) uris.add(image.uri);
     const saved = await this.store.getMeta(PRE_RESTORE_KEY);
     if (saved) {
       try {
         const backup = JSON.parse(saved) as { recipes?: { images?: { uri?: unknown }[] }[] };
-        for (const recipe of backup.recipes ?? []) for (const image of recipe.images ?? []) if (typeof image.uri === 'string') uris.add(image.uri);
+        for (const recipe of backup.recipes ?? [])
+          for (const image of recipe.images ?? []) if (typeof image.uri === 'string') uris.add(image.uri);
       } catch {
         // An unreadable saved library has nothing worth keeping photos for.
       }
@@ -169,7 +191,11 @@ export class Database {
   /** Records a storage failure for the UI, and passes it on. */
   reportError(error: unknown): void {
     const current = this.health.get();
-    this.health.set({ ...current, failures: current.failures + 1, lastError: error instanceof Error ? error.message : String(error) });
+    this.health.set({
+      ...current,
+      failures: current.failures + 1,
+      lastError: error instanceof Error ? error.message : String(error),
+    });
     this.onError(error);
   }
 }

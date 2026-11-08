@@ -125,8 +125,11 @@ export function isCrumb(value: unknown): value is CrumbRecipe {
   if (typeof v.name !== 'string') return false;
   const ingredients = Array.isArray(v.ingredients) ? v.ingredients : [];
   const first = ingredients[0] as Record<string, unknown> | undefined;
-  const crumbIngredient = !!first && typeof first === 'object' && ('quantity' in first || 'ingredient' in first);
-  return crumbIngredient || 'cookingDuration' in v || 'neutritionalInfo' in v || 'webLink' in v || 'serves' in v;
+  const crumbIngredient =
+    !!first && typeof first === 'object' && ('quantity' in first || 'ingredient' in first);
+  return (
+    crumbIngredient || 'cookingDuration' in v || 'neutritionalInfo' in v || 'webLink' in v || 'serves' in v
+  );
 }
 
 function amountText(q: CrumbQuantity | undefined): string {
@@ -147,10 +150,16 @@ export function crumbIngredientLine(entry: CrumbIngredient): string {
 }
 
 function byOrder<T extends { order?: number }>(items: T[] | undefined): T[] {
-  return [...(items ?? [])].map((item, index) => ({ item, index })).sort((a, b) => (a.item.order ?? a.index) - (b.item.order ?? b.index) || a.index - b.index).map((x) => x.item);
+  return [...(items ?? [])]
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => (a.item.order ?? a.index) - (b.item.order ?? b.index) || a.index - b.index)
+    .map((x) => x.item);
 }
 
-function parseNutrition(text: string | undefined): { nutrition: Partial<Record<NutritionKey, string>>; extra: string[] } {
+function parseNutrition(text: string | undefined): {
+  nutrition: Partial<Record<NutritionKey, string>>;
+  extra: string[];
+} {
   const nutrition: Partial<Record<NutritionKey, string>> = {};
   const extra: string[] = [];
   for (const raw of (text ?? '').split(/\r?\n/)) {
@@ -172,7 +181,10 @@ export function draftFromCrumb(crumb: CrumbRecipe): RecipeDraft {
   for (const entry of byOrder(crumb.ingredients)) {
     if ((entry.quantity?.quantityType ?? '').toUpperCase() === 'SECTION') {
       if (current.lines.length || current.title) ingredients.push(current);
-      current = { lines: [], ...(entry.ingredient?.name?.trim() ? { title: entry.ingredient.name.trim() } : {}) };
+      current = {
+        lines: [],
+        ...(entry.ingredient?.name?.trim() ? { title: entry.ingredient.name.trim() } : {}),
+      };
       continue;
     }
     const line = crumbIngredientLine(entry);
@@ -198,17 +210,22 @@ export function draftFromCrumb(crumb: CrumbRecipe): RecipeDraft {
   if (crumb.sourceName?.trim()) draft.sourceName = crumb.sourceName.trim();
   if (crumb.serves && crumb.serves > 0) draft.servings = crumb.serves;
   if (crumb.duration && crumb.duration > 0) draft.prepSeconds = Math.round(crumb.duration * 60);
-  if (crumb.cookingDuration && crumb.cookingDuration > 0) draft.cookSeconds = Math.round(crumb.cookingDuration * 60);
+  if (crumb.cookingDuration && crumb.cookingDuration > 0)
+    draft.cookSeconds = Math.round(crumb.cookingDuration * 60);
   if (crumb.rating && crumb.rating > 0) draft.rating = Math.min(5, Math.round(crumb.rating));
   const difficulty = crumb.rawDifficulty?.trim().toLowerCase();
   if (difficulty === 'easy' || difficulty === 'medium') draft.difficulty = difficulty;
   else if (difficulty === 'hard' || difficulty === 'difficult') draft.difficulty = 'hard';
   draft.tags = (crumb.tags ?? []).map((t) => String(t).trim()).filter(Boolean);
-  draft.imageUrls = (crumb.images ?? []).filter((img) => typeof img === 'string' && img.length > 32).map((img) => (img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}`));
+  draft.imageUrls = (crumb.images ?? [])
+    .filter((img) => typeof img === 'string' && img.length > 32)
+    .map((img) => (img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}`));
 
   const { nutrition, extra } = parseNutrition(crumb.neutritionalInfo);
   if (Object.keys(nutrition).length) draft.nutrition = nutrition;
-  const notes = [crumb.notes?.trim(), extra.length ? `Nutrition: ${extra.join(', ')}` : undefined].filter(Boolean);
+  const notes = [crumb.notes?.trim(), extra.length ? `Nutrition: ${extra.join(', ')}` : undefined].filter(
+    Boolean,
+  );
   if (notes.length) draft.notes = notes.join('\n\n');
   return draft;
 }
@@ -231,7 +248,13 @@ const NUTRITION_EXPORT: [NutritionKey, string][] = [
 export function crumbFromDraft(draft: RecipeDraft, uuid: () => string): CrumbRecipe {
   const ingredients: CrumbIngredient[] = [];
   for (const section of draft.ingredients) {
-    if (section.title) ingredients.push({ order: ingredients.length, uuid: uuid(), ingredient: { name: section.title, uuid: uuid() }, quantity: { quantityType: 'SECTION', amount: 0 } });
+    if (section.title)
+      ingredients.push({
+        order: ingredients.length,
+        uuid: uuid(),
+        ingredient: { name: section.title, uuid: uuid() },
+        quantity: { quantityType: 'SECTION', amount: 0 },
+      });
     for (const line of section.lines) {
       const parsed = parseIngredient(line);
       const type = parsed.unit ? UNIT_TO_CRUMB[parsed.unit] : 'ITEM';
@@ -239,20 +262,33 @@ export function crumbFromDraft(draft: RecipeDraft, uuid: () => string): CrumbRec
       if (parsed.quantity?.max !== undefined) quantity.secondaryAmount = parsed.quantity.max;
       // Units Crouton has no type for stay in the name ("2 cloves garlic").
       const unitDef = parsed.unit && !type ? getUnit(parsed.unit) : undefined;
-      const unitWord = unitDef ? `${unitLabel(unitDef, (parsed.quantity?.max ?? parsed.quantity?.value ?? 0) > 1, 'long')} ` : '';
+      const unitWord = unitDef
+        ? `${unitLabel(unitDef, (parsed.quantity?.max ?? parsed.quantity?.value ?? 0) > 1, 'long')} `
+        : '';
       const size = parsed.size ? `${parsed.size} ` : '';
       const note = parsed.note ? `, ${parsed.note}` : '';
       const name = parsed.quantity ? `${unitWord}${size}${parsed.name}${note}`.trim() : line;
-      ingredients.push({ order: ingredients.length, uuid: uuid(), ingredient: { name, uuid: uuid() }, quantity });
+      ingredients.push({
+        order: ingredients.length,
+        uuid: uuid(),
+        ingredient: { name, uuid: uuid() },
+        quantity,
+      });
     }
   }
   const steps: CrumbStep[] = [];
   for (const section of draft.steps) {
-    if (section.title) steps.push({ order: steps.length, uuid: uuid(), step: section.title, isSection: true });
-    for (const line of section.lines) steps.push({ order: steps.length, uuid: uuid(), step: line, isSection: false });
+    if (section.title)
+      steps.push({ order: steps.length, uuid: uuid(), step: section.title, isSection: true });
+    for (const line of section.lines)
+      steps.push({ order: steps.length, uuid: uuid(), step: line, isSection: false });
   }
-  const nutrition = NUTRITION_EXPORT.filter(([key]) => draft.nutrition?.[key]).map(([key, label]) => `${label}: ${draft.nutrition![key]}`);
-  const images = draft.imageUrls.map((url) => /^data:image\/[a-z]+;base64,(.*)$/i.exec(url)?.[1]).filter((b): b is string => !!b);
+  const nutrition = NUTRITION_EXPORT.filter(([key]) => draft.nutrition?.[key]).map(
+    ([key, label]) => `${label}: ${draft.nutrition![key]}`,
+  );
+  const images = draft.imageUrls
+    .map((url) => /^data:image\/[a-z]+;base64,(.*)$/i.exec(url)?.[1])
+    .filter((b): b is string => !!b);
   return {
     uuid: uuid(),
     name: draft.name,
@@ -287,7 +323,12 @@ export function crumbArchive(drafts: readonly RecipeDraft[], uuid: () => string)
   const files: Record<string, Uint8Array> = {};
   const used = new Set<string>();
   for (const draft of drafts) {
-    const base = draft.name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Recipe';
+    const base =
+      draft.name
+        .replace(/[\\/:*?"<>|]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80) || 'Recipe';
     let name = `${base}.crumb`;
     for (let n = 2; used.has(name.toLowerCase()); n++) name = `${base} ${n}.crumb`;
     used.add(name.toLowerCase());

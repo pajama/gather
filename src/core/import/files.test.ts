@@ -22,12 +22,18 @@ const paprika = {
 
 describe('recipe files', () => {
   it('splits sections', () => {
-    expect(linesToSections('a\nFor the glaze:\nb')).toEqual([{ lines: ['a'] }, { title: 'For the glaze', lines: ['b'] }]);
+    expect(linesToSections('a\nFor the glaze:\nb')).toEqual([
+      { lines: ['a'] },
+      { title: 'For the glaze', lines: ['b'] },
+    ]);
   });
 
   it('reads a Paprika archive', () => {
     const entry = gzipSync(strToU8(JSON.stringify(paprika)));
-    const archive = zipSync({ 'Paprika Chili.paprikarecipe': entry, 'broken.paprikarecipe': strToU8('nope') });
+    const archive = zipSync({
+      'Paprika Chili.paprikarecipe': entry,
+      'broken.paprikarecipe': strToU8('nope'),
+    });
     const result = readRecipeFile('export.paprikarecipes', archive);
     expect(result.format).toBe('Paprika');
     expect(result.skipped).toEqual(['broken.paprikarecipe']);
@@ -45,21 +51,41 @@ describe('recipe files', () => {
       tags: ['Dinner', 'Comfort'],
       rating: 4,
     });
-    expect(draft!.ingredients).toEqual([{ lines: ['1 lb beef', '1 onion, diced'] }, { title: 'Toppings', lines: ['Sour cream'] }]);
+    expect(draft!.ingredients).toEqual([
+      { lines: ['1 lb beef', '1 onion, diced'] },
+      { title: 'Toppings', lines: ['Sour cream'] },
+    ]);
     expect(draft!.steps).toEqual([{ lines: ['Brown the beef.', 'Simmer 30 minutes.'] }]);
     expect(draft!.notes).toBe('Better tomorrow.\n\nNutrition: 400 kcal');
   });
 
   it('reads a single gzipped Paprika recipe and Gather files', () => {
-    expect(readRecipeFile('one.paprikarecipe', gzipSync(strToU8(JSON.stringify(paprika)))).drafts[0]!.name).toBe('Paprika Chili');
-    const gather = readRecipeFile('mine.gather', strToU8(JSON.stringify(toGatherFile([{ name: 'X', imageUrls: [], ingredients: [], steps: [], tags: [], categories: [], cuisines: [] }]))));
+    expect(
+      readRecipeFile('one.paprikarecipe', gzipSync(strToU8(JSON.stringify(paprika)))).drafts[0]!.name,
+    ).toBe('Paprika Chili');
+    const gather = readRecipeFile(
+      'mine.gather',
+      strToU8(
+        JSON.stringify(
+          toGatherFile([
+            { name: 'X', imageUrls: [], ingredients: [], steps: [], tags: [], categories: [], cuisines: [] },
+          ]),
+        ),
+      ),
+    );
     expect(gather).toMatchObject({ format: 'Gather', drafts: [{ name: 'X' }] });
   });
 
   it('falls back to text and HTML', () => {
-    expect(readRecipeFile('note.txt', strToU8('Soup\nIngredients\n1 onion\nMethod\nCook.')).drafts[0]!.name).toBe('Soup');
-    const html = '<html><script type="application/ld+json">{"@type":"Recipe","name":"Saved","recipeIngredient":["1 egg"]}</script></html>';
-    expect(readRecipeFile('page.html', strToU8(html))).toMatchObject({ format: 'Web page', drafts: [{ name: 'Saved' }] });
+    expect(
+      readRecipeFile('note.txt', strToU8('Soup\nIngredients\n1 onion\nMethod\nCook.')).drafts[0]!.name,
+    ).toBe('Soup');
+    const html =
+      '<html><script type="application/ld+json">{"@type":"Recipe","name":"Saved","recipeIngredient":["1 egg"]}</script></html>';
+    expect(readRecipeFile('page.html', strToU8(html))).toMatchObject({
+      format: 'Web page',
+      drafts: [{ name: 'Saved' }],
+    });
   });
 });
 
@@ -67,7 +93,15 @@ describe('untrusted files', () => {
   const encode = (s: string) => new TextEncoder().encode(s);
 
   it('normalizes partial Gather files instead of crashing later', () => {
-    const file = readRecipeFile('x.gather', encode(JSON.stringify({ format: 'gather-recipes', recipes: [{ name: 'A' }, { ingredients: 'oops', tags: [1, 'Soup'] }] })));
+    const file = readRecipeFile(
+      'x.gather',
+      encode(
+        JSON.stringify({
+          format: 'gather-recipes',
+          recipes: [{ name: 'A' }, { ingredients: 'oops', tags: [1, 'Soup'] }],
+        }),
+      ),
+    );
     expect(file.drafts).toHaveLength(2);
     expect(file.drafts[0]).toMatchObject({ name: 'A', imageUrls: [], ingredients: [], steps: [], tags: [] });
     expect(file.drafts[1]).toMatchObject({ name: 'Untitled recipe', ingredients: [], tags: ['Soup'] });
@@ -79,7 +113,18 @@ describe('untrusted files', () => {
       encode(
         JSON.stringify({
           format: 'gather-recipes',
-          recipes: [{ name: 'B', sourceUrl: 'javascript:alert(1)', imageUrls: ['javascript:x', 'https://example.com/a.jpg', 'file:///etc/passwd', 'data:image/png;base64,AAAA'] }],
+          recipes: [
+            {
+              name: 'B',
+              sourceUrl: 'javascript:alert(1)',
+              imageUrls: [
+                'javascript:x',
+                'https://example.com/a.jpg',
+                'file:///etc/passwd',
+                'data:image/png;base64,AAAA',
+              ],
+            },
+          ],
         }),
       ),
     );
@@ -88,7 +133,10 @@ describe('untrusted files', () => {
   });
 
   it('reads a text file that merely starts with a bracket as text', () => {
-    const file = readRecipeFile('pie.txt', encode('[Grandma] Pie\n2 cups flour\nBake it for 40 minutes until golden and bubbling at the edges.'));
+    const file = readRecipeFile(
+      'pie.txt',
+      encode('[Grandma] Pie\n2 cups flour\nBake it for 40 minutes until golden and bubbling at the edges.'),
+    );
     expect(file.format).toBe('Text');
     expect(file.drafts[0]?.name).toBe('[Grandma] Pie');
   });

@@ -68,7 +68,8 @@ export class MemoryStore implements DocumentStore {
     const next = Object.entries(contents).map(([name, docs]) => {
       const bucket = new Map<string, string>();
       for (const doc of docs) {
-        if (typeof doc.id !== 'string' || typeof doc.json !== 'string') throw new TypeError(`Invalid document in ${name}`);
+        if (typeof doc.id !== 'string' || typeof doc.json !== 'string')
+          throw new TypeError(`Invalid document in ${name}`);
         bucket.set(doc.id, doc.json);
       }
       return [name, bucket] as const;

@@ -11,7 +11,14 @@ function channels(hex: string): [number, number, number] {
 }
 
 function toHex([r, g, b]: [number, number, number]): string {
-  return `#${[r, g, b].map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+  return `#${[r, g, b]
+    .map((v) =>
+      Math.round(Math.min(255, Math.max(0, v)))
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')
+    .toUpperCase()}`;
 }
 
 export function relativeLuminance(hex: string): number {
@@ -37,7 +44,9 @@ export function readableOn(color: string, background: string, min = 4.5): string
   const start = channels(color);
   for (let step = 1; step <= 40; step++) {
     const t = step / 40;
-    const mixed = toHex([0, 1, 2].map((i) => start[i]! + (target[i]! - start[i]!) * t) as [number, number, number]);
+    const mixed = toHex(
+      [0, 1, 2].map((i) => start[i]! + (target[i]! - start[i]!) * t) as [number, number, number],
+    );
     if (contrastRatio(mixed, background) >= min) return mixed;
   }
   return toHex(target);

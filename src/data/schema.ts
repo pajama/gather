@@ -6,10 +6,26 @@
  */
 
 import { DEFAULT_AISLE_ORDER } from '@/core/grocery/aisles';
-import type { Feed, Folder, GroceryItem, GroceryList, MealPlanEntry, Recipe, Settings } from '@/core/model/types';
+import type {
+  Feed,
+  Folder,
+  GroceryItem,
+  GroceryList,
+  MealPlanEntry,
+  Recipe,
+  Settings,
+} from '@/core/model/types';
 import type { KitchenTimer } from '@/core/timers/timers';
 
-import { migrateFeed, migrateFolder, migrateGroceryItem, migrateGroceryList, migratePlanEntry, migrateRecipe, migrateTimer } from './migrations';
+import {
+  migrateFeed,
+  migrateFolder,
+  migrateGroceryItem,
+  migrateGroceryList,
+  migratePlanEntry,
+  migrateRecipe,
+  migrateTimer,
+} from './migrations';
 
 /** The document type stored in each collection. */
 export interface Docs {

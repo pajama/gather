@@ -1,5 +1,12 @@
 import { newId } from '@/core/model/recipe';
-import { addTimerTime, createTimer, isStale, pauseTimer, resumeTimer, type KitchenTimer } from '@/core/timers/timers';
+import {
+  addTimerTime,
+  createTimer,
+  isStale,
+  pauseTimer,
+  resumeTimer,
+  type KitchenTimer,
+} from '@/core/timers/timers';
 
 import type { Collections } from '../database';
 
@@ -35,7 +42,10 @@ export class TimersRepository {
 
   /** Forgets timers that finished long ago (called at startup). */
   prune(now = Date.now()): void {
-    const stale = this.c.timers.all().filter((t) => isStale(t, now)).map((t) => t.id);
+    const stale = this.c.timers
+      .all()
+      .filter((t) => isStale(t, now))
+      .map((t) => t.id);
     if (stale.length) this.c.timers.remove(...stale);
   }
 }

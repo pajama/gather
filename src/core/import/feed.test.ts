@@ -55,7 +55,11 @@ describe('feeds', () => {
   it('parses Atom with relative links', () => {
     const feed = parseFeed(ATOM, 'https://atom.example.org/feed.xml');
     expect(feed.title).toBe('Atom Eats');
-    expect(feed.items[0]).toMatchObject({ title: 'Miso Soup', link: 'https://atom.example.org/miso-soup', published: '2026-11-05T10:00:00Z' });
+    expect(feed.items[0]).toMatchObject({
+      title: 'Miso Soup',
+      link: 'https://atom.example.org/miso-soup',
+      published: '2026-11-05T10:00:00Z',
+    });
   });
 
   it('discovers feeds advertised by a page', () => {

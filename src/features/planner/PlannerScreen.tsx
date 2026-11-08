@@ -29,7 +29,12 @@ import {
   useTheme,
 } from '@/ui';
 
-const SLOT_LABELS: Record<MealSlot, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
+const SLOT_LABELS: Record<MealSlot, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+};
 const SLOT_ORDER: Record<MealSlot, number> = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -70,12 +75,25 @@ export function PlannerScreen() {
         header={
           <LargeHeader
             title="Meal Plan"
-            right={<IconButton icon="more" variant="tinted" onPress={() => setMenuOpen(true)} accessibilityLabel="Meal plan options" />}
+            right={
+              <IconButton
+                icon="more"
+                variant="tinted"
+                onPress={() => setMenuOpen(true)}
+                accessibilityLabel="Meal plan options"
+              />
+            }
           />
         }
       >
         {start !== today ? (
-          <Button title="Back to today" variant="tinted" size="sm" onPress={() => setStart(today)} style={{ alignSelf: 'flex-start', marginBottom: space.md }} />
+          <Button
+            title="Back to today"
+            variant="tinted"
+            size="sm"
+            onPress={() => setStart(today)}
+            style={{ alignSelf: 'flex-start', marginBottom: space.md }}
+          />
         ) : null}
         <View style={{ gap: space.md }}>
           {days.map((day) => (
@@ -89,7 +107,12 @@ export function PlannerScreen() {
             />
           ))}
         </View>
-        <Button title="Show more days" variant="tinted" onPress={() => setLength(length + 7)} style={{ marginTop: space.lg, alignSelf: 'center' }} />
+        <Button
+          title="Show more days"
+          variant="tinted"
+          onPress={() => setLength(length + 7)}
+          style={{ marginTop: space.lg, alignSelf: 'center' }}
+        />
       </Screen>
 
       {toast ? (
@@ -112,9 +135,16 @@ export function PlannerScreen() {
             subtitle="Fills empty days from your dinner recipes"
             onPress={() => {
               setMenuOpen(false);
-              const added = db.planner.autofill(days.slice(0, 7).filter((d) => d >= today), 'dinner');
+              const added = db.planner.autofill(
+                days.slice(0, 7).filter((d) => d >= today),
+                'dinner',
+              );
               haptic('success');
-              showToast(added.length ? `Planned ${added.length} ${added.length === 1 ? 'dinner' : 'dinners'}` : 'Every dinner is already planned');
+              showToast(
+                added.length
+                  ? `Planned ${added.length} ${added.length === 1 ? 'dinner' : 'dinners'}`
+                  : 'Every dinner is already planned',
+              );
             }}
           />
           <ListRow
@@ -188,11 +218,34 @@ function DayCard({
 }) {
   const db = useDb();
   const { colors, space, radius } = useTheme();
-  const sorted = [...entries].sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot] || a.sortIndex - b.sortIndex);
+  const sorted = [...entries].sort(
+    (a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot] || a.sortIndex - b.sortIndex,
+  );
   const showSlots = new Set(entries.map((e) => e.slot)).size > 1 || entries.some((e) => e.slot !== 'dinner');
   return (
-    <View style={[styles.dayCard, { backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.xs, opacity: day < today ? 0.6 : 1 }]}>
-      <View style={[styles.dayHeader, { backgroundColor: colors.fill, borderRadius: radius.lg, paddingLeft: space.md, paddingRight: space.sm, gap: space.sm }]}>
+    <View
+      style={[
+        styles.dayCard,
+        {
+          backgroundColor: colors.surface,
+          borderRadius: radius.xl,
+          padding: space.xs,
+          opacity: day < today ? 0.6 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.dayHeader,
+          {
+            backgroundColor: colors.fill,
+            borderRadius: radius.lg,
+            paddingLeft: space.md,
+            paddingRight: space.sm,
+            gap: space.sm,
+          },
+        ]}
+      >
         <Text variant="title3" weight="600" style={styles.flex} numberOfLines={1}>
           <Text variant="title3" weight="600" tone={day === today ? 'accent' : 'primary'}>
             {dayName(day, today)}
@@ -201,8 +254,21 @@ function DayCard({
             {shortDate(day)}
           </Text>
         </Text>
-        <IconButton icon="add" variant="tinted" tint="green" size={34} onPress={onAdd} accessibilityLabel={`Plan a meal for ${dayName(day, today)}`} />
-        <IconButton icon="more" variant="tinted" size={34} onPress={onMenu} accessibilityLabel={`Options for ${dayName(day, today)}`} />
+        <IconButton
+          icon="add"
+          variant="tinted"
+          tint="green"
+          size={34}
+          onPress={onAdd}
+          accessibilityLabel={`Plan a meal for ${dayName(day, today)}`}
+        />
+        <IconButton
+          icon="more"
+          variant="tinted"
+          size={34}
+          onPress={onMenu}
+          accessibilityLabel={`Options for ${dayName(day, today)}`}
+        />
       </View>
       {sorted.length ? (
         <View style={{ paddingHorizontal: space.md, paddingVertical: space.sm }}>
@@ -212,13 +278,27 @@ function DayCard({
               <Tap
                 key={entry.id}
                 style={[styles.entry, { gap: space.md }]}
-                onPress={recipe ? () => router.push({ pathname: '/recipe/[id]', params: { id: recipe.id, from: 'Meal Plan' } }) : undefined}
+                onPress={
+                  recipe
+                    ? () =>
+                        router.push({
+                          pathname: '/recipe/[id]',
+                          params: { id: recipe.id, from: 'Meal Plan' },
+                        })
+                    : undefined
+                }
                 accessibilityLabel={recipe?.name ?? entry.title ?? 'Planned meal'}
               >
                 {recipe ? (
                   <Photo uri={coverImage(recipe)} style={[styles.entryThumb, { borderRadius: radius.sm }]} />
                 ) : (
-                  <View style={[styles.entryThumb, styles.center, { borderRadius: radius.sm, backgroundColor: colors.fill }]}>
+                  <View
+                    style={[
+                      styles.entryThumb,
+                      styles.center,
+                      { borderRadius: radius.sm, backgroundColor: colors.fill },
+                    ]}
+                  >
                     <Icon name="notes" size={18} tone="secondary" />
                   </View>
                 )}
@@ -273,10 +353,18 @@ function DaySheet({
                 accessory="none"
                 right={
                   <View style={styles.rowActions}>
-                    <Tap onPress={() => db.planner.move(entry.id, addDays(day, 1))} accessibilityLabel="Move to the next day" hitSlop={8}>
+                    <Tap
+                      onPress={() => db.planner.move(entry.id, addDays(day, 1))}
+                      accessibilityLabel="Move to the next day"
+                      hitSlop={8}
+                    >
                       <Icon name="arrowRight" size={20} tone="accent" />
                     </Tap>
-                    <Tap onPress={() => db.planner.remove(entry.id)} accessibilityLabel="Remove from plan" hitSlop={8}>
+                    <Tap
+                      onPress={() => db.planner.remove(entry.id)}
+                      accessibilityLabel="Remove from plan"
+                      hitSlop={8}
+                    >
                       <Icon name="trash" size={20} tone="danger" />
                     </Tap>
                   </View>
@@ -289,7 +377,16 @@ function DaySheet({
       <ListSection>
         <ListRow icon="basket" iconColor="#F5A623" title="Add to Groceries" onPress={() => onShop(entries)} />
         {entries.length ? (
-          <ListRow icon="trash" iconColor={colors.danger} title="Clear this day" destructive onPress={() => { db.planner.clearDays([day]); onClose(); }} />
+          <ListRow
+            icon="trash"
+            iconColor={colors.danger}
+            title="Clear this day"
+            destructive
+            onPress={() => {
+              db.planner.clearDays([day]);
+              onClose();
+            }}
+          />
         ) : null}
       </ListSection>
     </Sheet>
@@ -322,7 +419,12 @@ function RecipePicker({
   // Pass the folder itself so smart folders (recipes collected by tag) list their recipes here too.
   const folder = scope && scope !== 'favorites' ? folders.find((f) => f.id === scope) : undefined;
   const results = useMemo(
-    () => queryLibrary(recipes, { text, ...(folder ? { folder } : scope === 'favorites' ? { scope: 'favorites' as const } : {}), sort: 'name' }),
+    () =>
+      queryLibrary(recipes, {
+        text,
+        ...(folder ? { folder } : scope === 'favorites' ? { scope: 'favorites' as const } : {}),
+        sort: 'name',
+      }),
     [recipes, text, folder, scope],
   );
   const today = dayKey(new Date());
@@ -330,7 +432,11 @@ function RecipePicker({
   return (
     <Sheet visible={!!day} onClose={onClose} title={day ? `${dayName(day, today)}, ${shortDate(day)}` : ''}>
       <View style={{ gap: space.md }}>
-        <SegmentedControl options={settings.plannerSlots.map((s) => ({ value: s, label: SLOT_LABELS[s] }))} value={slot} onChange={setSlot} />
+        <SegmentedControl
+          options={settings.plannerSlots.map((s) => ({ value: s, label: SLOT_LABELS[s] }))}
+          value={slot}
+          onChange={setSlot}
+        />
         <SearchField value={text} onChangeText={setText} placeholder="Recipes, Ingredients" />
         <View style={[styles.chips, { gap: space.sm }]}>
           <Chip label="All" selected={!scope} onPress={() => setScope(undefined)} />
@@ -341,10 +447,20 @@ function RecipePicker({
         </View>
         {results.length === 0 ? <EmptyState icon="search" title="No recipes" /> : null}
         {results.map((recipe) => (
-          <RecipeRow key={recipe.id} recipe={recipe} onPress={() => onPick(slot, recipe.id)} right={<Icon name="add" tone="accent" />} />
+          <RecipeRow
+            key={recipe.id}
+            recipe={recipe}
+            onPress={() => onPick(slot, recipe.id)}
+            right={<Icon name="add" tone="accent" />}
+          />
         ))}
         <View style={[styles.noteRow, { gap: space.sm, marginTop: space.md }]}>
-          <Field value={note} onChangeText={setNote} placeholder="Or a note: Leftovers, Takeout…" style={styles.flex} />
+          <Field
+            value={note}
+            onChangeText={setNote}
+            placeholder="Or a note: Leftovers, Takeout…"
+            style={styles.flex}
+          />
           <Button
             title="Add"
             variant="tinted"

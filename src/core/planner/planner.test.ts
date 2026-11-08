@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { addDays, generatePlan, matchesSlot, relativeDayName, seededRandom, startOfWeek, weekDays, weekRangeLabel } from './planner';
+import {
+  addDays,
+  generatePlan,
+  matchesSlot,
+  relativeDayName,
+  seededRandom,
+  startOfWeek,
+  weekDays,
+  weekRangeLabel,
+} from './planner';
 
 describe('planner dates', () => {
   it('computes weeks', () => {
@@ -35,7 +44,13 @@ describe('plan generation', () => {
 
   it('fills free days without repeats, preferring labelled recipes', () => {
     const days = weekDays('2026-11-09', 1).slice(0, 3);
-    const plan = generatePlan({ days, slot: 'dinner', candidates, occupiedDays: new Set([days[1]!]), random: seededRandom(7) });
+    const plan = generatePlan({
+      days,
+      slot: 'dinner',
+      candidates,
+      occupiedDays: new Set([days[1]!]),
+      random: seededRandom(7),
+    });
     expect(plan.map((p) => p.day)).toEqual([days[0], days[2]]);
     expect(new Set(plan.map((p) => p.recipeId)).size).toBe(2);
     for (const p of plan) expect(['a', 'b', 'c']).toContain(p.recipeId);

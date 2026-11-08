@@ -56,7 +56,11 @@ function firstImage(item: string, base?: string): string | undefined {
       candidates.push(attr(m[0], 'url'));
     }
   }
-  const html = decodeEntities(unwrapCdata(tagText(item, 'content:encoded') ?? tagText(item, 'content') ?? tagText(item, 'description') ?? ''));
+  const html = decodeEntities(
+    unwrapCdata(
+      tagText(item, 'content:encoded') ?? tagText(item, 'content') ?? tagText(item, 'description') ?? '',
+    ),
+  );
   const img = /<img\b[^>]*\ssrc\s*=\s*["']([^"']+)["']/i.exec(html);
   if (img?.[1]) candidates.push(img[1]);
   const found = candidates.find((c) => c && /^(https?:)?\/\//.test(c));
@@ -82,15 +86,23 @@ export function parseFeed(xml: string, feedUrl?: string): ParsedFeed {
 }
 
 function parseFeedXml(xml: string, feedUrl?: string): ParsedFeed {
-  const isAtom = /<feed\b[^>]*xmlns\s*=\s*["']http:\/\/www\.w3\.org\/2005\/Atom/i.test(xml) || (/<feed\b/i.test(xml) && !/<rss\b/i.test(xml));
+  const isAtom =
+    /<feed\b[^>]*xmlns\s*=\s*["']http:\/\/www\.w3\.org\/2005\/Atom/i.test(xml) ||
+    (/<feed\b/i.test(xml) && !/<rss\b/i.test(xml));
   if (isAtom) {
     const head = xml.split(/<entry\b/i)[0] ?? '';
-    const siteLink = /<link\b[^>]*rel\s*=\s*["']alternate["'][^>]*>/i.exec(head)?.[0] ?? /<link\b[^>]*>/i.exec(head)?.[0];
+    const siteLink =
+      /<link\b[^>]*rel\s*=\s*["']alternate["'][^>]*>/i.exec(head)?.[0] ?? /<link\b[^>]*>/i.exec(head)?.[0];
     return {
       title: cleanText(tagText(head, 'title') ?? '') || 'Feed',
-      ...(siteLink && attr(siteLink, 'href') ? { siteUrl: resolveUrl(attr(siteLink, 'href')!, feedUrl) } : {}),
+      ...(siteLink && attr(siteLink, 'href')
+        ? { siteUrl: resolveUrl(attr(siteLink, 'href')!, feedUrl) }
+        : {}),
       items: blocks(xml, 'entry').map((entry) => {
-        const linkTag = /<link\b[^>]*rel\s*=\s*["']alternate["'][^>]*>/i.exec(entry)?.[0] ?? /<link\b[^>]*>/i.exec(entry)?.[0] ?? '';
+        const linkTag =
+          /<link\b[^>]*rel\s*=\s*["']alternate["'][^>]*>/i.exec(entry)?.[0] ??
+          /<link\b[^>]*>/i.exec(entry)?.[0] ??
+          '';
         const link = resolveUrl(attr(linkTag, 'href') ?? '', feedUrl);
         const summary = cleanText(decodeEntities(tagText(entry, 'summary') ?? ''));
         const published = tagText(entry, 'published') ?? tagText(entry, 'updated');
@@ -142,7 +154,8 @@ export function discoverFeedUrls(html: string, pageUrl?: string): string[] {
     const type = (attr(tag, 'type') ?? '').toLowerCase();
     const rel = (attr(tag, 'rel') ?? '').toLowerCase();
     const href = attr(tag, 'href');
-    if (href && rel.includes('alternate') && /(rss|atom)\+xml/.test(type)) urls.push(resolveUrl(href, pageUrl));
+    if (href && rel.includes('alternate') && /(rss|atom)\+xml/.test(type))
+      urls.push(resolveUrl(href, pageUrl));
   }
   // Comment feeds are rarely what anyone wants.
   return [...new Set(urls)].sort((a, b) => Number(/comments/i.test(a)) - Number(/comments/i.test(b)));

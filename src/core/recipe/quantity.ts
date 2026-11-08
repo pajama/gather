@@ -55,7 +55,8 @@ const WORD_NUMBERS: Readonly<Record<string, number>> = {
 };
 
 /** Words after "a"/"an" that make it vague rather than a count ("a few"). */
-const VAGUE_AFTER_ARTICLE = /^(few|little|bit|couple|fistful|good|generous|large handful|handful of|splash|drizzle|dash|pinch|sprinkle)\b/i;
+const VAGUE_AFTER_ARTICLE =
+  /^(few|little|bit|couple|fistful|good|generous|large handful|handful of|splash|drizzle|dash|pinch|sprinkle)\b/i;
 
 type AtomParser = { re: RegExp; read: (m: RegExpExecArray) => number | null };
 
@@ -168,7 +169,8 @@ export function scaleQuantity(q: Quantity, factor: number): Quantity {
 }
 
 export function addQuantities(a: Quantity, b: Quantity): Quantity {
-  const max = a.max !== undefined || b.max !== undefined ? (a.max ?? a.value) + (b.max ?? b.value) : undefined;
+  const max =
+    a.max !== undefined || b.max !== undefined ? (a.max ?? a.value) + (b.max ?? b.value) : undefined;
   return max === undefined ? { value: a.value + b.value } : { value: a.value + b.value, max };
 }
 

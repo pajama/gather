@@ -8,7 +8,13 @@ import { useFolders, useRecipes } from '@/data/react';
 import { useTagColor } from '@/features/library';
 import { Icon, IconButton, SIDEBAR_WIDTH, Tap, Text, useTheme, type IconName } from '@/ui';
 
-const LIBRARY: { route: string; href: '/plan' | '/' | '/groceries' | '/discover'; label: string; icon: IconName; color: string }[] = [
+const LIBRARY: {
+  route: string;
+  href: '/plan' | '/' | '/groceries' | '/discover';
+  label: string;
+  icon: IconName;
+  color: string;
+}[] = [
   { route: 'plan', href: '/plan', label: 'Meal Plan', icon: 'calendar', color: '#FF3B30' },
   { route: '(recipes)', href: '/', label: 'Recipes', icon: 'recipes', color: '#34C759' },
   { route: 'groceries', href: '/groceries', label: 'Groceries', icon: 'basket', color: '#F5A623' },
@@ -40,7 +46,15 @@ function Row({
       onPress={onPress}
       accessibilityRole="link"
       accessibilityState={{ selected: !!active }}
-      style={[styles.row, { borderRadius: radius.md, paddingHorizontal: space.sm, gap: space.md, backgroundColor: active ? colors.accentSoft : 'transparent' }]}
+      style={[
+        styles.row,
+        {
+          borderRadius: radius.md,
+          paddingHorizontal: space.sm,
+          gap: space.md,
+          backgroundColor: active ? colors.accentSoft : 'transparent',
+        },
+      ]}
     >
       <View style={styles.iconBox}>
         <Icon name={icon} size={iconSize} color={iconColor} />
@@ -62,7 +76,12 @@ function Row({
 function SectionHeader({ title, open, onToggle }: { title: string; open: boolean; onToggle?: () => void }) {
   const { space } = useTheme();
   return (
-    <Tap onPress={onToggle} style={[styles.sectionHeader, { marginTop: space.lg, paddingHorizontal: space.sm }]} accessibilityRole="button" accessibilityLabel={`${open ? 'Collapse' : 'Expand'} ${title}`}>
+    <Tap
+      onPress={onToggle}
+      style={[styles.sectionHeader, { marginTop: space.lg, paddingHorizontal: space.sm }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${open ? 'Collapse' : 'Expand'} ${title}`}
+    >
       <Text variant="footnote" tone="secondary" weight="600" style={styles.flex}>
         {title}
       </Text>
@@ -94,13 +113,24 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
   }, [recipes, folders]);
   const tags = useMemo(() => {
     const map = new Map<string, string>();
-    for (const r of recipes) for (const t of r.tags) if (!map.has(t.toLowerCase())) map.set(t.toLowerCase(), t);
+    for (const r of recipes)
+      for (const t of r.tags) if (!map.has(t.toLowerCase())) map.set(t.toLowerCase(), t);
     return [...map.values()].sort((a, b) => a.localeCompare(b));
   }, [recipes]);
 
   const inCollection = pathname.startsWith('/collection/');
   return (
-    <View style={[styles.sidebar, { width: SIDEBAR_WIDTH, backgroundColor: colors.sidebar, borderRightColor: colors.separator, paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.sidebar,
+        {
+          width: SIDEBAR_WIDTH,
+          backgroundColor: colors.sidebar,
+          borderRightColor: colors.separator,
+          paddingTop: insets.top,
+        },
+      ]}
+    >
       <ScrollView contentContainerStyle={{ padding: space.md, paddingBottom: insets.bottom + space.xl }}>
         <View style={[styles.header, { marginBottom: space.sm }]}>
           <Text variant="title1" style={[styles.flex, { marginLeft: space.sm }]}>
@@ -121,7 +151,10 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
             icon={item.icon}
             iconColor={item.color}
             label={item.label}
-            active={activeRoute === item.route && !(item.route === '(recipes)' && (inCollection || pathname === '/collections'))}
+            active={
+              activeRoute === item.route &&
+              !(item.route === '(recipes)' && (inCollection || pathname === '/collections'))
+            }
             onPress={() => router.navigate(item.href)}
           />
         ))}
@@ -129,7 +162,13 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
         <SectionHeader title="Folders" open={foldersOpen} onToggle={() => setFoldersOpen(!foldersOpen)} />
         {foldersOpen ? (
           <>
-            <Row icon="grid3" iconColor={colors.accent} label="All Folders" active={pathname === '/collections'} onPress={() => router.navigate('/collections')} />
+            <Row
+              icon="grid3"
+              iconColor={colors.accent}
+              label="All Folders"
+              active={pathname === '/collections'}
+              onPress={() => router.navigate('/collections')}
+            />
             <Row
               icon="heart"
               iconColor="#FF2D55"
@@ -151,7 +190,9 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
           </>
         ) : null}
 
-        {tags.length ? <SectionHeader title="Tags" open={tagsOpen} onToggle={() => setTagsOpen(!tagsOpen)} /> : null}
+        {tags.length ? (
+          <SectionHeader title="Tags" open={tagsOpen} onToggle={() => setTagsOpen(!tagsOpen)} />
+        ) : null}
         {tagsOpen
           ? tags.map((t) => (
               <Row
@@ -162,7 +203,12 @@ export function Sidebar({ state, insets }: BottomTabBarProps) {
                 label={t}
                 labelColor={colorFor(t)}
                 active={decodeURIComponent(pathname) === `/collection/tag:${t}`}
-                onPress={() => router.navigate({ pathname: '/collection/[id]', params: { id: `tag:${encodeURIComponent(t)}` } })}
+                onPress={() =>
+                  router.navigate({
+                    pathname: '/collection/[id]',
+                    params: { id: `tag:${encodeURIComponent(t)}` },
+                  })
+                }
               />
             ))
           : null}

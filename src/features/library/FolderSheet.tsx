@@ -58,7 +58,14 @@ export function FolderSheet({
   return (
     <Sheet visible={visible} onClose={onClose} title={folder ? 'Edit folder' : 'New folder'}>
       <View style={{ gap: space.lg }}>
-        <Field value={name} onChangeText={setName} placeholder="Folder name" autoFocus={!folder} returnKeyType="done" onSubmitEditing={save} />
+        <Field
+          value={name}
+          onChangeText={setName}
+          placeholder="Folder name"
+          autoFocus={!folder}
+          returnKeyType="done"
+          onSubmitEditing={save}
+        />
         {allTags.length ? (
           <View style={{ gap: space.sm }}>
             <Text variant="headline">Collect recipes tagged</Text>
@@ -67,7 +74,13 @@ export function FolderSheet({
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
               {allTags.map((tag) => (
-                <Chip key={tag} label={tag} icon="pricetag" selected={tags.some((t) => t.toLowerCase() === tag.toLowerCase())} onPress={() => toggle(tag)} />
+                <Chip
+                  key={tag}
+                  label={tag}
+                  icon="pricetag"
+                  selected={tags.some((t) => t.toLowerCase() === tag.toLowerCase())}
+                  onPress={() => toggle(tag)}
+                />
               ))}
             </View>
             {tags.length > 1 ? (

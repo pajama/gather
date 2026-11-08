@@ -71,7 +71,10 @@ export function draftFromPaprika(p: PaprikaRecipe): RecipeDraft {
   if (p.description?.trim()) draft.description = p.description.trim();
   draft.ingredients = linesToSections(p.ingredients);
   draft.steps = linesToSections(p.directions, true);
-  const notes = [p.notes?.trim(), p.nutritional_info?.trim() ? `Nutrition: ${p.nutritional_info.trim()}` : undefined].filter(Boolean);
+  const notes = [
+    p.notes?.trim(),
+    p.nutritional_info?.trim() ? `Nutrition: ${p.nutritional_info.trim()}` : undefined,
+  ].filter(Boolean);
   if (notes.length) draft.notes = notes.join('\n\n');
   const servings = /(\d+(?:\.\d+)?)/.exec(String(p.servings ?? ''));
   if (servings) draft.servings = Number(servings[1]);
@@ -162,17 +165,24 @@ function readRawRecipeFile(name: string, bytes: Uint8Array): ImportedFile {
     }
   }
   if (parsed !== undefined) {
-    if (Array.isArray(parsed) && parsed.length && parsed.every(isCrumb)) return { drafts: parsed.map(draftFromCrumb), format: 'Crouton', skipped };
-    if (isCrumb(parsed) && (lower.endsWith('.crumb') || !('directions' in parsed))) return { drafts: [draftFromCrumb(parsed)], format: 'Crouton', skipped };
+    if (Array.isArray(parsed) && parsed.length && parsed.every(isCrumb))
+      return { drafts: parsed.map(draftFromCrumb), format: 'Crouton', skipped };
+    if (isCrumb(parsed) && (lower.endsWith('.crumb') || !('directions' in parsed)))
+      return { drafts: [draftFromCrumb(parsed)], format: 'Crouton', skipped };
     const data = parsed as Partial<GatherRecipeFile> & PaprikaRecipe;
-    if (data.format === 'gather-recipes' && Array.isArray(data.recipes)) return { drafts: data.recipes, format: 'Gather', skipped };
+    if (data.format === 'gather-recipes' && Array.isArray(data.recipes))
+      return { drafts: data.recipes, format: 'Gather', skipped };
     if (typeof data.name === 'string' && (data.ingredients !== undefined || data.directions !== undefined)) {
       return { drafts: [draftFromPaprika(data)], format: 'Paprika', skipped };
     }
     throw new Error('This JSON file is not a recipe file Gather knows.');
   }
 
-  if (lower.endsWith('.html') || lower.endsWith('.htm') || /<html|<script[^>]+ld\+json/i.test(text.slice(0, 5000))) {
+  if (
+    lower.endsWith('.html') ||
+    lower.endsWith('.htm') ||
+    /<html|<script[^>]+ld\+json/i.test(text.slice(0, 5000))
+  ) {
     return { drafts: extractRecipesFromHtml(text), format: 'Web page', skipped };
   }
 

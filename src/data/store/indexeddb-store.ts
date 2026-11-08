@@ -51,7 +51,9 @@ export class IndexedDBStore implements DocumentStore {
     const handler = (event: MessageEvent) => {
       const data = event.data as { collections?: unknown; meta?: unknown };
       listener({
-        collections: Array.isArray(data?.collections) ? data.collections.filter((c): c is string => typeof c === 'string') : [],
+        collections: Array.isArray(data?.collections)
+          ? data.collections.filter((c): c is string => typeof c === 'string')
+          : [],
         meta: Array.isArray(data?.meta) ? data.meta.filter((m): m is string => typeof m === 'string') : [],
       });
     };
@@ -74,7 +76,9 @@ export class IndexedDBStore implements DocumentStore {
 
   async loadAll(collection: string): Promise<StoredDocument[]> {
     const tx = this.db.transaction(DOCS, 'readonly');
-    const rows = await request(tx.objectStore(DOCS).index('collection').getAll(collection) as IDBRequest<DocRow[]>);
+    const rows = await request(
+      tx.objectStore(DOCS).index('collection').getAll(collection) as IDBRequest<DocRow[]>,
+    );
     return rows.map(({ id, json }) => ({ id, json }));
   }
 

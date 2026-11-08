@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type ScrollViewProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../theme/theme';
@@ -59,7 +67,9 @@ export function LargeHeader({
   return (
     <View style={{ marginBottom: space.md }}>
       <View style={styles.navRow}>
-        <View style={styles.navLeft}>{back ? <BackLink label={back.label} onPress={back.onPress} /> : null}</View>
+        <View style={styles.navLeft}>
+          {back ? <BackLink label={back.label} onPress={back.onPress} /> : null}
+        </View>
         <View style={[styles.navRight, { gap: space.md }]}>{right}</View>
       </View>
       <Text variant="largeTitle" accessibilityRole="header" numberOfLines={1}>

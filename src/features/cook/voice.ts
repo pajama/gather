@@ -14,7 +14,12 @@ interface RecognitionLike {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: ((event: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
+  onresult:
+    | ((event: {
+        resultIndex: number;
+        results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
+      }) => void)
+    | null;
   onend: (() => void) | null;
   onerror: ((event: { error: string }) => void) | null;
   start: () => void;
@@ -25,7 +30,10 @@ type RecognitionCtor = new () => RecognitionLike;
 
 function recognitionCtor(): RecognitionCtor | undefined {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined;
-  const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
+  const w = window as unknown as {
+    SpeechRecognition?: RecognitionCtor;
+    webkitSpeechRecognition?: RecognitionCtor;
+  };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition;
 }
 
@@ -44,7 +52,10 @@ export function parseVoiceCommand(transcript: string): VoiceCommand | undefined 
 }
 
 /** Listens continuously while `enabled`, calling `onCommand` for each recognised phrase. */
-export function useVoiceCommands(enabled: boolean, onCommand: (command: VoiceCommand) => void): { listening: boolean; error?: string } {
+export function useVoiceCommands(
+  enabled: boolean,
+  onCommand: (command: VoiceCommand) => void,
+): { listening: boolean; error?: string } {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const handler = useRef(onCommand);

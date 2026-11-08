@@ -284,7 +284,14 @@ Method
   },
 ];
 
-export const SEED_FOLDERS = ['Dinners', 'Weeknight', 'Breakfast & Brunch', 'Baking', 'Sunday Cooking', 'Summer'];
+export const SEED_FOLDERS = [
+  'Dinners',
+  'Weeknight',
+  'Breakfast & Brunch',
+  'Baking',
+  'Sunday Cooking',
+  'Summer',
+];
 
 export function seedDatabase(db: Database): void {
   const folderIds = new Map<string, string>();
@@ -311,7 +318,9 @@ export function seedDatabase(db: Database): void {
   // A few dinners on the plan this week so the planner has something to show.
   const today = dayKey(new Date());
   const dinners = created.filter((r) => r.tags.includes('Dinner'));
-  dinners.slice(0, 3).forEach((recipe, i) => db.planner.add(addDays(today, i), 'dinner', { recipeId: recipe.id }));
+  dinners
+    .slice(0, 3)
+    .forEach((recipe, i) => db.planner.add(addDays(today, i), 'dinner', { recipeId: recipe.id }));
   const breakfast = created.find((r) => r.tags.includes('Breakfast'));
   if (breakfast) db.planner.add(addDays(today, 1), 'breakfast', { recipeId: breakfast.id });
 }

@@ -7,7 +7,9 @@ let audio: AudioContext | null = null;
 
 function chime(): void {
   try {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
     audio ??= new Ctor();
     const now = audio.currentTime;
@@ -39,7 +41,8 @@ export async function scheduleTimerAlert(timerId: string, label: string, _endsAt
   } catch {
     // Ignore: chime() retries later.
   }
-  if (typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission();
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default')
+    void Notification.requestPermission();
 }
 
 export async function cancelTimerAlert(timerId: string): Promise<void> {
@@ -50,13 +53,19 @@ export function timerFinished(timerId: string, fallbackLabel?: string): void {
   const label = labels.get(timerId) ?? fallbackLabel ?? 'Your timer is done';
   labels.delete(timerId);
   chime();
-  if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.visibilityState === 'hidden') {
+  if (
+    typeof Notification !== 'undefined' &&
+    Notification.permission === 'granted' &&
+    document.visibilityState === 'hidden'
+  ) {
     new Notification('Timer done', { body: label });
   }
 }
 
 /** After a reload: remember the running timers' labels (the page itself alerts when they end). */
-export async function reconcileTimerAlerts(running: { id: string; label: string; endsAt: number }[]): Promise<void> {
+export async function reconcileTimerAlerts(
+  running: { id: string; label: string; endsAt: number }[],
+): Promise<void> {
   for (const timer of running) labels.set(timer.id, timer.label);
 }
 

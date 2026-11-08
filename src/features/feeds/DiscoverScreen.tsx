@@ -55,7 +55,12 @@ export function DiscoverScreen() {
   const [scope, setScope] = useState<string | undefined>(undefined);
   const [refreshing, setRefreshing] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
-  const items = useMemo(() => db.feeds.items().filter((i) => !scope || i.feedId === scope), [db, feeds, scope]); // eslint-disable-line react-hooks/exhaustive-deps
+  const items = useMemo(
+    () => db.feeds.items().filter((i) => !scope || i.feedId === scope),
+    // `feeds` re-runs this when any feed changes: items() reads the same collection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [db, feeds, scope],
+  );
   const columns = Math.min(width, CONTENT_MAX_WIDTH) >= 620 ? 2 : 1;
 
   const refresh = async () => {
@@ -67,15 +72,35 @@ export function DiscoverScreen() {
   return (
     <View style={styles.fill}>
       <Screen
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.accent} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor={colors.accent}
+          />
+        }
         header={
           <LargeHeader
             title="Discover"
-            subtitle={feeds.length ? `New from ${feeds.length} ${feeds.length === 1 ? 'feed' : 'feeds'}` : undefined}
+            subtitle={
+              feeds.length ? `New from ${feeds.length} ${feeds.length === 1 ? 'feed' : 'feeds'}` : undefined
+            }
             right={
               <>
-                {feeds.length ? <IconButton icon="refresh" variant="tinted" onPress={() => void refresh()} accessibilityLabel="Refresh feeds" /> : null}
-                <IconButton icon="add" variant="tinted" onPress={() => setManageOpen(true)} accessibilityLabel="Manage feeds" />
+                {feeds.length ? (
+                  <IconButton
+                    icon="refresh"
+                    variant="tinted"
+                    onPress={() => void refresh()}
+                    accessibilityLabel="Refresh feeds"
+                  />
+                ) : null}
+                <IconButton
+                  icon="add"
+                  variant="tinted"
+                  onPress={() => setManageOpen(true)}
+                  accessibilityLabel="Manage feeds"
+                />
               </>
             }
           />
@@ -98,7 +123,9 @@ export function DiscoverScreen() {
                 <Chip key={f.id} label={f.title} selected={scope === f.id} onPress={() => setScope(f.id)} />
               ))}
             </View>
-            {items.length === 0 ? <EmptyState icon="refresh" title="Nothing new yet" message="Pull down to refresh your feeds." /> : null}
+            {items.length === 0 ? (
+              <EmptyState icon="refresh" title="Nothing new yet" message="Pull down to refresh your feeds." />
+            ) : null}
             <View style={[styles.grid, { gap: space.lg }]}>
               {items.map((item) => (
                 <Card
@@ -107,11 +134,22 @@ export function DiscoverScreen() {
                   style={{ width: columns === 2 ? '48.5%' : '100%' }}
                   onPress={() => router.push({ pathname: '/import', params: { url: item.link } })}
                 >
-                  {item.imageUrl ? <Photo uri={item.imageUrl} style={{ aspectRatio: 16 / 10, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg }} /> : null}
+                  {item.imageUrl ? (
+                    <Photo
+                      uri={item.imageUrl}
+                      style={{
+                        aspectRatio: 16 / 10,
+                        borderTopLeftRadius: radius.lg,
+                        borderTopRightRadius: radius.lg,
+                      }}
+                    />
+                  ) : null}
                   <View style={{ padding: space.lg, gap: space.xs }}>
                     <Text variant="caption" tone="accent" weight="700">
                       {item.feedTitle.toUpperCase()}
-                      {ago(item.published) ? <Text variant="caption" tone="tertiary">{`  ·  ${ago(item.published)}`}</Text> : null}
+                      {ago(item.published) ? (
+                        <Text variant="caption" tone="tertiary">{`  ·  ${ago(item.published)}`}</Text>
+                      ) : null}
                     </Text>
                     <Text variant="headline" numberOfLines={2}>
                       {item.title}
@@ -125,7 +163,12 @@ export function DiscoverScreen() {
                       <Text variant="subhead" tone="accent" weight="600">
                         Save recipe
                       </Text>
-                      <Tap onPress={() => safeLink(item.link) && void WebBrowser.openBrowserAsync(safeLink(item.link)!)} hitSlop={8}>
+                      <Tap
+                        onPress={() =>
+                          safeLink(item.link) && void WebBrowser.openBrowserAsync(safeLink(item.link)!)
+                        }
+                        hitSlop={8}
+                      >
                         <Text variant="subhead" tone="secondary">
                           Read on {hostLabel(item.link) ?? 'site'}
                         </Text>
@@ -180,7 +223,12 @@ function ManageFeedsSheet({ visible, onClose }: { visible: boolean; onClose: () 
             onSubmitEditing={() => void follow(url)}
             style={styles.flex}
           />
-          <Button title="Follow" onPress={() => void follow(url)} loading={busy === url && !!url} disabled={!url.trim()} />
+          <Button
+            title="Follow"
+            onPress={() => void follow(url)}
+            loading={busy === url && !!url}
+            disabled={!url.trim()}
+          />
         </View>
         {error ? (
           <Text variant="footnote" tone="danger">
@@ -199,10 +247,16 @@ function ManageFeedsSheet({ visible, onClose }: { visible: boolean; onClose: () 
               key={feed.id}
               icon="globe"
               title={feed.title}
-              subtitle={feed.error ?? `${feed.items.length} posts · ${hostLabel(feed.siteUrl ?? feed.url) ?? ''}`}
+              subtitle={
+                feed.error ?? `${feed.items.length} posts · ${hostLabel(feed.siteUrl ?? feed.url) ?? ''}`
+              }
               accessory="none"
               right={
-                <Tap onPress={() => db.feeds.remove(feed.id)} accessibilityLabel={`Unfollow ${feed.title}`} hitSlop={8}>
+                <Tap
+                  onPress={() => db.feeds.remove(feed.id)}
+                  accessibilityLabel={`Unfollow ${feed.title}`}
+                  hitSlop={8}
+                >
                   <Icon name="trash" size={20} tone="danger" />
                 </Tap>
               }
@@ -219,7 +273,15 @@ function ManageFeedsSheet({ visible, onClose }: { visible: boolean; onClose: () 
             title={s.title}
             subtitle={hostLabel(s.url)}
             accessory="none"
-            right={<Button title={busy === s.url ? 'Adding…' : 'Follow'} size="sm" variant="tinted" onPress={() => void follow(s.url)} disabled={!!busy} />}
+            right={
+              <Button
+                title={busy === s.url ? 'Adding…' : 'Follow'}
+                size="sm"
+                variant="tinted"
+                onPress={() => void follow(s.url)}
+                disabled={!!busy}
+              />
+            }
           />
         ))}
       </ListSection>

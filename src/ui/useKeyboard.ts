@@ -15,7 +15,9 @@ export function useKeyboardHeight(): number {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const ios = Platform.OS === 'ios';
-    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', (e: KeyboardEvent) => setHeight(e.endCoordinates.height));
+    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', (e: KeyboardEvent) =>
+      setHeight(e.endCoordinates.height),
+    );
     const hide = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setHeight(0));
     return () => {
       show.remove();

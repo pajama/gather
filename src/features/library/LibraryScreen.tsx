@@ -10,7 +10,20 @@ import { LIBRARY_SORTS, queryLibrary, type LibrarySort } from '@/core/model/libr
 import type { Recipe } from '@/core/model/types';
 import { useDb, useFolders, useRecipes } from '@/data/react';
 import { RecipeDetail } from '@/features/recipe';
-import { Button, EmptyState, Icon, IconButton, LargeHeader, ListRow, ListSection, SearchField, Sheet, Text, useAppLayout, useTheme } from '@/ui';
+import {
+  Button,
+  EmptyState,
+  Icon,
+  IconButton,
+  LargeHeader,
+  ListRow,
+  ListSection,
+  SearchField,
+  Sheet,
+  Text,
+  useAppLayout,
+  useTheme,
+} from '@/ui';
 
 import { QuickActions } from './QuickActions';
 import { RecipeCard, RecipeRow } from './RecipeCard';
@@ -55,7 +68,11 @@ export function LibraryScreen() {
   const gutter = width >= 720 ? 24 : 16;
   const gap = 16;
   // Phones get one full-width card per row; wider screens fit cards of about 260pt.
-  const columns = split ? 1 : contentWidth < 600 ? 1 : Math.max(2, Math.floor((contentWidth - gutter * 2 + gap) / (260 + gap)));
+  const columns = split
+    ? 1
+    : contentWidth < 600
+      ? 1
+      : Math.max(2, Math.floor((contentWidth - gutter * 2 + gap) / (260 + gap)));
   const cardWidth = Math.floor((contentWidth - gutter * 2 - gap * (columns - 1)) / columns);
 
   const results = useMemo(
@@ -86,7 +103,13 @@ export function LibraryScreen() {
           if (now - lastClipboardRead < 60_000 || !(await Clipboard.hasStringAsync())) return;
           lastClipboardRead = now;
           const url = safeLink((await Clipboard.getStringAsync()).trim());
-          if (!cancelled && url && !dismissedUrls.current.has(url) && !db.recipes.all().some((r) => r.sourceUrl === url)) setOffer({ url });
+          if (
+            !cancelled &&
+            url &&
+            !dismissedUrls.current.has(url) &&
+            !db.recipes.all().some((r) => r.sourceUrl === url)
+          )
+            setOffer({ url });
         } catch {
           // Clipboard access can be refused; the banner is a convenience.
         }
@@ -112,19 +135,43 @@ export function LibraryScreen() {
     <View style={{ gap: space.md, marginBottom: space.lg }}>
       <LargeHeader
         title={title}
-        {...(hasSidebar ? {} : { back: { label: 'Collections', onPress: () => (router.canGoBack() ? router.back() : router.replace('/collections')) } })}
+        {...(hasSidebar
+          ? {}
+          : {
+              back: {
+                label: 'Collections',
+                onPress: () => (router.canGoBack() ? router.back() : router.replace('/collections')),
+              },
+            })}
         right={
           <>
-            <IconButton icon="add" variant="tinted" onPress={() => setAddOpen(true)} accessibilityLabel="Add recipe" />
-            <IconButton icon="more" variant="tinted" onPress={() => setMenuOpen(true)} accessibilityLabel="Sort and options" />
+            <IconButton
+              icon="add"
+              variant="tinted"
+              onPress={() => setAddOpen(true)}
+              accessibilityLabel="Add recipe"
+            />
+            <IconButton
+              icon="more"
+              variant="tinted"
+              onPress={() => setMenuOpen(true)}
+              accessibilityLabel="Sort and options"
+            />
           </>
         }
       />
       {offer ? (
-        <View style={[styles.banner, { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, gap: space.md }]}>
+        <View
+          style={[
+            styles.banner,
+            { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, gap: space.md },
+          ]}
+        >
           <Icon name="clipboard" tone="accent" />
           <View style={{ flex: 1 }}>
-            <Text variant="headline">{offer.url ? `Import from ${hostLabel(offer.url) ?? 'link'}?` : 'Import the copied link?'}</Text>
+            <Text variant="headline">
+              {offer.url ? `Import from ${hostLabel(offer.url) ?? 'link'}?` : 'Import the copied link?'}
+            </Text>
             <Text variant="footnote" tone="secondary" numberOfLines={1}>
               {offer.url ?? 'Gather reads it when you tap Import'}
             </Text>
@@ -155,21 +202,44 @@ export function LibraryScreen() {
         action={<Button title="Add a recipe" icon="add" onPress={() => setAddOpen(true)} />}
       />
     ) : text ? (
-      <EmptyState icon="search" title="No matches" message="Try a different word, or search for an ingredient." />
+      <EmptyState
+        icon="search"
+        title="No matches"
+        message="Try a different word, or search for an ingredient."
+      />
     ) : (
-      <EmptyState icon="folder" title="Nothing here yet" message="Add recipes to this collection from a recipe’s menu." />
+      <EmptyState
+        icon="folder"
+        title="Nothing here yet"
+        message="Add recipes to this collection from a recipe’s menu."
+      />
     );
 
   const list = (
     <FlatList
       key={columns}
-      style={split ? { width: listWidth, flexGrow: 0, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: colors.separator } : undefined}
+      style={
+        split
+          ? {
+              width: listWidth,
+              flexGrow: 0,
+              borderRightWidth: StyleSheet.hairlineWidth,
+              borderRightColor: colors.separator,
+            }
+          : undefined
+      }
       data={results}
       keyExtractor={(r: Recipe) => r.id}
       numColumns={columns}
       renderItem={({ item }) =>
         split ? (
-          <View style={{ backgroundColor: item.id === selected?.id ? colors.accentSoft : 'transparent', borderRadius: radius.lg, paddingHorizontal: space.sm }}>
+          <View
+            style={{
+              backgroundColor: item.id === selected?.id ? colors.accentSoft : 'transparent',
+              borderRadius: radius.lg,
+              paddingHorizontal: space.sm,
+            }}
+          >
             <RecipeRow recipe={item} onPress={() => setSelectedId(item.id)} />
           </View>
         ) : (
@@ -198,7 +268,9 @@ export function LibraryScreen() {
       {split ? (
         <View style={styles.split}>
           {list}
-          <View style={styles.fill}>{selected ? <RecipeDetail key={selected.id} recipe={selected} embedded /> : null}</View>
+          <View style={styles.fill}>
+            {selected ? <RecipeDetail key={selected.id} recipe={selected} embedded /> : null}
+          </View>
         </View>
       ) : (
         list

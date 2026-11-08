@@ -8,7 +8,12 @@ import { Platform } from 'react-native';
  * be paused, extended or removed after the app restarts.
  */
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: false, shouldShowBanner: true, shouldShowList: true }),
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
 });
 
 const PREFIX = 'timer-';
@@ -32,7 +37,11 @@ export async function scheduleTimerAlert(timerId: string, label: string, endsAt:
     content: { title: 'Timer done', body: label, sound: true, data: { timerId, label, endsAt } },
     // A wall-clock trigger with alarm-clock delivery fires on time while the phone sleeps (Android
     // needs the exact alarm permission for that; without it this is delivered as best effort).
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: Math.max(Date.now() + 1000, endsAt), delivery: 'alarmClock' },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: Math.max(Date.now() + 1000, endsAt),
+      delivery: 'alarmClock',
+    },
   });
 }
 
@@ -47,7 +56,9 @@ export function timerFinished(_timerId: string, _fallbackLabel?: string): void {
  * Brings scheduled alerts in line with the stored timers after a launch:
  * cancels alerts for timers that no longer run, and schedules missing ones.
  */
-export async function reconcileTimerAlerts(running: { id: string; label: string; endsAt: number }[]): Promise<void> {
+export async function reconcileTimerAlerts(
+  running: { id: string; label: string; endsAt: number }[],
+): Promise<void> {
   try {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     const wanted = new Map(running.map((t) => [alertId(t.id), t]));
@@ -58,7 +69,8 @@ export async function reconcileTimerAlerts(running: { id: string; label: string;
     }
     const present = new Set(scheduled.map((r) => r.identifier));
     for (const [id, timer] of wanted) {
-      if (!present.has(id) && timer.endsAt > Date.now()) await scheduleTimerAlert(timer.id, timer.label, timer.endsAt);
+      if (!present.has(id) && timer.endsAt > Date.now())
+        await scheduleTimerAlert(timer.id, timer.label, timer.endsAt);
     }
   } catch (error) {
     console.warn('[gather] timer alerts', error);
@@ -90,9 +102,18 @@ export async function requestExactAlerts(): Promise<ExactAlertStatus> {
     if (!result.granted) return 'denied';
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     for (const request of scheduled) {
-      const data = request.content.data as { timerId?: unknown; label?: unknown; endsAt?: unknown } | undefined;
-      if (request.identifier.startsWith(PREFIX) && typeof data?.timerId === 'string' && typeof data.endsAt === 'number') {
-        await scheduleTimerAlert(data.timerId, typeof data.label === 'string' ? data.label : 'Timer', data.endsAt);
+      const data = request.content.data as
+        { timerId?: unknown; label?: unknown; endsAt?: unknown } | undefined;
+      if (
+        request.identifier.startsWith(PREFIX) &&
+        typeof data?.timerId === 'string' &&
+        typeof data.endsAt === 'number'
+      ) {
+        await scheduleTimerAlert(
+          data.timerId,
+          typeof data.label === 'string' ? data.label : 'Timer',
+          data.endsAt,
+        );
       }
     }
     return 'granted';

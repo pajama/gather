@@ -20,6 +20,7 @@ This project uses Expo SDK 58. Before touching an Expo or React Native API, read
 npm test            # Vitest (src/**/*.test.ts)
 npm run typecheck   # tsc --noEmit
 npm run lint        # expo lint
+npm run format      # Prettier (npm run check runs format:check)
 npm run web         # dev server for the web
 npm run build:web   # static web export to dist/
 npm run bundle:native  # iOS + Android JS bundles (catches native-only resolution errors)

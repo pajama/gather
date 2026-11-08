@@ -14,7 +14,9 @@ export function addImageResolver(resolver: Resolver): void {
   resolvers.push(resolver);
 }
 
-export function resolveImage(uri: string | undefined): ImageSourcePropType | number | { uri: string } | undefined {
+export function resolveImage(
+  uri: string | undefined,
+): ImageSourcePropType | number | { uri: string } | undefined {
   if (!uri) return undefined;
   // App-internal schemes resolve through the registered resolvers, or not at all.
   if (/^[a-z]+:\/\//i.test(uri) && !/^(https?|file|content|blob|ph|assets-library):/i.test(uri)) {

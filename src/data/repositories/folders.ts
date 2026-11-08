@@ -9,7 +9,9 @@ export class FoldersRepository {
 
   /** Folders in display order. */
   list(): Folder[] {
-    return [...this.c.folders.all()].sort((a, b) => a.sortIndex - b.sortIndex || a.name.localeCompare(b.name));
+    return [...this.c.folders.all()].sort(
+      (a, b) => a.sortIndex - b.sortIndex || a.name.localeCompare(b.name),
+    );
   }
 
   get(id: ID | undefined): Folder | undefined {
@@ -39,7 +41,9 @@ export class FoldersRepository {
     this.c.folders.remove(id);
     const affected = this.c.recipes.all().filter((r) => r.folderIds.includes(id));
     const stamp = now();
-    this.c.recipes.upsert(...affected.map((r) => ({ ...r, folderIds: r.folderIds.filter((f) => f !== id), updatedAt: stamp })));
+    this.c.recipes.upsert(
+      ...affected.map((r) => ({ ...r, folderIds: r.folderIds.filter((f) => f !== id), updatedAt: stamp })),
+    );
   }
 
   reorder(ids: ID[]): void {
@@ -60,7 +64,9 @@ export class FoldersRepository {
   toggleRecipe(recipeId: ID, folderId: ID): void {
     this.c.recipes.update(recipeId, (r) => ({
       ...r,
-      folderIds: r.folderIds.includes(folderId) ? r.folderIds.filter((f) => f !== folderId) : [...r.folderIds, folderId],
+      folderIds: r.folderIds.includes(folderId)
+        ? r.folderIds.filter((f) => f !== folderId)
+        : [...r.folderIds, folderId],
       updatedAt: now(),
     }));
   }

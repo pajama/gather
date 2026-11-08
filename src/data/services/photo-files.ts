@@ -47,7 +47,9 @@ export async function storeBackupPhotos(raw: unknown): Promise<unknown> {
       const stored = await Promise.all(
         images.map(async (image: unknown) => {
           const uri = (image as { uri?: unknown })?.uri;
-          return typeof uri === 'string' && uri.startsWith('data:') ? { ...(image as object), uri: await storePhoto(uri).catch(keep(uri)) } : image;
+          return typeof uri === 'string' && uri.startsWith('data:')
+            ? { ...(image as object), uri: await storePhoto(uri).catch(keep(uri)) }
+            : image;
         }),
       );
       return { ...(recipe as object), images: stored };

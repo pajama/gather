@@ -39,9 +39,27 @@ export function QuickActions({ recipe, onClose }: { recipe: Recipe | null; onClo
         {recipe ? (
           <>
             <ListSection>
-              <ListRow icon="play" iconColor="#34C759" title="Start cooking" onPress={() => { onClose(); router.push(`/recipe/${recipe.id}/cook`); }} />
-              <ListRow icon="calendar" iconColor="#FF3B30" title="Add to meal plan" onPress={() => open('plan')} />
-              <ListRow icon="basket" iconColor="#F5A623" title="Add to groceries" onPress={() => open('groceries')} />
+              <ListRow
+                icon="play"
+                iconColor="#34C759"
+                title="Start cooking"
+                onPress={() => {
+                  onClose();
+                  router.push(`/recipe/${recipe.id}/cook`);
+                }}
+              />
+              <ListRow
+                icon="calendar"
+                iconColor="#FF3B30"
+                title="Add to meal plan"
+                onPress={() => open('plan')}
+              />
+              <ListRow
+                icon="basket"
+                iconColor="#F5A623"
+                title="Add to groceries"
+                onPress={() => open('groceries')}
+              />
               <ListRow
                 icon={recipe.favorite ? 'heart' : 'heartOutline'}
                 iconColor="#FF2D55"
@@ -54,13 +72,26 @@ export function QuickActions({ recipe, onClose }: { recipe: Recipe | null; onClo
               />
             </ListSection>
             <ListSection>
-              <ListRow icon="trash" iconColor={colors.danger} title="Delete recipe" destructive onPress={() => { onClose(); remove(recipe); }} />
+              <ListRow
+                icon="trash"
+                iconColor={colors.danger}
+                title="Delete recipe"
+                destructive
+                onPress={() => {
+                  onClose();
+                  remove(recipe);
+                }}
+              />
             </ListSection>
           </>
         ) : null}
       </Sheet>
-      {target ? <AddToPlanSheet recipe={target} visible={next === 'plan'} onClose={() => setNext(null)} /> : null}
-      {target && next === 'groceries' ? <AddToGroceriesSheet recipe={target} scale={1} visible onClose={() => setNext(null)} /> : null}
+      {target ? (
+        <AddToPlanSheet recipe={target} visible={next === 'plan'} onClose={() => setNext(null)} />
+      ) : null}
+      {target && next === 'groceries' ? (
+        <AddToGroceriesSheet recipe={target} scale={1} visible onClose={() => setNext(null)} />
+      ) : null}
     </>
   );
 }

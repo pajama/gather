@@ -14,7 +14,16 @@ import { extname, join, relative } from 'node:path';
 
 const DIST = process.argv[2] ?? 'dist-single';
 const OUT = process.argv[3] ?? join(DIST, 'gather.html');
-const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ttf': 'font/ttf', '.otf': 'font/otf', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' };
+const MIME = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.ico': 'image/x-icon',
+  '.svg': 'image/svg+xml',
+};
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -27,7 +36,8 @@ function walk(dir) {
 const assets = new Map();
 for (const file of walk(join(DIST, 'assets'))) {
   const type = MIME[extname(file).toLowerCase()];
-  if (type) assets.set(`/${relative(DIST, file)}`, `data:${type};base64,${readFileSync(file).toString('base64')}`);
+  if (type)
+    assets.set(`/${relative(DIST, file)}`, `data:${type};base64,${readFileSync(file).toString('base64')}`);
 }
 const inlineAssets = (text) => text.replace(/\/assets\/[^"'`)\s]+/g, (path) => assets.get(path) ?? path);
 
@@ -44,10 +54,16 @@ html = html.replace(/<script src="([^"]+)"[^>]*><\/script>/g, (_m, src) => {
   return '';
 });
 // Replacer functions, not strings: bundled code is full of "$&" and "$'" that String.replace would expand.
-html = html.replace(/<link rel="stylesheet" href="([^"]+)"[^>]*>/g, (_m, href) => `<style>${inlineAssets(readFileSync(join(DIST, href), 'utf8'))}</style>`);
+html = html.replace(
+  /<link rel="stylesheet" href="([^"]+)"[^>]*>/g,
+  (_m, href) => `<style>${inlineAssets(readFileSync(join(DIST, href), 'utf8'))}</style>`,
+);
 html = html.replace(/<link rel="icon" href="[^"]*"\s*\/?>/, () => '');
 html = html.replace('<head>', () => `<head>\n${SHIM}`);
-html = html.replace('</body>', () => `${scripts.map((code) => `<script>${code}</script>`).join('\n')}\n</body>`);
+html = html.replace(
+  '</body>',
+  () => `${scripts.map((code) => `<script>${code}</script>`).join('\n')}\n</body>`,
+);
 
 const leftovers = [...new Set(html.match(/\/assets\/[^"'`)\s]+\.(?:png|jpe?g|webp|ttf|otf)/g) ?? [])];
 writeFileSync(OUT, html);

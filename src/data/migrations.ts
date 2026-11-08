@@ -29,7 +29,8 @@ export class InvalidDocumentError extends Error {}
 type Raw = Record<string, unknown>;
 
 function record(raw: unknown, kind: string): Raw {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new InvalidDocumentError(`A ${kind} is not an object.`);
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+    throw new InvalidDocumentError(`A ${kind} is not an object.`);
   return raw as Raw;
 }
 
@@ -40,11 +41,17 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter(isString)
 
 function entity(r: Raw): { id: string; createdAt: string; updatedAt: string } {
   const createdAt = isString(r.createdAt) ? r.createdAt : now();
-  return { id: isString(r.id) && r.id ? r.id : newId(), createdAt, updatedAt: isString(r.updatedAt) ? r.updatedAt : createdAt };
+  return {
+    id: isString(r.id) && r.id ? r.id : newId(),
+    createdAt,
+    updatedAt: isString(r.updatedAt) ? r.updatedAt : createdAt,
+  };
 }
 
 /** Sections of { id, title?, items: [{ id, text }] }, dropping malformed entries. */
-function sections<T extends { id: string; text: string }>(value: unknown): { id: string; title?: string; items: T[] }[] {
+function sections<T extends { id: string; text: string }>(
+  value: unknown,
+): { id: string; title?: string; items: T[] }[] {
   if (!Array.isArray(value)) return [];
   return value.filter(isObject).map((s) => ({
     ...s,
@@ -95,8 +102,10 @@ export function migrateFolder(raw: unknown): Folder {
 
 export function migratePlanEntry(raw: unknown): MealPlanEntry {
   const r = record(raw, 'meal plan entry');
-  if (!isString(r.day) || !/^\d{4}-\d{2}-\d{2}$/.test(r.day)) throw new InvalidDocumentError('A meal plan entry has no day.');
-  if (!isString(r.recipeId) && !isString(r.title)) throw new InvalidDocumentError('A meal plan entry has neither a recipe nor a title.');
+  if (!isString(r.day) || !/^\d{4}-\d{2}-\d{2}$/.test(r.day))
+    throw new InvalidDocumentError('A meal plan entry has no day.');
+  if (!isString(r.recipeId) && !isString(r.title))
+    throw new InvalidDocumentError('A meal plan entry has neither a recipe nor a title.');
   const entry: MealPlanEntry = {
     ...(r as Partial<MealPlanEntry>),
     ...entity(r),
@@ -127,7 +136,12 @@ export function migrateGroceryItem(raw: unknown): GroceryItem {
 
 export function migrateGroceryList(raw: unknown): GroceryList {
   const r = record(raw, 'grocery list');
-  return { ...(r as Partial<GroceryList>), ...entity(r), name: isString(r.name) && r.name ? r.name : 'Groceries', sortIndex: finite(r.sortIndex) ? r.sortIndex : 0 };
+  return {
+    ...(r as Partial<GroceryList>),
+    ...entity(r),
+    name: isString(r.name) && r.name ? r.name : 'Groceries',
+    sortIndex: finite(r.sortIndex) ? r.sortIndex : 0,
+  };
 }
 
 export function migrateFeed(raw: unknown): Feed {
@@ -139,7 +153,8 @@ export function migrateFeed(raw: unknown): Feed {
     url: r.url,
     title: isString(r.title) && r.title ? r.title : r.url,
     items: (Array.isArray(r.items) ? r.items : []).filter(
-      (i): i is Feed['items'][number] => isObject(i) && isString(i.id) && isString(i.title) && isString(i.link),
+      (i): i is Feed['items'][number] =>
+        isObject(i) && isString(i.id) && isString(i.title) && isString(i.link),
     ),
   };
 }
@@ -171,7 +186,10 @@ export function migrateSettings(raw: unknown, defaults: Settings): Settings {
       (out as unknown as Raw)[key] = value;
     }
   }
-  if (isObject(raw.tagColors)) out.tagColors = Object.fromEntries(Object.entries(raw.tagColors).filter(([, v]) => isString(v))) as Record<string, string>;
+  if (isObject(raw.tagColors))
+    out.tagColors = Object.fromEntries(
+      Object.entries(raw.tagColors).filter(([, v]) => isString(v)),
+    ) as Record<string, string>;
   out.plannerSlots = out.plannerSlots.filter((s) => MEAL_SLOTS.includes(s));
   if (out.plannerSlots.length === 0) out.plannerSlots = defaults.plannerSlots;
   return out;

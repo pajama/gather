@@ -35,7 +35,10 @@ describe('web import', () => {
     expect(recipe).toBeDefined();
     expect(recipe!.name).toBe('Best Banana Bread & Butter');
     expect(recipe!.description).toBe('Moist and easy.');
-    expect(recipe!.imageUrls).toEqual(['https://example.com/img/bread.jpg', 'https://cdn.example.com/bread-2.jpg']);
+    expect(recipe!.imageUrls).toEqual([
+      'https://example.com/img/bread.jpg',
+      'https://cdn.example.com/bread-2.jpg',
+    ]);
     expect(recipe!.author).toBe('Sam Cook');
     expect(recipe!.sourceName).toBe('Example Kitchen');
     expect(recipe!.servings).toBe(8);
@@ -43,7 +46,9 @@ describe('web import', () => {
     expect(recipe!.prepSeconds).toBe(900);
     expect(recipe!.cookSeconds).toBe(3600);
     expect(recipe!.totalSeconds).toBe(4500);
-    expect(recipe!.ingredients).toEqual([{ lines: ['3 ripe bananas', '1/3 cup melted butter', '¾ cup sugar'] }]);
+    expect(recipe!.ingredients).toEqual([
+      { lines: ['3 ripe bananas', '1/3 cup melted butter', '¾ cup sugar'] },
+    ]);
     expect(recipe!.steps).toEqual([
       { title: 'Batter', lines: ['Mash the bananas.', 'Stir in butter & sugar.'] },
       { title: 'Bake', lines: ['Bake for 60 minutes.'] },

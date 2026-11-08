@@ -41,7 +41,13 @@ import {
 
 import { RatingStars } from './RatingStars';
 import { AddToGroceriesSheet, AddToPlanSheet } from './RecipeSheets';
-import { IngredientCallout, IngredientLine, StepText, useIngredientViews, type IngredientView } from './RecipeText';
+import {
+  IngredientCallout,
+  IngredientLine,
+  StepText,
+  useIngredientViews,
+  type IngredientView,
+} from './RecipeText';
 
 const DETAIL_MAX_WIDTH = 680;
 
@@ -68,7 +74,15 @@ export function RecipeScreen() {
  * The recipe page. `embedded` renders it as the detail pane of the wide-screen
  * library (no back button, sized to its container rather than the window).
  */
-export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }: { recipe: Recipe; embedded?: boolean; backLabel?: string }) {
+export function RecipeDetail({
+  recipe,
+  embedded = false,
+  backLabel = 'Recipes',
+}: {
+  recipe: Recipe;
+  embedded?: boolean;
+  backLabel?: string;
+}) {
   const db = useDb();
   const settings = useSettings();
   const folders = useFolders();
@@ -84,10 +98,14 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
   const [multiplier, setMultiplier] = useState(1);
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const [units, setUnits] = useState<UnitPreference>(settings.units);
-  const [sheet, setSheet] = useState<'plan' | 'groceries' | 'more' | 'share' | 'folders' | 'scale' | 'units' | 'timers' | null>(null);
+  const [sheet, setSheet] = useState<
+    'plan' | 'groceries' | 'more' | 'share' | 'folders' | 'scale' | 'units' | 'timers' | null
+  >(null);
   // One bubble at a time inside a step card: an ingredient's amount, or Crouton's "Start Timer" prompt.
   const [callout, setCallout] = useState<
-    { stepId: string; kind: 'ingredient'; view: IngredientView } | { stepId: string; kind: 'timer'; seconds: number; label: string } | null
+    | { stepId: string; kind: 'ingredient'; view: IngredientView }
+    | { stepId: string; kind: 'timer'; seconds: number; label: string }
+    | null
   >(null);
   const scale = baseServings ? servings / baseServings : multiplier;
   const views = useIngredientViews(recipe, scale, units);
@@ -132,7 +150,8 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
   };
 
   // Step-by-step keeps the scale and units chosen here.
-  const startCooking = () => router.push({ pathname: '/recipe/[id]/cook', params: { id: recipe.id, scale: String(scale), units } });
+  const startCooking = () =>
+    router.push({ pathname: '/recipe/[id]/cook', params: { id: recipe.id, scale: String(scale), units } });
 
   const printable = async () => {
     // Stored photos are files; the print view gets them embedded.
@@ -166,7 +185,8 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
   if (recipe.prepSeconds) times.push({ label: 'Prep', value: formatDuration(recipe.prepSeconds) });
   if (recipe.cookSeconds) times.push({ label: 'Cook', value: formatDuration(recipe.cookSeconds) });
   if (!times.length && total) times.push({ label: 'Total', value: formatDuration(total) });
-  const scaleLabel = scale === 1 ? 'Scale' : baseServings ? `Serves ${servings}` : `${formatNumber(multiplier)}×`;
+  const scaleLabel =
+    scale === 1 ? 'Scale' : baseServings ? `Serves ${servings}` : `${formatNumber(multiplier)}×`;
 
   return (
     <View
@@ -176,18 +196,35 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
       <Animated.ScrollView
         contentContainerStyle={{ paddingTop: navHeight + space.xs, paddingBottom: insets.bottom + 48 }}
         scrollEventThrottle={16}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: Platform.OS !== 'web' })}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: Platform.OS !== 'web',
+        })}
       >
         <View style={{ width: columnWidth, alignSelf: 'center', paddingHorizontal: gutter, gap: space.lg }}>
           {/* Hero: the photo as a rounded card with the title on it. */}
-          <View style={[styles.hero, { height: heroHeight, borderRadius: radius.xl, boxShadow: `0 8px 24px ${colors.shadow}` }]}>
-            <Photo uri={coverImage(recipe)} style={[StyleSheet.absoluteFill, { borderRadius: radius.xl }]} fallbackIcon="restaurant" />
+          <View
+            style={[
+              styles.hero,
+              { height: heroHeight, borderRadius: radius.xl, boxShadow: `0 8px 24px ${colors.shadow}` },
+            ]}
+          >
+            <Photo
+              uri={coverImage(recipe)}
+              style={[StyleSheet.absoluteFill, { borderRadius: radius.xl }]}
+              fallbackIcon="restaurant"
+            />
             <LinearGradient
               colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.12)', 'transparent']}
               locations={[0, 0.45, 0.8]}
               style={[StyleSheet.absoluteFill, { borderRadius: radius.xl }]}
             />
-            <Text variant="title1" tone="onImage" numberOfLines={3} style={[styles.heroTitle, { padding: space.lg }]} accessibilityRole="header">
+            <Text
+              variant="title1"
+              tone="onImage"
+              numberOfLines={3}
+              style={[styles.heroTitle, { padding: space.lg }]}
+              accessibilityRole="header"
+            >
               {recipe.name}
             </Text>
             {recipe.favorite ? (
@@ -199,17 +236,42 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
 
           {/* Actions: Start (green), groceries (yellow), share (purple). */}
           <View style={[styles.actions, { gap: space.md }]}>
-            <Button title="Start" icon="play" variant="green" size="lg" onPress={startCooking} style={styles.startButton} />
+            <Button
+              title="Start"
+              icon="play"
+              variant="green"
+              size="lg"
+              onPress={startCooking}
+              style={styles.startButton}
+            />
             <View style={styles.flex} />
-            <IconButton icon="basket" variant="tinted" tint="yellow" size={56} onPress={() => setSheet('groceries')} accessibilityLabel="Add to groceries" />
-            <IconButton icon="send" variant="tinted" tint="purple" size={56} onPress={() => setSheet('share')} accessibilityLabel="Share recipe" />
+            <IconButton
+              icon="basket"
+              variant="tinted"
+              tint="yellow"
+              size={56}
+              onPress={() => setSheet('groceries')}
+              accessibilityLabel="Add to groceries"
+            />
+            <IconButton
+              icon="send"
+              variant="tinted"
+              tint="purple"
+              size={56}
+              onPress={() => setSheet('share')}
+              accessibilityLabel="Share recipe"
+            />
           </View>
 
           {/* Servings and times. */}
           {baseServings || times.length ? (
             <View style={[styles.infoRow, { gap: space.md }]}>
               {baseServings ? (
-                <Tap onPress={() => setSheet('scale')} style={[styles.servingsTile, { backgroundColor: colors.surface, borderRadius: radius.xl }]} accessibilityLabel={`Serves ${servings}`}>
+                <Tap
+                  onPress={() => setSheet('scale')}
+                  style={[styles.servingsTile, { backgroundColor: colors.surface, borderRadius: radius.xl }]}
+                  accessibilityLabel={`Serves ${servings}`}
+                >
                   <Icon name="people" size={22} tone="secondary" />
                   <Text variant="title3" weight="600">
                     {formatNumber(servings)}
@@ -232,7 +294,10 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
           ) : null}
 
           <View style={[styles.ratingRow, { gap: space.md }]}>
-            <RatingStars value={recipe.rating} onChange={(rating) => db.recipes.setRating(recipe.id, rating)} />
+            <RatingStars
+              value={recipe.rating}
+              onChange={(rating) => db.recipes.setRating(recipe.id, rating)}
+            />
             {recipe.difficulty ? (
               <View style={[styles.difficulty, { backgroundColor: colors.fill, borderRadius: radius.pill }]}>
                 <Icon name="flame" size={14} tone="secondary" />
@@ -256,7 +321,14 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
                 Ingredients
               </Text>
               <Button title={scaleLabel} variant="tinted" size="sm" onPress={() => setSheet('scale')} />
-              <IconButton icon="sliders" variant="tinted" size={32} onPress={() => setSheet('units')} accessibilityLabel="Ingredient display options" style={styles.slidersButton} />
+              <IconButton
+                icon="sliders"
+                variant="tinted"
+                size={32}
+                onPress={() => setSheet('units')}
+                accessibilityLabel="Ingredient display options"
+                style={styles.slidersButton}
+              />
             </View>
             <Card style={{ paddingVertical: space.md, borderRadius: radius.xl }}>
               {recipe.ingredients.length === 0 ? (
@@ -305,13 +377,19 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
               {recipe.steps.map((section) => (
                 <View key={section.id} style={{ gap: space.md }}>
                   {section.title ? (
-                    <Text variant="headline" tone="secondary" style={{ marginTop: space.xs, marginLeft: space.xs }}>
+                    <Text
+                      variant="headline"
+                      tone="secondary"
+                      style={{ marginTop: space.xs, marginLeft: space.xs }}
+                    >
                       {section.title}
                     </Text>
                   ) : null}
                   {section.items.map((step) => (
                     <Card key={step.id} style={{ borderRadius: radius.xl, gap: space.sm }}>
-                      {callout?.stepId === step.id && callout.kind === 'ingredient' ? <IngredientCallout view={callout.view} /> : null}
+                      {callout?.stepId === step.id && callout.kind === 'ingredient' ? (
+                        <IngredientCallout view={callout.view} />
+                      ) : null}
                       {callout?.stepId === step.id && callout.kind === 'timer' ? (
                         <Button
                           title={`Start ${formatDuration(callout.seconds)} timer`}
@@ -373,7 +451,13 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
               </Text>
               <Card style={[styles.nutrition, { borderRadius: radius.xl, gap: space.sm }]}>
                 {Object.entries(recipe.nutrition).map(([key, value]) => (
-                  <View key={key} style={[styles.nutrient, { backgroundColor: colors.fill, borderRadius: radius.md, padding: space.sm }]}>
+                  <View
+                    key={key}
+                    style={[
+                      styles.nutrient,
+                      { backgroundColor: colors.fill, borderRadius: radius.md, padding: space.sm },
+                    ]}
+                  >
                     <Text variant="caption" tone="secondary">
                       {NUTRITION_LABELS[key] ?? key}
                     </Text>
@@ -386,8 +470,20 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
 
           {recipe.sourceName || recipe.sourceUrl ? (
             <Tap
-              onPress={safeLink(recipe.sourceUrl) ? () => void WebBrowser.openBrowserAsync(safeLink(recipe.sourceUrl)!) : undefined}
-              style={[styles.source, { backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.md, gap: space.md }]}
+              onPress={
+                safeLink(recipe.sourceUrl)
+                  ? () => void WebBrowser.openBrowserAsync(safeLink(recipe.sourceUrl)!)
+                  : undefined
+              }
+              style={[
+                styles.source,
+                {
+                  backgroundColor: colors.surface,
+                  borderRadius: radius.xl,
+                  padding: space.md,
+                  gap: space.md,
+                },
+              ]}
             >
               <Icon name={recipe.sourceUrl ? 'globe' : 'book'} tone="accent" />
               <View style={styles.flex}>
@@ -416,7 +512,8 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
 
           {recipe.lastCookedAt ? (
             <Text variant="footnote" tone="tertiary" align="center">
-              Cooked {recipe.cookCount} {recipe.cookCount === 1 ? 'time' : 'times'} · last on {new Date(recipe.lastCookedAt).toLocaleDateString()}
+              Cooked {recipe.cookCount} {recipe.cookCount === 1 ? 'time' : 'times'} · last on{' '}
+              {new Date(recipe.lastCookedAt).toLocaleDateString()}
             </Text>
           ) : null}
         </View>
@@ -432,7 +529,11 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
               backgroundColor: colors.background,
               borderBottomWidth: StyleSheet.hairlineWidth,
               borderBottomColor: colors.separator,
-              opacity: scrollY.interpolate({ inputRange: [heroHeight - 40, heroHeight], outputRange: [0, 1], extrapolate: 'clamp' }),
+              opacity: scrollY.interpolate({
+                inputRange: [heroHeight - 40, heroHeight],
+                outputRange: [0, 1],
+                extrapolate: 'clamp',
+              }),
             },
           ]}
         />
@@ -440,7 +541,14 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
           pointerEvents="none"
           style={[
             styles.navTitle,
-            { top: insets.top, opacity: scrollY.interpolate({ inputRange: [heroHeight - 20, heroHeight + 10], outputRange: [0, 1], extrapolate: 'clamp' }) },
+            {
+              top: insets.top,
+              opacity: scrollY.interpolate({
+                inputRange: [heroHeight - 20, heroHeight + 10],
+                outputRange: [0, 1],
+                extrapolate: 'clamp',
+              }),
+            },
           ]}
         >
           <Text variant="headline" numberOfLines={1}>
@@ -461,7 +569,13 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
                 <Animated.View
                   style={[
                     styles.backLabel,
-                    { opacity: scrollY.interpolate({ inputRange: [heroHeight - 40, heroHeight - 10], outputRange: [1, 0], extrapolate: 'clamp' }) },
+                    {
+                      opacity: scrollY.interpolate({
+                        inputRange: [heroHeight - 40, heroHeight - 10],
+                        outputRange: [1, 0],
+                        extrapolate: 'clamp',
+                      }),
+                    },
                   ]}
                 >
                   <Text variant="body" tone="accent" numberOfLines={1}>
@@ -472,15 +586,35 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
             )}
           </View>
           <View style={[styles.navRightSide, { gap: space.md }]}>
-            <IconButton icon="timer" variant="tinted" size={34} badge onPress={() => setSheet('timers')} accessibilityLabel="Timers" />
-            <IconButton icon="more" variant="tinted" size={34} onPress={() => setSheet('more')} accessibilityLabel="More actions" />
+            <IconButton
+              icon="timer"
+              variant="tinted"
+              size={34}
+              badge
+              onPress={() => setSheet('timers')}
+              accessibilityLabel="Timers"
+            />
+            <IconButton
+              icon="more"
+              variant="tinted"
+              size={34}
+              onPress={() => setSheet('more')}
+              accessibilityLabel="More actions"
+            />
           </View>
         </View>
       </View>
 
       <AddToPlanSheet recipe={recipe} visible={sheet === 'plan'} onClose={() => setSheet(null)} />
-      {sheet === 'groceries' ? <AddToGroceriesSheet recipe={recipe} scale={scale} visible onClose={() => setSheet(null)} /> : null}
-      <TimerSheet visible={sheet === 'timers'} onClose={() => setSheet(null)} label={recipe.name} recipeId={recipe.id} />
+      {sheet === 'groceries' ? (
+        <AddToGroceriesSheet recipe={recipe} scale={scale} visible onClose={() => setSheet(null)} />
+      ) : null}
+      <TimerSheet
+        visible={sheet === 'timers'}
+        onClose={() => setSheet(null)}
+        label={recipe.name}
+        recipeId={recipe.id}
+      />
 
       <Sheet visible={sheet === 'scale'} onClose={() => setSheet(null)} title="Scale recipe">
         <View style={{ gap: space.lg, alignItems: 'center', paddingVertical: space.md }}>
@@ -489,10 +623,23 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
               <Text variant="subhead" tone="secondary">
                 Written for {formatNumber(baseServings)} {baseServings === 1 ? 'serving' : 'servings'}
               </Text>
-              <Stepper value={servings} onChange={setServings} min={1} max={99} format={(v) => `${v} ${v === 1 ? 'serving' : 'servings'}`} />
+              <Stepper
+                value={servings}
+                onChange={setServings}
+                min={1}
+                max={99}
+                format={(v) => `${v} ${v === 1 ? 'serving' : 'servings'}`}
+              />
             </>
           ) : (
-            <Stepper value={multiplier} onChange={setMultiplier} min={0.5} max={8} step={0.5} format={(v) => `${formatNumber(v)}×`} />
+            <Stepper
+              value={multiplier}
+              onChange={setMultiplier}
+              min={0.5}
+              max={8}
+              step={0.5}
+              format={(v) => `${formatNumber(v)}×`}
+            />
           )}
           <View style={[styles.tags, { gap: space.sm, justifyContent: 'center' }]}>
             {[0.5, 1, 2, 3].map((m) => (
@@ -500,7 +647,9 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
                 key={m}
                 label={`${formatNumber(m)}×`}
                 selected={Math.abs(scale - m) < 1e-6}
-                onPress={() => (baseServings ? setServings(Math.max(1, Math.round(baseServings * m))) : setMultiplier(m))}
+                onPress={() =>
+                  baseServings ? setServings(Math.max(1, Math.round(baseServings * m))) : setMultiplier(m)
+                }
               />
             ))}
           </View>
@@ -519,35 +668,120 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
             onChange={(u) => setUnits(u as UnitPreference)}
           />
           <Text variant="footnote" tone="secondary">
-            Converted amounts are rounded to friendly kitchen measures. Tap an ingredient to check it off while you prep.
+            Converted amounts are rounded to friendly kitchen measures. Tap an ingredient to check it off
+            while you prep.
           </Text>
-          {checked.size ? <Button title="Uncheck all ingredients" variant="tinted" onPress={() => setChecked(new Set())} /> : null}
+          {checked.size ? (
+            <Button title="Uncheck all ingredients" variant="tinted" onPress={() => setChecked(new Set())} />
+          ) : null}
         </View>
       </Sheet>
 
       <Sheet visible={sheet === 'more'} onClose={() => setSheet(null)} title={recipe.name}>
         <ListSection>
-          <ListRow icon="edit" title="Edit recipe" onPress={() => { setSheet(null); router.push(`/recipe/${recipe.id}/edit`); }} />
-          <ListRow icon="calendar" iconColor="#34C759" title="Add to meal plan" onPress={() => setSheet('plan')} />
-          <ListRow icon={recipe.favorite ? 'heart' : 'heartOutline'} iconColor="#FF3B30" title={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'} onPress={() => { db.recipes.toggleFavorite(recipe.id); setSheet(null); }} />
-          <ListRow icon="folder" iconColor="#5E8BD6" title="Folders" value={recipeFolders.map((f) => f.name).join(', ') || 'None'} onPress={() => setSheet('folders')} />
-          <ListRow icon="checkCircle" iconColor="#2F9E5B" title="Mark as cooked" onPress={() => { db.recipes.markCooked(recipe.id); haptic('success'); setSheet(null); }} />
-          <ListRow icon="copy" iconColor="#8A9A5B" title="Duplicate" onPress={() => { const copy = db.recipes.duplicate(recipe.id); setSheet(null); if (copy) router.push(`/recipe/${copy.id}`); }} />
+          <ListRow
+            icon="edit"
+            title="Edit recipe"
+            onPress={() => {
+              setSheet(null);
+              router.push(`/recipe/${recipe.id}/edit`);
+            }}
+          />
+          <ListRow
+            icon="calendar"
+            iconColor="#34C759"
+            title="Add to meal plan"
+            onPress={() => setSheet('plan')}
+          />
+          <ListRow
+            icon={recipe.favorite ? 'heart' : 'heartOutline'}
+            iconColor="#FF3B30"
+            title={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
+            onPress={() => {
+              db.recipes.toggleFavorite(recipe.id);
+              setSheet(null);
+            }}
+          />
+          <ListRow
+            icon="folder"
+            iconColor="#5E8BD6"
+            title="Folders"
+            value={recipeFolders.map((f) => f.name).join(', ') || 'None'}
+            onPress={() => setSheet('folders')}
+          />
+          <ListRow
+            icon="checkCircle"
+            iconColor="#2F9E5B"
+            title="Mark as cooked"
+            onPress={() => {
+              db.recipes.markCooked(recipe.id);
+              haptic('success');
+              setSheet(null);
+            }}
+          />
+          <ListRow
+            icon="copy"
+            iconColor="#8A9A5B"
+            title="Duplicate"
+            onPress={() => {
+              const copy = db.recipes.duplicate(recipe.id);
+              setSheet(null);
+              if (copy) router.push(`/recipe/${copy.id}`);
+            }}
+          />
         </ListSection>
         <ListSection>
-          <ListRow icon="send" iconColor="#5E5CE6" title="Share and export" onPress={() => setSheet('share')} />
+          <ListRow
+            icon="send"
+            iconColor="#5E5CE6"
+            title="Share and export"
+            onPress={() => setSheet('share')}
+          />
         </ListSection>
         <ListSection>
-          <ListRow icon="trash" iconColor={colors.danger} title="Delete recipe" destructive onPress={() => { setSheet(null); remove(); }} />
+          <ListRow
+            icon="trash"
+            iconColor={colors.danger}
+            title="Delete recipe"
+            destructive
+            onPress={() => {
+              setSheet(null);
+              remove();
+            }}
+          />
         </ListSection>
       </Sheet>
 
       <Sheet visible={sheet === 'share'} onClose={() => setSheet(null)} title="Share">
         <ListSection>
-          <ListRow icon="share" iconColor="#7C6FD6" title="Share as text" onPress={() => { setSheet(null); void share(); }} />
-          <ListRow icon="print" iconColor="#5E8BD6" title="Print" onPress={() => { setSheet(null); void printable().then(printHtml); }} />
+          <ListRow
+            icon="share"
+            iconColor="#7C6FD6"
+            title="Share as text"
+            onPress={() => {
+              setSheet(null);
+              void share();
+            }}
+          />
+          <ListRow
+            icon="print"
+            iconColor="#5E8BD6"
+            title="Print"
+            onPress={() => {
+              setSheet(null);
+              void printable().then(printHtml);
+            }}
+          />
           {Platform.OS !== 'web' ? (
-            <ListRow icon="download" iconColor="#D98B00" title="Share as PDF" onPress={() => { setSheet(null); void printable().then((html) => shareHtmlAsPdf(html, recipe.name)); }} />
+            <ListRow
+              icon="download"
+              iconColor="#D98B00"
+              title="Share as PDF"
+              onPress={() => {
+                setSheet(null);
+                void printable().then((html) => shareHtmlAsPdf(html, recipe.name));
+              }}
+            />
           ) : null}
           <ListRow
             icon="upload"
@@ -556,7 +790,11 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
             subtitle="Anyone with Gather can import it"
             onPress={() => {
               setSheet(null);
-              const slug = recipe.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'recipe';
+              const slug =
+                recipe.name
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/^-|-$/g, '') || 'recipe';
               void inlineRecipePhotos(recipe).then((full) =>
                 shareTextFile(`${slug}.gather`, JSON.stringify(toGatherFile([recipeToDraft(full)]), null, 2)),
               );
@@ -569,7 +807,11 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
             subtitle="A .crumb file Crouton can open"
             onPress={() => {
               setSheet(null);
-              const slug = recipe.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'recipe';
+              const slug =
+                recipe.name
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/^-|-$/g, '') || 'recipe';
               void inlineRecipePhotos(recipe).then((full) => {
                 const crumb = crumbFromDraft(recipeToDraft(full), () => newId().toUpperCase());
                 return shareTextFile(`${slug}.crumb`, JSON.stringify(crumb), 'application/json');
@@ -615,22 +857,62 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   flex: { flex: 1 },
   hero: { overflow: 'hidden' },
-  heroTitle: { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 8 },
-  heroFavorite: { position: 'absolute', width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  heroTitle: {
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
+  },
+  heroFavorite: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actions: { flexDirection: 'row', alignItems: 'center' },
   startButton: { minWidth: 168 },
   infoRow: { flexDirection: 'row', alignItems: 'stretch' },
-  servingsTile: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 22, minHeight: 72 },
-  timeTile: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 12, paddingHorizontal: 8, minHeight: 72 },
+  servingsTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 22,
+    minHeight: 72,
+  },
+  timeTile: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    minHeight: 72,
+  },
   timeCell: { alignItems: 'center', gap: 4, flexShrink: 1 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
   calloutButton: { alignSelf: 'flex-start' },
-  difficulty: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4 },
+  difficulty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
   slidersButton: { width: 44 },
   indented: { paddingLeft: 10 },
   step: { flexDirection: 'row', alignItems: 'flex-start' },
-  stepNumber: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: -1 },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -1,
+  },
   nutrition: { flexDirection: 'row', flexWrap: 'wrap' },
   nutrient: { minWidth: 96 },
   source: { flexDirection: 'row', alignItems: 'center' },
@@ -641,5 +923,12 @@ const styles = StyleSheet.create({
   navRightSide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   backLink: { flexDirection: 'row', alignItems: 'center', marginLeft: -8, flexShrink: 1 },
   backLabel: { flexShrink: 1, marginLeft: -2 },
-  navTitle: { position: 'absolute', left: 100, right: 100, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  navTitle: {
+    position: 'absolute',
+    left: 100,
+    right: 100,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

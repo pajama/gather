@@ -67,7 +67,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "screenshots": "node scripts/screenshots.mjs dist screenshots",
-    "check": "npm run typecheck && npm run lint && npm test"
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.mjs\"",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
   },
   "private": true
 }

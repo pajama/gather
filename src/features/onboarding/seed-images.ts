@@ -1,4 +1,3 @@
- 
 import { addImageResolver } from '@/ui';
 
 const SEED_IMAGES: Record<string, number> = {

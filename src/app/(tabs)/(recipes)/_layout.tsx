@@ -16,7 +16,9 @@ export default function RecipesStack() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen
         name="index"
-        options={({ route }) => ({ animation: (route.params as { launch?: string } | undefined)?.launch ? 'none' : 'default' })}
+        options={({ route }) => ({
+          animation: (route.params as { launch?: string } | undefined)?.launch ? 'none' : 'default',
+        })}
       />
     </Stack>
   );

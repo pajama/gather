@@ -9,7 +9,17 @@ import { useTimers } from './timers';
 const PRESETS = [1, 3, 5, 10, 15, 20, 30, 45, 60];
 
 /** Crouton's timer+ button: start a custom timer and manage the running ones. */
-export function TimerSheet({ visible, onClose, label, recipeId }: { visible: boolean; onClose: () => void; label: string; recipeId?: string }) {
+export function TimerSheet({
+  visible,
+  onClose,
+  label,
+  recipeId,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  label: string;
+  recipeId?: string;
+}) {
   const { timers, start, remaining, pause, resume, cancel } = useTimers();
   const { colors, radius, space } = useTheme();
   const [minutes, setMinutes] = useState('');
@@ -26,7 +36,18 @@ export function TimerSheet({ visible, onClose, label, recipeId }: { visible: boo
       {timers.length ? (
         <View style={{ gap: space.sm, marginBottom: space.xl }}>
           {timers.map((t) => (
-            <View key={t.id} style={[styles.row, { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, gap: space.sm }]}>
+            <View
+              key={t.id}
+              style={[
+                styles.row,
+                {
+                  backgroundColor: colors.surface,
+                  borderRadius: radius.lg,
+                  padding: space.md,
+                  gap: space.sm,
+                },
+              ]}
+            >
               <View style={styles.flex}>
                 <Text variant="title2" tone="timer" style={styles.mono}>
                   {t.state === 'done' ? 'Done' : formatClock(remaining(t))}
@@ -44,7 +65,13 @@ export function TimerSheet({ visible, onClose, label, recipeId }: { visible: boo
                   accessibilityLabel={t.state === 'paused' ? 'Resume timer' : 'Pause timer'}
                 />
               ) : null}
-              <IconButton icon="close" variant="tinted" tint="red" onPress={() => cancel(t.id)} accessibilityLabel="Remove timer" />
+              <IconButton
+                icon="close"
+                variant="tinted"
+                tint="red"
+                onPress={() => cancel(t.id)}
+                accessibilityLabel="Remove timer"
+              />
             </View>
           ))}
         </View>
@@ -58,8 +85,21 @@ export function TimerSheet({ visible, onClose, label, recipeId }: { visible: boo
         ))}
       </View>
       <View style={[styles.row, { gap: space.sm }]}>
-        <Field value={minutes} onChangeText={setMinutes} placeholder="Minutes" keyboardType="numeric" style={styles.flex} onSubmitEditing={() => startMinutes(Number(minutes))} />
-        <Button title="Start" icon="play" variant="green" onPress={() => startMinutes(Number(minutes))} disabled={!(Number(minutes) > 0)} />
+        <Field
+          value={minutes}
+          onChangeText={setMinutes}
+          placeholder="Minutes"
+          keyboardType="numeric"
+          style={styles.flex}
+          onSubmitEditing={() => startMinutes(Number(minutes))}
+        />
+        <Button
+          title="Start"
+          icon="play"
+          variant="green"
+          onPress={() => startMinutes(Number(minutes))}
+          disabled={!(Number(minutes) > 0)}
+        />
       </View>
     </Sheet>
   );

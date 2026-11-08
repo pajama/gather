@@ -66,7 +66,10 @@ export function weekRangeLabel(days: DayKey[]): string {
   const first = parseDayKey(days[0]!);
   const last = parseDayKey(days[days.length - 1]!);
   const left = `${MONTH[first.getMonth()]} ${first.getDate()}`;
-  const right = first.getMonth() === last.getMonth() ? `${last.getDate()}` : `${MONTH[last.getMonth()]} ${last.getDate()}`;
+  const right =
+    first.getMonth() === last.getMonth()
+      ? `${last.getDate()}`
+      : `${MONTH[last.getMonth()]} ${last.getDate()}`;
   return `${left} – ${right}`;
 }
 
@@ -107,7 +110,8 @@ export interface GenerateOptions {
 /** True when a recipe is suitable for the slot: tagged or filed under it ("Dinner", "Dinners"). */
 export function matchesSlot(candidate: PlanCandidate, slot: MealSlot): boolean {
   const labels = [...candidate.tags, ...(candidate.folderNames ?? [])].map((t) => t.toLowerCase());
-  const words = slot === 'dinner' ? ['dinner', 'dinners', 'main', 'mains', 'main course', 'supper'] : [slot, `${slot}s`];
+  const words =
+    slot === 'dinner' ? ['dinner', 'dinners', 'main', 'mains', 'main course', 'supper'] : [slot, `${slot}s`];
   return labels.some((l) => words.includes(l));
 }
 

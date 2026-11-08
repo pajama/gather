@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { ingredientsToText, minutesFieldToSeconds, stepsToText, textToIngredients, textToSteps } from './editing';
+import {
+  ingredientsToText,
+  minutesFieldToSeconds,
+  stepsToText,
+  textToIngredients,
+  textToSteps,
+} from './editing';
 
 describe('editor text round-trip', () => {
   it('parses sections and lines', () => {

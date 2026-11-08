@@ -9,5 +9,6 @@ export async function printHtml(html: string): Promise<void> {
 /** Renders a PDF and opens the share sheet. */
 export async function shareHtmlAsPdf(html: string, title: string): Promise<void> {
   const { uri } = await Print.printToFileAsync({ html });
-  if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: title, UTI: 'com.adobe.pdf' });
+  if (await Sharing.isAvailableAsync())
+    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: title, UTI: 'com.adobe.pdf' });
 }

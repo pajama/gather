@@ -22,7 +22,11 @@ export interface IngredientView {
 }
 
 /** Parses and formats every ingredient once per scale/unit change. */
-export function useIngredientViews(recipe: Recipe | undefined, scale: number, units: UnitPreference): Map<string, IngredientView> {
+export function useIngredientViews(
+  recipe: Recipe | undefined,
+  scale: number,
+  units: UnitPreference,
+): Map<string, IngredientView> {
   return useMemo(() => {
     const map = new Map<string, IngredientView>();
     if (!recipe) return map;
@@ -76,7 +80,12 @@ export function IngredientLine({
   );
   if (!onToggle) return content;
   return (
-    <Tap onPress={onToggle} feedback="none" accessibilityRole="checkbox" accessibilityState={{ checked: !!checked }}>
+    <Tap
+      onPress={onToggle}
+      feedback="none"
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !!checked }}
+    >
       {content}
     </Tap>
   );
@@ -109,7 +118,10 @@ export function StepText({
     const targets = [...views.values()].map((v) => ({ id: v.ingredient.id, name: v.parsedName }));
     const mentions = findIngredientMentions(shown, targets);
     const durations = findDurations(shown);
-    const marks = [...durations, ...mentions.filter((m) => !durations.some((d) => m.start < d.end && d.start < m.end))];
+    const marks = [
+      ...durations,
+      ...mentions.filter((m) => !durations.some((d) => m.start < d.end && d.start < m.end)),
+    ];
     return segmentText(shown, marks);
   }, [text, views, units]);
 
@@ -126,7 +138,11 @@ export function StepText({
               tone="timer"
               accessibilityRole="button"
               accessibilityHint="Starts a timer"
-              onPress={onStartTimer ? () => onStartTimer(seconds, `${recipe.name}: ${formatDuration(seconds)}`) : undefined}
+              onPress={
+                onStartTimer
+                  ? () => onStartTimer(seconds, `${recipe.name}: ${formatDuration(seconds)}`)
+                  : undefined
+              }
             >
               {segment.text}
             </Text>
@@ -156,7 +172,13 @@ export function IngredientCallout({ view }: { view: IngredientView }) {
     <View
       style={[
         styles.callout,
-        { backgroundColor: colors.surfaceRaised, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: space.sm, boxShadow: `0 4px 18px ${colors.shadow}, 0 1px 3px ${colors.shadow}` },
+        {
+          backgroundColor: colors.surfaceRaised,
+          borderRadius: radius.md,
+          paddingHorizontal: space.md,
+          paddingVertical: space.sm,
+          boxShadow: `0 4px 18px ${colors.shadow}, 0 1px 3px ${colors.shadow}`,
+        },
       ]}
     >
       <Text variant="body">

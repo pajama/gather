@@ -75,7 +75,12 @@ export class Collection<T extends Identified> {
     if (items.length === 0) return;
     for (const item of items) this.items.set(item.id, item);
     this.emit();
-    this.persist(() => this.store.putMany(this.name, items.map((item) => ({ id: item.id, json: JSON.stringify(item) }))));
+    this.persist(() =>
+      this.store.putMany(
+        this.name,
+        items.map((item) => ({ id: item.id, json: JSON.stringify(item) })),
+      ),
+    );
   }
 
   /** Applies `change` to an existing item; returns the updated item. */
@@ -97,7 +102,11 @@ export class Collection<T extends Identified> {
   /** Replaces the whole collection, atomically in storage. */
   replaceAll(items: T[]): void {
     this.replaceLocal(items);
-    this.persist(() => this.store.replaceCollections({ [this.name]: items.map((item) => ({ id: item.id, json: JSON.stringify(item) })) }));
+    this.persist(() =>
+      this.store.replaceCollections({
+        [this.name]: items.map((item) => ({ id: item.id, json: JSON.stringify(item) })),
+      }),
+    );
   }
 
   /** Swaps the in-memory contents without writing (after the caller has already persisted them). */
@@ -163,7 +172,9 @@ export class Singleton<T extends object> {
     this.value = { ...this.value, ...patch };
     this.emit();
     const json = JSON.stringify(this.value);
-    this.queue = this.queue.then(() => this.store.setMeta(this.key, json)).catch((e: unknown) => this.onError?.(e));
+    this.queue = this.queue
+      .then(() => this.store.setMeta(this.key, json))
+      .catch((e: unknown) => this.onError?.(e));
   }
 
   subscribe = (listener: Listener): (() => void) => {

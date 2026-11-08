@@ -6,7 +6,16 @@
  */
 
 import { formatQuantity, parseLeadingQuantity, scaleQuantity, type Quantity } from './quantity';
-import { canConvert, convert, convertToSystem, getUnit, humanize, matchUnitAt, unitLabel, type UnitDef } from './units';
+import {
+  canConvert,
+  convert,
+  convertToSystem,
+  getUnit,
+  humanize,
+  matchUnitAt,
+  unitLabel,
+  type UnitDef,
+} from './units';
 
 export interface ParsedIngredient {
   /** The line as written, trimmed. */
@@ -35,14 +44,16 @@ const TRAILING_NOTE =
   /\s+(to taste|as needed|if needed|or to taste|optional|for (?:serving|garnish|garnishing|frying|greasing|dusting|drizzling|topping|decoration|the pan|the top))\.?$/i;
 
 function normalize(line: string): string {
-  return line
-    // Some recipe plugins double-wrap notes: "garlic ((or garlic powder))".
-    .replace(/\(\(/g, '(')
-    .replace(/\)\)/g, ')')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[\u2009\u202f]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    line
+      // Some recipe plugins double-wrap notes: "garlic ((or garlic powder))".
+      .replace(/\(\(/g, '(')
+      .replace(/\)\)/g, ')')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[\u2009\u202f]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 /** Reads a balanced parenthetical starting at `pos` (which must be "(" or "["). */
@@ -81,7 +92,8 @@ function splitTopLevelComma(text: string): [string, string | undefined] {
     const ch = text[i];
     if (ch === '(' || ch === '[') depth++;
     else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
-    else if (ch === ',' && depth === 0) return [text.slice(0, i).trim(), text.slice(i + 1).trim() || undefined];
+    else if (ch === ',' && depth === 0)
+      return [text.slice(0, i).trim(), text.slice(i + 1).trim() || undefined];
   }
   return [text.trim(), undefined];
 }
@@ -152,7 +164,11 @@ export function parseIngredient(line: string): ParsedIngredient {
     if (q && addend) {
       const measure = measureAt(text, pos + addend[0].length);
       if (measure && canConvert(measure.unit, unit.unit)) {
-        result.extra = { quantity: measure.quantity, unit: measure.unit.id, text: text.slice(pos, measure.end).trim() };
+        result.extra = {
+          quantity: measure.quantity,
+          unit: measure.unit.id,
+          text: text.slice(pos, measure.end).trim(),
+        };
         pos = skipSpaces(text, measure.end);
       }
     }
@@ -243,7 +259,11 @@ export function foldExtra(ingredient: ParsedIngredient): ParsedIngredient {
   if (!ingredient.quantity || !main || !added || !canConvert(added, main)) return rest;
   const delta = convert(extra.quantity.value, added, main);
   const q = ingredient.quantity;
-  return { ...rest, quantity: q.max === undefined ? { value: q.value + delta } : { value: q.value + delta, max: q.max + delta } };
+  return {
+    ...rest,
+    quantity:
+      q.max === undefined ? { value: q.value + delta } : { value: q.value + delta, max: q.max + delta },
+  };
 }
 
 /** The alternative measure as a number and unit, when it is exactly that ("240ml", "7 oz"). */
@@ -252,7 +272,10 @@ function altMeasure(alt: string): { quantity: Quantity; unit: UnitDef } | undefi
   return measure && skipSpaces(alt, measure.end) === alt.length ? measure : undefined;
 }
 
-export function formatIngredient(ingredient: ParsedIngredient, options: FormatOptions = {}): FormattedIngredient {
+export function formatIngredient(
+  ingredient: ParsedIngredient,
+  options: FormatOptions = {},
+): FormattedIngredient {
   const factor = options.scale ?? 1;
   const system = options.system ?? 'original';
   // As written, "½ cup + 2 tbsp" stays two amounts; scaled or converted it becomes one.
@@ -263,17 +286,22 @@ export function formatIngredient(ingredient: ParsedIngredient, options: FormatOp
 
   if (quantity && unit) {
     // The author's own measure in the target system beats a conversion: "1 cup (120g) flour" -> 120 g.
-    const alt = system !== 'original' && ingredient.alt && !ingredient.extra ? altMeasure(ingredient.alt) : undefined;
+    const alt =
+      system !== 'original' && ingredient.alt && !ingredient.extra ? altMeasure(ingredient.alt) : undefined;
     if (alt && unit.system !== system && alt.unit.system === system && alt.unit.dimension !== 'count') {
       quantity = scaleQuantity(alt.quantity, factor);
       unit = alt.unit;
     }
     let converted = { value: quantity.value, unit };
-    if (system !== 'original' && unit.system !== 'neutral' && unit.system !== system) converted = convertToSystem(quantity.value, unit, system);
+    if (system !== 'original' && unit.system !== 'neutral' && unit.system !== system)
+      converted = convertToSystem(quantity.value, unit, system);
     else if (options.humanize !== false && factor !== 1) converted = humanize(quantity.value, unit);
     if (converted.unit !== unit) {
       const ratio = converted.value / quantity.value;
-      quantity = quantity.max === undefined ? { value: converted.value } : { value: converted.value, max: quantity.max * ratio };
+      quantity =
+        quantity.max === undefined
+          ? { value: converted.value }
+          : { value: converted.value, max: quantity.max * ratio };
       unit = converted.unit;
     }
   }
@@ -284,7 +312,8 @@ export function formatIngredient(ingredient: ParsedIngredient, options: FormatOp
   const unitText = unit ? unitLabel(unit, plural) : '';
   const sizeText = ingredient.size ? `(${ingredient.size})` : '';
   // A converted line shows one system; the alternative measure would repeat it.
-  const altText = ingredient.alt && system === 'original' ? `(${scaleInlineAmount(ingredient.alt, factor)})` : '';
+  const altText =
+    ingredient.alt && system === 'original' ? `(${scaleInlineAmount(ingredient.alt, factor)})` : '';
   const extraText = asWritten && ingredient.extra ? ingredient.extra.text : '';
 
   const amount = [quantityText, sizeText, unitText, extraText].filter(Boolean).join(' ');

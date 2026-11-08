@@ -14,7 +14,11 @@ export async function pickFile(): Promise<PickedFile | null> {
 }
 
 /** Downloads bytes as a file. */
-export async function shareBinaryFile(name: string, bytes: Uint8Array, mimeType = 'application/zip'): Promise<void> {
+export async function shareBinaryFile(
+  name: string,
+  bytes: Uint8Array,
+  mimeType = 'application/zip',
+): Promise<void> {
   const copy = new Uint8Array(bytes.byteLength);
   copy.set(bytes);
   download(name, new Blob([copy.buffer], { type: mimeType }));
@@ -32,6 +36,10 @@ function download(name: string, blob: Blob): void {
 }
 
 /** Downloads the text as a file. */
-export async function shareTextFile(name: string, text: string, mimeType = 'application/json'): Promise<void> {
+export async function shareTextFile(
+  name: string,
+  text: string,
+  mimeType = 'application/json',
+): Promise<void> {
   download(name, new Blob([text], { type: mimeType }));
 }

@@ -36,7 +36,9 @@ export function parseBackup(raw: unknown): Backup {
   }
   const file = raw as Record<string, unknown>;
   if (typeof file.version === 'number' && file.version > BACKUP_VERSION) {
-    throw new BackupError('This backup comes from a newer version of Gather. Update Gather, then restore it.');
+    throw new BackupError(
+      'This backup comes from a newer version of Gather. Update Gather, then restore it.',
+    );
   }
   const out: Record<string, unknown> = {};
   for (const name of BACKUP_COLLECTIONS) {
@@ -46,7 +48,8 @@ export function parseBackup(raw: unknown): Backup {
       out[name] = [];
       continue;
     }
-    if (!Array.isArray(value)) throw new BackupError(`The backup has no ${spec.label}, so it may be damaged. Nothing was changed.`);
+    if (!Array.isArray(value))
+      throw new BackupError(`The backup has no ${spec.label}, so it may be damaged. Nothing was changed.`);
     const byId = new Map<string, { id: string }>();
     value.forEach((doc, index) => {
       try {
@@ -54,7 +57,9 @@ export function parseBackup(raw: unknown): Backup {
         byId.set(migrated.id, migrated);
       } catch (error) {
         const reason = error instanceof Error ? ` (${error.message})` : '';
-        throw new BackupError(`Entry ${index + 1} in ${spec.label} can’t be read${reason}. Nothing was changed.`);
+        throw new BackupError(
+          `Entry ${index + 1} in ${spec.label} can’t be read${reason}. Nothing was changed.`,
+        );
       }
     });
     out[name] = [...byId.values()];

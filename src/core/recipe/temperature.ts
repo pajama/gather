@@ -24,12 +24,22 @@ function toFahrenheit(c: number): number {
 /** Rewrites temperatures in `text` for `units`; 'original' leaves the text as written. */
 export function convertTemperatures(text: string, units: UnitPreference): string {
   if (units === 'original') return text;
-  return text.replace(TEMPERATURE, (match, low: string | undefined, high: string | undefined, scale: string | undefined, bare: string | undefined, bareScale: string | undefined) => {
-    const from = (scale ?? bareScale ?? '').toLowerCase().startsWith('f') ? 'F' : 'C';
-    const target = units === 'metric' ? 'C' : 'F';
-    if (from === target) return match;
-    const convert = target === 'C' ? toCelsius : toFahrenheit;
-    const first = convert(Number(low ?? bare));
-    return high ? `${first}–${convert(Number(high))}°${target}` : `${first}°${target}`;
-  });
+  return text.replace(
+    TEMPERATURE,
+    (
+      match,
+      low: string | undefined,
+      high: string | undefined,
+      scale: string | undefined,
+      bare: string | undefined,
+      bareScale: string | undefined,
+    ) => {
+      const from = (scale ?? bareScale ?? '').toLowerCase().startsWith('f') ? 'F' : 'C';
+      const target = units === 'metric' ? 'C' : 'F';
+      if (from === target) return match;
+      const convert = target === 'C' ? toCelsius : toFahrenheit;
+      const first = convert(Number(low ?? bare));
+      return high ? `${first}–${convert(Number(high))}°${target}` : `${first}°${target}`;
+    },
+  );
 }

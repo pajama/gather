@@ -1,13 +1,27 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Platform, ScrollView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Recipe, UnitPreference } from '@/core/model/types';
 import { findDurations, formatDuration } from '@/core/recipe/durations';
 import { useDb, useRecipe, useSettings } from '@/data/react';
-import { IngredientCallout, IngredientLine, StepText, useIngredientViews, type IngredientView } from '@/features/recipe';
+import {
+  IngredientCallout,
+  IngredientLine,
+  StepText,
+  useIngredientViews,
+  type IngredientView,
+} from '@/features/recipe';
 import { TimerSheet, useTimerActions } from '@/features/timers';
 import { Button, haptic, Icon, IconButton, Sheet, Text, useTheme } from '@/ui';
 
@@ -24,7 +38,10 @@ export function CookScreen() {
   const recipe = useRecipe(params.id);
   const settings = useSettings();
   const scale = Number(params.scale) > 0 ? Number(params.scale) : 1;
-  const units: UnitPreference = params.units === 'us' || params.units === 'metric' || params.units === 'original' ? params.units : settings.units;
+  const units: UnitPreference =
+    params.units === 'us' || params.units === 'metric' || params.units === 'original'
+      ? params.units
+      : settings.units;
   if (!recipe) return null;
   return <CookMode recipe={recipe} scale={scale} units={units} />;
 }
@@ -46,7 +63,10 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
   const views = useIngredientViews(recipe, scale, units);
 
   const steps: FlatStep[] = useMemo(
-    () => recipe.steps.flatMap((s) => s.items.map((item) => ({ id: item.id, text: item.text, ...(s.title ? { section: s.title } : {}) }))),
+    () =>
+      recipe.steps.flatMap((s) =>
+        s.items.map((item) => ({ id: item.id, text: item.text, ...(s.title ? { section: s.title } : {}) })),
+      ),
     [recipe],
   );
   const count = steps.length;
@@ -106,7 +126,8 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
   const startStepTimer = useCallback(
     (stepIndex: number) => {
       const first = stepDurations[stepIndex]?.[0];
-      if (first) timers.start(`${recipe.name}: step ${stepIndex + 1}`, first.maxSeconds ?? first.seconds, recipe.id);
+      if (first)
+        timers.start(`${recipe.name}: step ${stepIndex + 1}`, first.maxSeconds ?? first.seconds, recipe.id);
     },
     [stepDurations, timers, recipe.name, recipe.id],
   );
@@ -146,7 +167,13 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
 
   if (finished) {
     return (
-      <View style={[styles.fill, styles.center, { backgroundColor: colors.background, padding: space.xxxl, gap: space.lg }]}>
+      <View
+        style={[
+          styles.fill,
+          styles.center,
+          { backgroundColor: colors.background, padding: space.xxxl, gap: space.lg },
+        ]}
+      >
         <View style={[styles.doneBadge, { backgroundColor: colors.greenSoft }]}>
           <Icon name="restaurant" size={44} color={colors.green} />
         </View>
@@ -156,7 +183,12 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
         <Text variant="body" tone="secondary" align="center">
           {recipe.name} is marked as cooked.
         </Text>
-        <Button title="Back to recipe" variant="tinted" onPress={() => router.back()} style={{ marginTop: space.lg }} />
+        <Button
+          title="Back to recipe"
+          variant="tinted"
+          onPress={() => router.back()}
+          style={{ marginTop: space.lg }}
+        />
       </View>
     );
   }
@@ -166,9 +198,21 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
   return (
     <View style={[styles.fill, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={[styles.header, { paddingHorizontal: space.lg, gap: space.md }]}>
-        <IconButton icon="close" variant="tinted" size={36} onPress={() => router.back()} accessibilityLabel="Close step by step" />
+        <IconButton
+          icon="close"
+          variant="tinted"
+          size={36}
+          onPress={() => router.back()}
+          accessibilityLabel="Close step by step"
+        />
         <View style={styles.flex} />
-        <Button title="Ingredients" variant="tinted" size="sm" onPress={() => setSheet('ingredients')} style={styles.ingredientsPill} />
+        <Button
+          title="Ingredients"
+          variant="tinted"
+          size="sm"
+          onPress={() => setSheet('ingredients')}
+          style={styles.ingredientsPill}
+        />
         <IconButton
           icon={handsFree ? 'volume' : 'hand'}
           variant={handsFree ? 'filled' : 'tinted'}
@@ -179,11 +223,29 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
           }}
           accessibilityLabel={handsFree ? 'Turn off hands-free' : 'Turn on hands-free'}
         />
-        <IconButton icon="timer" variant="tinted" size={36} badge onPress={() => setSheet('timers')} accessibilityLabel="Timers" />
+        <IconButton
+          icon="timer"
+          variant="tinted"
+          size={36}
+          badge
+          onPress={() => setSheet('timers')}
+          accessibilityLabel="Timers"
+        />
       </View>
 
       {handsFree ? (
-        <View style={[styles.handsFree, { marginHorizontal: space.lg, backgroundColor: colors.accentSoft, borderRadius: radius.md, padding: space.sm, gap: space.sm }]}>
+        <View
+          style={[
+            styles.handsFree,
+            {
+              marginHorizontal: space.lg,
+              backgroundColor: colors.accentSoft,
+              borderRadius: radius.md,
+              padding: space.sm,
+              gap: space.sm,
+            },
+          ]}
+        >
           <Icon name={canListen ? 'mic' : 'volume'} size={18} tone="accent" />
           <Text variant="footnote" style={styles.flex}>
             {voice.error ??
@@ -208,7 +270,14 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
         {steps.map((step, stepIndex) => {
           const durations = stepDurations[stepIndex] ?? [];
           return (
-            <ScrollView key={step.id} style={{ width }} contentContainerStyle={[styles.page, { paddingHorizontal: space.xxxl, paddingTop: space.huge, gap: space.lg }]}>
+            <ScrollView
+              key={step.id}
+              style={{ width }}
+              contentContainerStyle={[
+                styles.page,
+                { paddingHorizontal: space.xxxl, paddingTop: space.huge, gap: space.lg },
+              ]}
+            >
               <Text variant="overline" tone="tertiary">
                 Step {stepIndex + 1}
                 {step.section ? ` · ${step.section}` : ''}
@@ -237,7 +306,9 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
                         icon="timer"
                         variant="yellow"
                         size="sm"
-                        onPress={() => timers.start(`${recipe.name}: step ${stepIndex + 1}`, seconds, recipe.id)}
+                        onPress={() =>
+                          timers.start(`${recipe.name}: step ${stepIndex + 1}`, seconds, recipe.id)
+                        }
                       />
                     );
                   })}
@@ -248,11 +319,25 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
         })}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingHorizontal: space.xxl, paddingBottom: insets.bottom + space.lg }]}>
-        <IconButton icon="arrowLeft" variant="filled" size={58} disabled={index === 0} onPress={() => goTo(index - 1)} accessibilityLabel="Previous step" />
+      <View
+        style={[styles.footer, { paddingHorizontal: space.xxl, paddingBottom: insets.bottom + space.lg }]}
+      >
+        <IconButton
+          icon="arrowLeft"
+          variant="filled"
+          size={58}
+          disabled={index === 0}
+          onPress={() => goTo(index - 1)}
+          accessibilityLabel="Previous step"
+        />
         <View style={[styles.dots, { gap: 8 }]}>
           {steps.length <= 14 ? (
-            steps.map((s, i) => <View key={s.id} style={[styles.dot, { backgroundColor: i === index ? colors.accent : colors.fillStrong }]} />)
+            steps.map((s, i) => (
+              <View
+                key={s.id}
+                style={[styles.dot, { backgroundColor: i === index ? colors.accent : colors.fillStrong }]}
+              />
+            ))
           ) : (
             <Text variant="subhead" tone="secondary">
               {index + 1} / {count}
@@ -260,13 +345,31 @@ function CookMode({ recipe, scale, units }: { recipe: Recipe; scale: number; uni
           )}
         </View>
         {index >= count - 1 ? (
-          <IconButton icon="check" variant="filled" tint="green" size={58} onPress={finish} accessibilityLabel="Finish cooking" />
+          <IconButton
+            icon="check"
+            variant="filled"
+            tint="green"
+            size={58}
+            onPress={finish}
+            accessibilityLabel="Finish cooking"
+          />
         ) : (
-          <IconButton icon="arrowRight" variant="filled" size={58} onPress={() => goTo(index + 1)} accessibilityLabel="Next step" />
+          <IconButton
+            icon="arrowRight"
+            variant="filled"
+            size={58}
+            onPress={() => goTo(index + 1)}
+            accessibilityLabel="Next step"
+          />
         )}
       </View>
 
-      <TimerSheet visible={sheet === 'timers'} onClose={() => setSheet(null)} label={recipe.name} recipeId={recipe.id} />
+      <TimerSheet
+        visible={sheet === 'timers'}
+        onClose={() => setSheet(null)}
+        label={recipe.name}
+        recipeId={recipe.id}
+      />
       <Sheet visible={sheet === 'ingredients'} onClose={() => setSheet(null)} title="Ingredients">
         {recipe.ingredients.map((section) => (
           <View key={section.id}>

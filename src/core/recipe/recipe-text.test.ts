@@ -111,21 +111,38 @@ describe('ingredient parsing', () => {
   });
 
   it('handles units glued to numbers and missing units', () => {
-    expect(parseIngredient('200g plain flour')).toMatchObject({ quantity: { value: 200 }, unit: 'g', name: 'plain flour' });
+    expect(parseIngredient('200g plain flour')).toMatchObject({
+      quantity: { value: 200 },
+      unit: 'g',
+      name: 'plain flour',
+    });
     expect(parseIngredient('2 large eggs')).toMatchObject({ quantity: { value: 2 }, name: 'large eggs' });
     expect(parseIngredient('2 large eggs').unit).toBeUndefined();
-    expect(parseIngredient('3 cloves garlic, minced')).toMatchObject({ unit: 'clove', name: 'garlic', note: 'minced' });
+    expect(parseIngredient('3 cloves garlic, minced')).toMatchObject({
+      unit: 'clove',
+      name: 'garlic',
+      note: 'minced',
+    });
     expect(parseIngredient('1 bay leaf')).toMatchObject({ quantity: { value: 1 }, name: 'bay leaf' });
   });
 
   it('extracts notes', () => {
-    expect(parseIngredient('Salt and pepper, to taste')).toMatchObject({ name: 'Salt and pepper', note: 'to taste' });
+    expect(parseIngredient('Salt and pepper, to taste')).toMatchObject({
+      name: 'Salt and pepper',
+      note: 'to taste',
+    });
     expect(parseIngredient('salt to taste')).toMatchObject({ name: 'salt', note: 'to taste' });
     expect(parseIngredient('4 tbsp butter (softened)')).toMatchObject({ name: 'butter', note: 'softened' });
     expect(parseIngredient('1 onion - diced')).toMatchObject({ name: 'onion', note: 'diced' });
     expect(parseIngredient('Pinch of salt')).toMatchObject({ unit: 'pinch', name: 'salt' });
-    expect(parseIngredient('▢ 1 tsp vanilla extract')).toMatchObject({ unit: 'tsp', name: 'vanilla extract' });
-    expect(parseIngredient('1/2 small clove garlic ((or 1/8 tsp garlic powder))')).toMatchObject({ name: 'small clove garlic', note: 'or 1/8 tsp garlic powder' });
+    expect(parseIngredient('▢ 1 tsp vanilla extract')).toMatchObject({
+      unit: 'tsp',
+      name: 'vanilla extract',
+    });
+    expect(parseIngredient('1/2 small clove garlic ((or 1/8 tsp garlic powder))')).toMatchObject({
+      name: 'small clove garlic',
+      note: 'or 1/8 tsp garlic powder',
+    });
     expect(parseIngredient('A fistful of chopped herbs').quantity).toBeUndefined();
   });
 
@@ -135,7 +152,9 @@ describe('ingredient parsing', () => {
     expect(formatIngredient(flour, { scale: 2 }).full).toBe('3 cups (380g) all-purpose flour, sifted');
     expect(formatIngredient(parseIngredient('2 tsp salt'), { scale: 6 }).amount).toBe('¼ cup');
     expect(formatIngredient(parseIngredient('1 cup milk'), { system: 'metric' }).amount).toBe('237 ml');
-    expect(formatIngredient(parseIngredient('2 (14 oz) cans beans'), { scale: 2 }).amount).toBe('4 (14 oz) cans');
+    expect(formatIngredient(parseIngredient('2 (14 oz) cans beans'), { scale: 2 }).amount).toBe(
+      '4 (14 oz) cans',
+    );
     expect(formatIngredient(parseIngredient('salt')).amount).toBe('');
   });
 
@@ -152,7 +171,11 @@ describe('two-part and alternative amounts', () => {
   const f = (line: string, options = {}) => formatIngredient(parseIngredient(line), options).full;
 
   it('keeps an added amount as written, and adds it in when scaling', () => {
-    expect(parseIngredient('1/2 cup + 2 tbsp sugar')).toMatchObject({ unit: 'cup', name: 'sugar', extra: { unit: 'tbsp' } });
+    expect(parseIngredient('1/2 cup + 2 tbsp sugar')).toMatchObject({
+      unit: 'cup',
+      name: 'sugar',
+      extra: { unit: 'tbsp' },
+    });
     expect(f('1/2 cup + 2 tbsp sugar')).toBe('½ cup + 2 tbsp sugar');
     expect(f('1/2 cup + 2 tbsp sugar', { scale: 2 })).toBe('1¼ cups sugar');
     expect(f('1 cup plus 2 tablespoons flour', { scale: 2 })).toBe('2¼ cups flour');

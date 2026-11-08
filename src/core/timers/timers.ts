@@ -37,9 +37,23 @@ export function timerProgress(timer: KitchenTimer, now: number): number {
   return Math.min(1, Math.max(0, 1 - timerRemaining(timer, now) / timer.totalSeconds));
 }
 
-export function createTimer(id: string, label: string, seconds: number, now: number, recipeId?: string): KitchenTimer {
+export function createTimer(
+  id: string,
+  label: string,
+  seconds: number,
+  now: number,
+  recipeId?: string,
+): KitchenTimer {
   const total = Math.max(1, Math.round(seconds));
-  return { id, label, totalSeconds: total, endsAt: now + total * 1000, state: 'running', createdAt: now, ...(recipeId ? { recipeId } : {}) };
+  return {
+    id,
+    label,
+    totalSeconds: total,
+    endsAt: now + total * 1000,
+    state: 'running',
+    createdAt: now,
+    ...(recipeId ? { recipeId } : {}),
+  };
 }
 
 export function pauseTimer(timer: KitchenTimer, now: number): KitchenTimer {
@@ -56,9 +70,19 @@ export function resumeTimer(timer: KitchenTimer, now: number): KitchenTimer {
 
 /** Adds time; a finished timer starts running again from now. */
 export function addTimerTime(timer: KitchenTimer, seconds: number, now: number): KitchenTimer {
-  if (timer.state === 'paused') return { ...timer, pausedRemaining: (timer.pausedRemaining ?? 0) + seconds, totalSeconds: timer.totalSeconds + seconds };
+  if (timer.state === 'paused')
+    return {
+      ...timer,
+      pausedRemaining: (timer.pausedRemaining ?? 0) + seconds,
+      totalSeconds: timer.totalSeconds + seconds,
+    };
   const base = Math.max(now, timer.endsAt ?? now);
-  return { ...timer, state: 'running', endsAt: base + seconds * 1000, totalSeconds: timer.totalSeconds + seconds };
+  return {
+    ...timer,
+    state: 'running',
+    endsAt: base + seconds * 1000,
+    totalSeconds: timer.totalSeconds + seconds,
+  };
 }
 
 /** Timers worth keeping after a restart: anything not finished more than `maxAgeMs` ago. */

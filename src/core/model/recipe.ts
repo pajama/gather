@@ -1,6 +1,15 @@
 import type { DraftSection, RecipeDraft } from '../import/draft';
 import { parseIngredient } from '../recipe/ingredients';
-import type { ID, Ingredient, IngredientSection, Nutrition, Recipe, Step, StepSection, Timestamp } from './types';
+import type {
+  ID,
+  Ingredient,
+  IngredientSection,
+  Nutrition,
+  Recipe,
+  Step,
+  StepSection,
+  Timestamp,
+} from './types';
 
 /** RFC 4122 v4 id. Uses the platform's crypto when present. */
 export function newId(): ID {
@@ -42,10 +51,20 @@ export function createRecipe(fields: Omit<Partial<Recipe>, 'id'> = {}): Recipe {
 }
 
 /** Fresh ids for sections, items and images, so a copy shares nothing with its source. */
-export function withFreshIds(recipe: Pick<Recipe, 'ingredients' | 'steps' | 'images'>): Pick<Recipe, 'ingredients' | 'steps' | 'images'> {
+export function withFreshIds(
+  recipe: Pick<Recipe, 'ingredients' | 'steps' | 'images'>,
+): Pick<Recipe, 'ingredients' | 'steps' | 'images'> {
   return {
-    ingredients: recipe.ingredients.map((s) => ({ ...s, id: newId(), items: s.items.map((i) => ({ ...i, id: newId() })) })),
-    steps: recipe.steps.map((s) => ({ ...s, id: newId(), items: s.items.map((i) => ({ ...i, id: newId() })) })),
+    ingredients: recipe.ingredients.map((s) => ({
+      ...s,
+      id: newId(),
+      items: s.items.map((i) => ({ ...i, id: newId() })),
+    })),
+    steps: recipe.steps.map((s) => ({
+      ...s,
+      id: newId(),
+      items: s.items.map((i) => ({ ...i, id: newId() })),
+    })),
     images: recipe.images.map((i) => ({ ...i, id: newId() })),
   };
 }
@@ -88,7 +107,9 @@ export function recipeFromDraft(draft: RecipeDraft, extra: Partial<Recipe> = {})
       if (target && value) nutrition[target] = value;
     }
   }
-  const tags = [...new Set([...draft.categories, ...draft.cuisines, ...draft.tags].map((t) => t.trim()).filter(Boolean))];
+  const tags = [
+    ...new Set([...draft.categories, ...draft.cuisines, ...draft.tags].map((t) => t.trim()).filter(Boolean)),
+  ];
   return createRecipe({
     name: draft.name.trim() || 'Untitled recipe',
     ...(draft.description ? { description: draft.description } : {}),
@@ -128,7 +149,9 @@ const NUTRITION_BACK: Record<keyof Nutrition, string> = {
 /** The portable form of a recipe, for sharing as a file (the inverse of recipeFromDraft). */
 export function recipeToDraft(recipe: Recipe): RecipeDraft {
   const nutrition = recipe.nutrition
-    ? Object.fromEntries(Object.entries(recipe.nutrition).map(([k, v]) => [NUTRITION_BACK[k as keyof Nutrition], v]))
+    ? Object.fromEntries(
+        Object.entries(recipe.nutrition).map(([k, v]) => [NUTRITION_BACK[k as keyof Nutrition], v]),
+      )
     : undefined;
   return {
     name: recipe.name,
@@ -142,8 +165,14 @@ export function recipeToDraft(recipe: Recipe): RecipeDraft {
     ...(recipe.prepSeconds ? { prepSeconds: recipe.prepSeconds } : {}),
     ...(recipe.cookSeconds ? { cookSeconds: recipe.cookSeconds } : {}),
     ...(recipe.totalSeconds ? { totalSeconds: recipe.totalSeconds } : {}),
-    ingredients: recipe.ingredients.map((s) => ({ ...(s.title ? { title: s.title } : {}), lines: s.items.map((i) => i.text) })),
-    steps: recipe.steps.map((s) => ({ ...(s.title ? { title: s.title } : {}), lines: s.items.map((i) => i.text) })),
+    ingredients: recipe.ingredients.map((s) => ({
+      ...(s.title ? { title: s.title } : {}),
+      lines: s.items.map((i) => i.text),
+    })),
+    steps: recipe.steps.map((s) => ({
+      ...(s.title ? { title: s.title } : {}),
+      lines: s.items.map((i) => i.text),
+    })),
     ...(recipe.notes ? { notes: recipe.notes } : {}),
     ...(nutrition ? { nutrition } : {}),
     tags: recipe.tags,
@@ -154,7 +183,9 @@ export function recipeToDraft(recipe: Recipe): RecipeDraft {
   };
 }
 
-export function totalSeconds(recipe: Pick<Recipe, 'prepSeconds' | 'cookSeconds' | 'totalSeconds'>): number | undefined {
+export function totalSeconds(
+  recipe: Pick<Recipe, 'prepSeconds' | 'cookSeconds' | 'totalSeconds'>,
+): number | undefined {
   if (recipe.totalSeconds) return recipe.totalSeconds;
   const sum = (recipe.prepSeconds ?? 0) + (recipe.cookSeconds ?? 0);
   return sum > 0 ? sum : undefined;
@@ -165,9 +196,14 @@ export function coverImage(recipe: Pick<Recipe, 'images'>): string | undefined {
 }
 
 /** The recipe with each image URI replaced by `fn(uri)` (for moving photos in and out of storage). */
-export async function mapRecipeImages<R extends Pick<Recipe, 'images'>>(recipe: R, fn: (uri: string) => Promise<string>): Promise<R> {
+export async function mapRecipeImages<R extends Pick<Recipe, 'images'>>(
+  recipe: R,
+  fn: (uri: string) => Promise<string>,
+): Promise<R> {
   if (recipe.images.length === 0) return recipe;
-  const images = await Promise.all(recipe.images.map(async (image) => ({ ...image, uri: await fn(image.uri) })));
+  const images = await Promise.all(
+    recipe.images.map(async (image) => ({ ...image, uri: await fn(image.uri) })),
+  );
   return { ...recipe, images };
 }
 

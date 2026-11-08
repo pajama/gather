@@ -8,12 +8,16 @@ export async function saveBackupFile(name: string, json: string): Promise<void> 
   if (file.exists) file.delete();
   file.create();
   file.write(json);
-  if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Save Gather backup' });
+  if (await Sharing.isAvailableAsync())
+    await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Save Gather backup' });
 }
 
 /** Lets the user pick a backup file; resolves to its text, or null if cancelled. */
 export async function pickBackupFile(): Promise<string | null> {
-  const result = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'public.json', '*/*'], copyToCacheDirectory: true });
+  const result = await DocumentPicker.getDocumentAsync({
+    type: ['application/json', 'public.json', '*/*'],
+    copyToCacheDirectory: true,
+  });
   if (result.canceled || !result.assets[0]) return null;
   return new File(result.assets[0].uri).text();
 }

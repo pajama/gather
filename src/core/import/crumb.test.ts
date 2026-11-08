@@ -1,7 +1,14 @@
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 
-import { crumbArchive, crumbFromDraft, crumbIngredientLine, draftFromCrumb, isCrumb, type CrumbRecipe } from './crumb';
+import {
+  crumbArchive,
+  crumbFromDraft,
+  crumbIngredientLine,
+  draftFromCrumb,
+  isCrumb,
+  type CrumbRecipe,
+} from './crumb';
 import { readRecipeFile } from './files';
 
 // A hand-written recipe in Crouton's export shape (not taken from any real export).
@@ -26,7 +33,11 @@ const CRUMB: CrumbRecipe = {
     { order: 1, ingredient: { name: 'flour' }, quantity: { amount: 1.5, quantityType: 'CUP' } },
     { order: 2, ingredient: { name: 'eggs' }, quantity: { amount: 2, quantityType: 'ITEM' } },
     { order: 4, ingredient: { name: 'To serve' }, quantity: { quantityType: 'SECTION' } },
-    { order: 5, ingredient: { name: 'maple syrup' }, quantity: { amount: 2, secondaryAmount: 3, quantityType: 'TABLESPOON' } },
+    {
+      order: 5,
+      ingredient: { name: 'maple syrup' },
+      quantity: { amount: 2, secondaryAmount: 3, quantityType: 'TABLESPOON' },
+    },
     { order: 6, ingredient: { name: 'flaky salt' }, quantity: { amount: 1, quantityType: 'PINCH' } },
     { order: 7, ingredient: { name: 'butter, for the pan' }, quantity: { amount: 0, quantityType: 'ITEM' } },
   ],
@@ -48,13 +59,27 @@ describe('Crouton .crumb import', () => {
   });
 
   it('writes ingredient lines with amounts, ranges and plural units', () => {
-    expect(crumbIngredientLine({ ingredient: { name: 'flour' }, quantity: { amount: 1.5, quantityType: 'CUP' } })).toBe('1½ cups flour');
-    expect(crumbIngredientLine({ ingredient: { name: 'maple syrup' }, quantity: { amount: 2, secondaryAmount: 3, quantityType: 'TABLESPOON' } })).toBe(
-      '2-3 tbsp maple syrup',
-    );
-    expect(crumbIngredientLine({ ingredient: { name: 'eggs' }, quantity: { amount: 2, quantityType: 'ITEM' } })).toBe('2 eggs');
-    expect(crumbIngredientLine({ ingredient: { name: 'salt' }, quantity: { amount: 0, quantityType: 'TEASPOON' } })).toBe('salt');
-    expect(crumbIngredientLine({ ingredient: { name: 'tomatoes' }, quantity: { amount: 2, quantityType: 'CAN' } })).toBe('2 cans tomatoes');
+    expect(
+      crumbIngredientLine({ ingredient: { name: 'flour' }, quantity: { amount: 1.5, quantityType: 'CUP' } }),
+    ).toBe('1½ cups flour');
+    expect(
+      crumbIngredientLine({
+        ingredient: { name: 'maple syrup' },
+        quantity: { amount: 2, secondaryAmount: 3, quantityType: 'TABLESPOON' },
+      }),
+    ).toBe('2-3 tbsp maple syrup');
+    expect(
+      crumbIngredientLine({ ingredient: { name: 'eggs' }, quantity: { amount: 2, quantityType: 'ITEM' } }),
+    ).toBe('2 eggs');
+    expect(
+      crumbIngredientLine({
+        ingredient: { name: 'salt' },
+        quantity: { amount: 0, quantityType: 'TEASPOON' },
+      }),
+    ).toBe('salt');
+    expect(
+      crumbIngredientLine({ ingredient: { name: 'tomatoes' }, quantity: { amount: 2, quantityType: 'CAN' } }),
+    ).toBe('2 cans tomatoes');
   });
 
   it('maps every field into a draft', () => {
@@ -86,8 +111,15 @@ describe('Crouton .crumb import', () => {
     const uuid = () => `UUID-${++n}`;
     const draft = draftFromCrumb(CRUMB);
     const crumb = crumbFromDraft(draft, uuid);
-    expect(crumb.ingredients?.[0]).toMatchObject({ quantity: { quantityType: 'SECTION' }, ingredient: { name: 'Batter' } });
-    expect(crumb.ingredients?.find((i) => i.ingredient?.name === 'maple syrup')?.quantity).toEqual({ quantityType: 'TABLESPOON', amount: 2, secondaryAmount: 3 });
+    expect(crumb.ingredients?.[0]).toMatchObject({
+      quantity: { quantityType: 'SECTION' },
+      ingredient: { name: 'Batter' },
+    });
+    expect(crumb.ingredients?.find((i) => i.ingredient?.name === 'maple syrup')?.quantity).toEqual({
+      quantityType: 'TABLESPOON',
+      amount: 2,
+      secondaryAmount: 3,
+    });
     expect(crumb.neutritionalInfo).toBe('Calories: 420\nSugar: 9g\nProtein: 14g');
     expect(crumb.rawDifficulty).toBe('easy');
     expect(crumb.duration).toBe(10);
@@ -101,8 +133,13 @@ describe('Crouton .crumb import', () => {
   });
 
   it('keeps units Crouton has no type for in the ingredient name', () => {
-    const crumb = crumbFromDraft({ ...draftFromCrumb(CRUMB), ingredients: [{ lines: ['3 cloves garlic, minced', 'salt to taste'] }] }, () => 'X');
-    expect(crumb.ingredients?.map((i) => [i.quantity?.quantityType, i.quantity?.amount, i.ingredient?.name])).toEqual([
+    const crumb = crumbFromDraft(
+      { ...draftFromCrumb(CRUMB), ingredients: [{ lines: ['3 cloves garlic, minced', 'salt to taste'] }] },
+      () => 'X',
+    );
+    expect(
+      crumb.ingredients?.map((i) => [i.quantity?.quantityType, i.quantity?.amount, i.ingredient?.name]),
+    ).toEqual([
       ['ITEM', 3, 'cloves garlic, minced'],
       ['ITEM', 0, 'salt to taste'],
     ]);
@@ -128,10 +165,17 @@ describe('Crouton .crumb import', () => {
   it('exports a library as a zip of .crumb files that reads back', () => {
     const draft = draftFromCrumb(CRUMB);
     let n = 0;
-    const zip = crumbArchive([draft, { ...draft, name: 'Lemon Ricotta Pancakes' }, { ...draft, name: 'Toast / jam' }], () => `U-${++n}`);
+    const zip = crumbArchive(
+      [draft, { ...draft, name: 'Lemon Ricotta Pancakes' }, { ...draft, name: 'Toast / jam' }],
+      () => `U-${++n}`,
+    );
     const back = readRecipeFile('Gather export.zip', zip);
     expect(back.format).toBe('Crouton');
-    expect(back.drafts.map((d) => d.name).sort()).toEqual(['Lemon Ricotta Pancakes', 'Lemon Ricotta Pancakes', 'Toast / jam']);
+    expect(back.drafts.map((d) => d.name).sort()).toEqual([
+      'Lemon Ricotta Pancakes',
+      'Lemon Ricotta Pancakes',
+      'Toast / jam',
+    ]);
     expect(back.drafts[0]?.ingredients).toEqual(draft.ingredients);
   });
 });

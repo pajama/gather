@@ -7,6 +7,9 @@
 
 export const scanSupported = false;
 
-export async function recognizeText(_image: string, _onProgress?: (fraction: number) => void): Promise<string> {
+export async function recognizeText(
+  _image: string,
+  _onProgress?: (fraction: number) => void,
+): Promise<string> {
   throw new Error('Scanning is not available in this build.');
 }

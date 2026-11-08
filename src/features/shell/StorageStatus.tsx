@@ -15,7 +15,10 @@ export function StorageBanner({ bottomOffset = 96 }: { bottomOffset?: number }) 
   const health = useStorageHealth();
   const { colors, radius, space } = useTheme();
   const insets = useSafeAreaInsets();
-  const [dismissed, setDismissed] = useState<{ memory: boolean; failures: number }>({ memory: false, failures: 0 });
+  const [dismissed, setDismissed] = useState<{ memory: boolean; failures: number }>({
+    memory: false,
+    failures: 0,
+  });
 
   const showMemory = !health.persistent && !dismissed.memory;
   const showFailure = health.failures > dismissed.failures;
@@ -28,10 +31,21 @@ export function StorageBanner({ bottomOffset = 96 }: { bottomOffset?: number }) 
       : 'This browser isn’t letting Gather save, so changes last until you close the page. Export a backup in Settings to keep them.';
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + bottomOffset, paddingHorizontal: space.md }]}>
+    <View
+      pointerEvents="box-none"
+      style={[styles.wrap, { bottom: insets.bottom + bottomOffset, paddingHorizontal: space.md }]}
+    >
       <View
         accessibilityRole="alert"
-        style={[styles.banner, { backgroundColor: showFailure ? colors.danger : colors.text, borderRadius: radius.lg, padding: space.md, gap: space.md }]}
+        style={[
+          styles.banner,
+          {
+            backgroundColor: showFailure ? colors.danger : colors.text,
+            borderRadius: radius.lg,
+            padding: space.md,
+            gap: space.md,
+          },
+        ]}
       >
         <Icon name={showFailure ? 'alert' : 'info'} size={20} color={colors.background} />
         <Text variant="footnote" color={colors.background} style={styles.flex}>
@@ -53,14 +67,20 @@ export function StorageBanner({ bottomOffset = 96 }: { bottomOffset?: number }) 
 export function StorageErrorScreen({ error, retry }: { error: unknown; retry: () => void }) {
   const { colors, space } = useTheme();
   return (
-    <View style={[styles.fill, styles.center, { backgroundColor: colors.background, padding: space.xxl, gap: space.lg }]}>
+    <View
+      style={[
+        styles.fill,
+        styles.center,
+        { backgroundColor: colors.background, padding: space.xxl, gap: space.lg },
+      ]}
+    >
       <Icon name="alert" size={40} tone="danger" />
       <Text variant="title2" align="center">
         Gather couldn’t open your recipes
       </Text>
       <Text variant="body" tone="secondary" align="center">
-        Your recipes are stored on this device, and the storage didn’t open. Nothing has been deleted. Try again; if it keeps happening,
-        restart the device.
+        Your recipes are stored on this device, and the storage didn’t open. Nothing has been deleted. Try
+        again; if it keeps happening, restart the device.
       </Text>
       <Text variant="footnote" tone="tertiary" align="center">
         {error instanceof Error ? error.message : String(error)}
@@ -74,7 +94,13 @@ export function StorageErrorScreen({ error, retry }: { error: unknown; retry: ()
 export function ScreenError({ error, retry }: { error: Error; retry: () => Promise<void> }) {
   const { colors, space } = useTheme();
   return (
-    <View style={[styles.fill, styles.center, { backgroundColor: colors.background, padding: space.xxl, gap: space.lg }]}>
+    <View
+      style={[
+        styles.fill,
+        styles.center,
+        { backgroundColor: colors.background, padding: space.xxl, gap: space.lg },
+      ]}
+    >
       <Icon name="alert" size={40} tone="danger" />
       <Text variant="title2" align="center">
         Something went wrong on this screen
