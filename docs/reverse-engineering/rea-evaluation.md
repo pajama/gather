@@ -10,13 +10,13 @@ How capable is [REA](https://github.com/morluto/rea) ("reverse engineer anything
 
 ## Ground-truth test: an open-source recipe app
 
-To measure REA rather than guess, we ran it on [Salty](https://github.com/RMoRobert/salty) 3.4.3, an open-source (Apache-2.0) SwiftUI recipe manager for macOS, using the developer's own release build: a stripped, optimized binary like any App Store app (16.6 MB arm64 slice). The source at the same tag gives the right answers: 481 types declared in the app and its core package (289 in `Salty`, 192 in `SaltyCore`).
+To measure REA rather than guess, we ran it on [Salty](https://github.com/RMoRobert/salty) 3.4.3, an open-source (Apache-2.0) SwiftUI recipe manager for macOS, using the developer's own release build: a stripped, optimized binary like any App Store app (16.6 MB arm64 slice). The source at the same tag gives the right answers: 480 distinct types declared in the app and its core package.
 
 | Approach | Types recovered | Fields | Time |
 | --- | --- | --- | --- |
-| REA `analyze_swift_types` (symbol names) | 9 of 481 (2%): only classes the Objective-C runtime can see, plus three structs | none | 584 s for the first query (Ghidra import and analysis), then about 2 s per query |
-| REA string inventory (`list_strings`) | 421 of 481 type names appear as exact strings (88%), almost all among the 2,309 strings in `__TEXT,__const`, but nothing marks which strings are type names | none: Ghidra defines no strings in `__swift5_reflstr`, where field names live | 1.4 s (paged) |
-| Our metadata reader ([`tools/reverse-engineering/swift_model.py`](../../tools/reverse-engineering/swift_model.py)) | 427 of 476 classes, structs and enums (90%), plus protocols, with module and nesting | every stored field with a readable type; for the 12 core model types, 91 of 91 fields correct in name and order | about 2 s, no disassembler |
+| REA `analyze_swift_types` (symbol names) | 9 of 480 (2%): only classes the Objective-C runtime can see, plus three structs | none | 584 s for the first query (Ghidra import and analysis), then about 2 s per query |
+| REA string inventory (`list_strings`) | 420 of 480 type names appear as exact strings (88%), all among the 1,883 strings in `__TEXT,__const`, but nothing marks which strings are type names | none: Ghidra defines no strings in `__swift5_reflstr`, where field names live | 1.4 s (paged) |
+| Our metadata reader ([`tools/reverse-engineering/swift_model.py`](../../tools/reverse-engineering/swift_model.py)) | 436 of 480 (91%), with kind, module and nesting | every stored field with a readable type; for the 12 core model types, 91 of 91 fields correct in name and order | 0.2 s, no disassembler |
 
 What the reader produced for Salty's recipe model, from the binary alone:
 
@@ -28,14 +28,14 @@ struct SaltyCore.Recipe { id: String, name: String, createdDate: Date, lastModif
 enum SaltyCore.Difficulty { notSet, easy, somewhatEasy, medium, slightlyDifficult, difficult }
 ```
 
-The 49 types it missed have no runtime metadata at all: SwiftUI helper views the optimizer specialized away, case-less enums used as namespaces, preview providers.
+Of the 44 types it missed, 8 are iOS-only code that is not in the Mac build, 14 are case-less enums used as namespaces (Swift emits no metadata for them), 1 is a SwiftUI preview, and 21 are small helpers and private views with no entry in the binary's type metadata.
 
 **Behavior.** `trace_feature "tablespoon"` found the strings and the one function that uses them in under a second, and `procedure_pseudo_code` decompiled it. Ghidra's pseudo-C showed a lazy initializer building a nine-entry `[String: String]` dictionary, with Swift runtime calls and no names. Reading the entries took a ten-line decoder for Swift's inline strings: UN/CEFACT unit codes (`G21` cup, `G24` tablespoon, `G25` teaspoon, `GRM` g …), which Salty uses for structured recipe data. So REA finds code fast, but Swift semantics are left to the analyst.
 
 **Takeaways**
 
 1. REA's Swift type tool reads symbol names, and a release build has almost none. On real apps it recovers a few percent of the types.
-2. The type model is all there in Swift's reflection metadata, which REA does not parse. A 300-line reader over the same binary recovers about 90% of types and every field, on Linux, in seconds. That reader is what we will point at Crouton.
+2. The type model is all there in Swift's reflection metadata, which REA does not parse. A 300-line reader over the same binary recovers 91% of types and every field, on Linux, in under a second. That reader is what we will point at Crouton.
 3. REA's navigation (strings, references, containing procedures) and Ghidra decompilation work well and quickly once a session is warm.
 
 ## What else worked
@@ -63,7 +63,7 @@ The evidence model is a strength: every result says which provider produced it, 
 
 ## Verdict
 
-REA is a capable, well-instrumented front end to Ghidra and friends: fast navigation once warm, honest evidence, and useful web tooling. For Swift apps on Linux, though, its built-in tools miss the layer that matters most for a rebuild, the type model, and the macOS-only tools cover the bundle around the binary. A small purpose-built reader closed the gap on Salty with 90% type recall and exact fields.
+REA is a capable, well-instrumented front end to Ghidra and friends: fast navigation once warm, honest evidence, and useful web tooling. For Swift apps on Linux, though, its built-in tools miss the layer that matters most for a rebuild, the type model, and the macOS-only tools cover the bundle around the binary. A small purpose-built reader closed the gap on Salty with 91% type recall and exact fields.
 
 For Gather the decisive facts so far came from the developer's press-kit screenshots and from open-source projects that document Crouton's data model and file format. When the Crouton binary arrives:
 
