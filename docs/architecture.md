@@ -41,11 +41,13 @@ Dependencies point down only: `app → features → (ui, data) → core`. ESLint
 | `import/web.ts` | schema.org Recipe extraction from JSON-LD (incl. `@graph`, `HowToSection`) with a microdata fallback |
 | `import/text.ts` | Pasted-text recipes: section markers when present, line shape otherwise |
 | `import/feed.ts` | RSS/Atom parsing and feed discovery |
+| `import/files.ts` | Recipe files: Paprika exports, Gather files, saved pages, text, and Crouton files via `import/crumb.ts` |
+| `import/crumb.ts` | Crouton `.crumb` JSON in both directions (quantity types, `SECTION` headings, section steps, nutrition lines) |
 | `grocery/*` | Aisle lookup and merging (`1 cup milk + ½ cup milk → 1½ cups milk`) |
 | `planner/planner.ts` | Day keys, week ranges, automatic meal-plan generation |
 | `model/*` | Entity types, factories, library search/sort, editor text round-trip |
 
-Importers produce a platform-neutral `RecipeDraft`; `model/recipe.ts` turns a draft into a stored `Recipe`. New import sources (a photo/OCR importer, another app's export format) only need to produce a draft.
+Importers produce a platform-neutral `RecipeDraft`; `model/recipe.ts` turns a draft into a stored `Recipe`. New import sources (a photo/OCR importer, another app's export format) only need to produce a draft. `import/crumb.ts` is the model to copy: a reader, a writer and a round-trip test.
 
 ### data: storage, repositories and services
 
@@ -70,44 +72,49 @@ React bindings (react.tsx)     <DatabaseProvider>, useRecipes(), useRecipe(id), 
 
 ### ui: the design system
 
-- `theme/tokens.ts`: light/dark palettes, spacing, radii, the type ramp, and the user-selectable accent colors.
+- `theme/tokens.ts`: light/dark palettes (including the pastel green/yellow/purple action tints and the amber timer color), spacing, radii, the type ramp (rounded Nunito for titles, buttons and numbers; the system face for reading text), and the user-selectable accent colors.
 - `theme/theme.tsx`: `ThemeProvider` builds the theme from the accent and color-scheme preference; components call `useTheme()`.
-- `primitives/*`: `Text`, `Icon` (semantic names, one place to swap icon sets), `Tap` (press feedback + haptics), `Button`, `IconButton`, `Card`, `ListSection`/`ListRow`, `SearchField`, `Field`, `SegmentedControl`, `Stepper`, `Checkbox`, `Chip`, `EmptyState`, `Photo`, `Sheet`, `Screen`, `LargeHeader`.
+- `primitives/*`: `Text`, `Icon` (semantic names, one place to swap icon sets), `Tap` (press feedback + haptics), `Button` and `IconButton` (filled, tinted and pastel variants), `Card`, `ListSection`/`ListRow`, `SearchField`, `Field`, `SegmentedControl`, `Stepper`, `Checkbox`, `Chip`, `EmptyState`, `Photo`, `Sheet`, `Screen`, `LargeHeader` (nav row with back link and actions above a large title), `BackLink`.
+- `useAppLayout()` decides between the phone layout (tab bar) and the wide layout (sidebar, from 1000pt) and reports the width left for the screen.
 
-Screens never hard-code colors or font sizes; they read tokens. Changing the look (for example matching another app's palette) is a tokens change.
+Screens never hard-code colors or font sizes; they read tokens. Changing the look is mostly a tokens change: matching Crouton's published screenshots was a tokens change plus new layouts for a handful of screens.
 
 ### features
 
 | Feature | Route(s) | Notes |
 | --- | --- | --- |
-| `library` | `/` | Grid, search across ingredients, folders, favorites, sort, clipboard-link import prompt |
-| `recipe` | `/recipe/[id]` | Hero, stats, scaling, unit conversion, ingredient check-off, timers in steps, plan/groceries sheets |
-| `cook` | `/recipe/[id]/cook` | Step-by-step pager, "In this step" ingredients, timers; global `TimersProvider` + heads-up display |
-| `editor` | `/recipe/new`, `/recipe/[id]/edit` | Text-first editing (one line per ingredient/step, `Heading:` sections), photos |
-| `import` | `/import` | Website (schema.org) and pasted text |
+| `library` | `/` (All Recipes), `/collections`, `/collection/[id]` | The Recipes tab is a stack rooted at Collections (folders, favorites, colored tags) and opens on All Recipes. Photo cards with a frosted servings/time pill; on wide screens a list beside the open recipe |
+| `recipe` | `/recipe/[id]` | Inset hero with the title on it, Start / groceries / share actions, servings and time tiles, rating and difficulty, scaling and measurement sheets, one card per step with tappable timers and ingredient callouts |
+| `cook` | `/recipe/[id]/cook` | Step-by-step: one large step per page, arrows and page dots, hands-free (read aloud + voice commands) |
+| `timers` | (overlay) | `TimersProvider` above navigation, the floating timer card, the timer sheet for custom timers |
+| `editor` | `/recipe/new`, `/recipe/[id]/edit` | Text-first editing (one line per ingredient/step, `Heading:` sections), photos, rating, difficulty |
+| `import` | `/import` | Website (schema.org), pasted text, files (Crouton, Paprika, Gather, saved pages) |
 | `feeds` | `/discover` | Follow blogs; new posts become one-tap imports |
-| `planner` | `/plan` | Rolling week, slots, recipe picker, auto-fill dinners, shop for planned meals |
-| `groceries` | `/groceries` | Merged amounts, by aisle or by recipe, in-cart section |
+| `planner` | `/plan` | A card per day with + and … buttons, slots, recipe picker, plan dinners automatically, shop for the week |
+| `groceries` | `/groceries` | One card per item, merged amounts, optional grouping by aisle or recipe, Crouton-style entry panel (unit chips, fractions, number pad) |
 | `settings` | `/settings` | Accent color, theme, units, keep-awake, planner meals, backup/restore |
+| `shell` | (tab bar) | The wide-screen sidebar: Library, Folders, Tags, Settings |
 | `onboarding` | — | First-run sample recipes and their bundled photos |
+
+Features talk to each other only through each feature's `index.ts` (for example `recipe` and `cook` both use `@/features/timers`; `cook` uses `@/features/recipe` for step rendering).
 
 ## Adding a feature: a worked example
 
-Say we want **recipe ratings** shown on cards and editable on the recipe screen.
+Recipe **ratings and difficulty** went in like this, and most features follow the same path:
 
-1. **Model.** `Recipe.rating?: number` already exists in `core/model/types.ts`. For a new field, add it there and give it a default in `data/migrations.ts` if it is required.
-2. **Domain operation.** Add the operation to the repository (`RecipesRepository.setRating` exists) and a test in `data/database.test.ts`.
-3. **UI.** Build a `RatingStars` component in `src/features/recipe/` from `ui` primitives (`Icon`, `Tap`), call `db.recipes.setRating(...)`.
-4. **Route.** Nothing to do unless the feature needs a new screen; then add `src/app/<route>.tsx` that re-exports the feature screen.
-5. **Check.** `npm run check` (typecheck, lint with layer rules, tests) and `npm run build:web && npm run screenshots`.
-
-Larger features follow the same path. A Crouton `.crumb` importer, for example, is a `core/import/crumb.ts` that returns `RecipeDraft`s, plus a button in the import screen.
+1. **Model.** Add the field to `core/model/types.ts` (`rating?: number`, `difficulty?: Difficulty`) and to `RecipeDraft` if importers can fill it; map it in `recipeFromDraft`/`recipeToDraft`. Give it a default in `data/migrations.ts` only if it is required.
+2. **Domain logic.** Pure functions with tests next to them: the `rating` sort in `core/model/library.ts`, the `.crumb` mapping in `core/import/crumb.ts`.
+3. **Domain operation.** Add it to the repository (`RecipesRepository.setRating`) and a test in `data/database.test.ts`.
+4. **UI.** A `RatingStars` component in `src/features/recipe/` built from `ui` primitives, exported from the feature's `index.ts` so the editor can use it.
+5. **Route.** Nothing to do unless the feature needs a new screen; then add `src/app/<route>.tsx` that re-exports the feature screen.
+6. **Check.** `npm run check` (typecheck, lint with layer rules, tests) and `npm run build:web && npm run screenshots`.
 
 ## Platform notes
 
 - **Web import proxy.** Browsers cannot read most recipe sites (CORS). `scripts/import-proxy.mjs` is a tiny proxy for development; set `EXPO_PUBLIC_IMPORT_PROXY` when building the web app. On iOS and Android, pages are fetched directly.
 - **Images.** Imported recipes keep the source's image URL; photos added in the editor are stored as files (device) or data URLs (web). Sample photos ship in `assets/seed` and are referenced as `asset://seed/<name>`.
 - **Keep awake** uses `expo-keep-awake` on device; the web has no equivalent.
+- **Fonts.** Nunito (the rounded display face) is bundled through `@expo-google-fonts/nunito` and loaded before the splash screen hides.
 
 ## Testing and verification
 
