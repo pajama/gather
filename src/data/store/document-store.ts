@@ -15,6 +15,11 @@ export interface DocumentStore {
   putMany(collection: string, docs: StoredDocument[]): Promise<void>;
   deleteMany(collection: string, ids: string[]): Promise<void>;
   clear(collection: string): Promise<void>;
+  /**
+   * Replaces the whole contents of each named collection, all or nothing: if
+   * any write fails, every collection keeps its previous documents.
+   */
+  replaceCollections(contents: Record<string, StoredDocument[]>): Promise<void>;
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;
   close?(): Promise<void>;
@@ -50,6 +55,19 @@ export class MemoryStore implements DocumentStore {
 
   async clear(collection: string): Promise<void> {
     this.collections.delete(collection);
+  }
+
+  async replaceCollections(contents: Record<string, StoredDocument[]>): Promise<void> {
+    // Build every bucket first so a bad document cannot leave a partial result.
+    const next = Object.entries(contents).map(([name, docs]) => {
+      const bucket = new Map<string, string>();
+      for (const doc of docs) {
+        if (typeof doc.id !== 'string' || typeof doc.json !== 'string') throw new TypeError(`Invalid document in ${name}`);
+        bucket.set(doc.id, doc.json);
+      }
+      return [name, bucket] as const;
+    });
+    for (const [name, bucket] of next) this.collections.set(name, bucket);
   }
 
   async getMeta(key: string): Promise<string | null> {

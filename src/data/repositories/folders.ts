@@ -38,7 +38,8 @@ export class FoldersRepository {
   delete(id: ID): void {
     this.c.folders.remove(id);
     const affected = this.c.recipes.all().filter((r) => r.folderIds.includes(id));
-    this.c.recipes.upsert(...affected.map((r) => ({ ...r, folderIds: r.folderIds.filter((f) => f !== id) })));
+    const stamp = now();
+    this.c.recipes.upsert(...affected.map((r) => ({ ...r, folderIds: r.folderIds.filter((f) => f !== id), updatedAt: stamp })));
   }
 
   reorder(ids: ID[]): void {

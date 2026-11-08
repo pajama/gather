@@ -17,10 +17,15 @@ export function now(): Timestamp {
   return new Date().toISOString();
 }
 
-export function createRecipe(fields: Partial<Recipe> = {}): Recipe {
+/**
+ * A new recipe with a fresh id. `fields` may set anything else, including
+ * createdAt (sample data staggers it), but never the id: copying an existing
+ * recipe's fields must not produce a second document with the same id.
+ */
+export function createRecipe(fields: Omit<Partial<Recipe>, 'id'> = {}): Recipe {
   const stamp = now();
+  const { id: _ignored, ...rest } = fields as Partial<Recipe>;
   return {
-    id: newId(),
     createdAt: stamp,
     updatedAt: stamp,
     name: '',
@@ -31,7 +36,17 @@ export function createRecipe(fields: Partial<Recipe> = {}): Recipe {
     folderIds: [],
     favorite: false,
     cookCount: 0,
-    ...fields,
+    ...rest,
+    id: newId(),
+  };
+}
+
+/** Fresh ids for sections, items and images, so a copy shares nothing with its source. */
+export function withFreshIds(recipe: Pick<Recipe, 'ingredients' | 'steps' | 'images'>): Pick<Recipe, 'ingredients' | 'steps' | 'images'> {
+  return {
+    ingredients: recipe.ingredients.map((s) => ({ ...s, id: newId(), items: s.items.map((i) => ({ ...i, id: newId() })) })),
+    steps: recipe.steps.map((s) => ({ ...s, id: newId(), items: s.items.map((i) => ({ ...i, id: newId() })) })),
+    images: recipe.images.map((i) => ({ ...i, id: newId() })),
   };
 }
 

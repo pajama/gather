@@ -88,14 +88,16 @@ export class Collection<T extends Identified> {
     this.persist(() => this.store.deleteMany(this.name, present));
   }
 
-  /** Replaces the whole collection (restore from backup). */
+  /** Replaces the whole collection, atomically in storage. */
   replaceAll(items: T[]): void {
+    this.replaceLocal(items);
+    this.persist(() => this.store.replaceCollections({ [this.name]: items.map((item) => ({ id: item.id, json: JSON.stringify(item) })) }));
+  }
+
+  /** Swaps the in-memory contents without writing (after the caller has already persisted them). */
+  replaceLocal(items: T[]): void {
     this.items = new Map(items.map((item) => [item.id, item]));
     this.emit();
-    this.persist(async () => {
-      await this.store.clear(this.name);
-      await this.store.putMany(this.name, items.map((item) => ({ id: item.id, json: JSON.stringify(item) })));
-    });
   }
 
   subscribe = (listener: Listener): (() => void) => {
@@ -129,6 +131,8 @@ export class Singleton<T extends object> {
     private readonly key: string,
     private readonly defaults: T,
     private readonly onError?: (error: unknown) => void,
+    /** Cleans up a stored value (wrong types, missing keys); defaults to merging over the defaults. */
+    private readonly migrate: (raw: unknown) => T = (raw) => ({ ...defaults, ...(raw as Partial<T>) }),
   ) {
     this.value = defaults;
   }
@@ -137,7 +141,7 @@ export class Singleton<T extends object> {
     const raw = await this.store.getMeta(this.key);
     if (raw) {
       try {
-        this.value = { ...this.defaults, ...(JSON.parse(raw) as Partial<T>) };
+        this.value = this.migrate(JSON.parse(raw));
       } catch (error) {
         this.onError?.(error);
       }

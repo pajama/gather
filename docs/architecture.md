@@ -61,16 +61,20 @@ Collection<T>                  in-memory cache, synchronous reads, ordered write
 Repositories                   RecipesRepository, FoldersRepository, PlannerRepository,
                                GroceriesRepository, FeedsRepository: the domain operations
         ▲
-Database                       wires collections + repositories, migrations, seeding, backups
+Database                       builds collections from schema.ts; repositories, seeding, backups, health
         ▲
 React bindings (react.tsx)     <DatabaseProvider>, useRecipes(), useRecipe(id), usePlanEntries(days)…
 ```
 
-- **Documents, not tables.** Each entity is a JSON document keyed by `(collection, id)`. Adding a field never needs a schema migration; `migrations.ts` fills defaults when older documents load.
+- **Documents, not tables.** Each entity is a JSON document keyed by `(collection, id)`. Adding a field never needs a schema migration.
+- **One registry.** `schema.ts` lists every collection with its migration and how backups treat it (`required`, `optional`, `none`). The database, loading, flushing, backup and restore are derived from it, so a new entity is one line there plus its type and migration.
+- **Migrations validate.** Every collection has a migration in `migrations.ts`. It fills defaults for missing fields and throws `InvalidDocumentError` for a document that cannot be used (a plan entry without a day). Loading skips and reports such documents; a restore refuses the whole file.
+- **Restore is all or nothing.** `parseBackup` validates and upgrades the entire file first. Storage is replaced in one transaction (`DocumentStore.replaceCollections`: one SQLite transaction, one IndexedDB transaction), then the screens see the new data. The library from before is kept so the restore can be undone from Settings.
+- **Failures are visible.** `Database.health` reports whether storage is durable (a browser that blocks IndexedDB falls back to memory) and the last failed write; a banner tells the person, and a storage that will not open shows an error screen with a retry instead of a blank app.
 - **Reads are synchronous.** Collections load fully at startup (recipe libraries are small), so screens render from memory with no loading states. Writes update memory first, notify subscribers, then persist in order.
 - **Engines are swappable.** `open-store.ts` / `open-store.web.ts` pick SQLite or IndexedDB. Metro resolves the platform file; tests use `MemoryStore`.
 - **Services** hold side effects that are not storage: `page-fetcher(.web).ts` (the web build goes through an import proxy because browsers block cross-site reads), `feeds.ts`, `backup-file(.web).ts`, `scan-text(.web).ts` (text recognition with Tesseract in the browser, loaded on first use), `timer-alerts(.web).ts`, `print-recipe(.web).ts`.
-- **Sync-ready.** Every document carries `createdAt`/`updatedAt` and stable ids, which is what a sync engine (iCloud-style or a server) needs. Sync would be another layer over `DocumentStore`; screens would not change.
+- **Toward sync.** Every document carries stable ids and `createdAt`/`updatedAt`, and repository writes stamp `updatedAt` (cascades included). A sync engine still needs tombstones for deletes and a change log written with each document; it would sit over `DocumentStore`, and screens would not change.
 
 ### ui: the design system
 
@@ -104,7 +108,7 @@ Features talk to each other only through each feature's `index.ts` (for example 
 
 Recipe **ratings and difficulty** went in like this, and most features follow the same path:
 
-1. **Model.** Add the field to `core/model/types.ts` (`rating?: number`, `difficulty?: Difficulty`) and to `RecipeDraft` if importers can fill it; map it in `recipeFromDraft`/`recipeToDraft`. Give it a default in `data/migrations.ts` only if it is required.
+1. **Model.** Add the field to `core/model/types.ts` (`rating?: number`, `difficulty?: Difficulty`) and to `RecipeDraft` if importers can fill it; map it in `recipeFromDraft`/`recipeToDraft`. If the field is required, give it a default in its collection's migration in `data/migrations.ts`. A new entity gets a line in `data/schema.ts` and a migration.
 2. **Domain logic.** Pure functions with tests next to them: the `rating` sort in `core/model/library.ts`, the `.crumb` mapping in `core/import/crumb.ts`.
 3. **Domain operation.** Add it to the repository (`RecipesRepository.setRating`) and a test in `data/database.test.ts`.
 4. **UI.** A `RatingStars` component in `src/features/recipe/` built from `ui` primitives, exported from the feature's `index.ts` so the editor can use it.

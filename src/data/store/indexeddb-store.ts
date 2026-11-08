@@ -65,12 +65,23 @@ export class IndexedDBStore implements DocumentStore {
     await done(tx);
   }
 
-  async clear(collection: string): Promise<void> {
-    const docs = await this.loadAll(collection);
-    await this.deleteMany(
-      collection,
-      docs.map((d) => d.id),
-    );
+  clear(collection: string): Promise<void> {
+    return this.replaceCollections({ [collection]: [] });
+  }
+
+  /** One readwrite transaction: IndexedDB rolls all of it back if any request fails. */
+  async replaceCollections(contents: Record<string, StoredDocument[]>): Promise<void> {
+    const tx = this.db.transaction(DOCS, 'readwrite');
+    const store = tx.objectStore(DOCS);
+    const index = store.index('collection');
+    for (const [collection, docs] of Object.entries(contents)) {
+      const keys = index.getAllKeys(collection);
+      keys.onsuccess = () => {
+        for (const key of keys.result) store.delete(key);
+        for (const doc of docs) store.put({ collection, id: doc.id, json: doc.json } satisfies DocRow);
+      };
+    }
+    await done(tx);
   }
 
   async getMeta(key: string): Promise<string | null> {

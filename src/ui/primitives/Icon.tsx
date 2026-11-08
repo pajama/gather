@@ -61,6 +61,7 @@ const GLYPHS = {
   restaurant: 'restaurant-outline',
   nutrition: 'nutrition-outline',
   refresh: 'refresh',
+  undo: 'arrow-undo-outline',
   shuffle: 'shuffle',
   download: 'download-outline',
   upload: 'cloud-upload-outline',

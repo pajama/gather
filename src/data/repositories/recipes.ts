@@ -1,5 +1,5 @@
 import type { RecipeDraft } from '@/core/import/draft';
-import { createRecipe, now, recipeFromDraft } from '@/core/model/recipe';
+import { createRecipe, now, recipeFromDraft, withFreshIds } from '@/core/model/recipe';
 import type { ID, Recipe } from '@/core/model/types';
 
 import type { Collections } from '../database';
@@ -17,7 +17,7 @@ export class RecipesRepository {
     return this.c.recipes.all();
   }
 
-  create(fields: Partial<Recipe> = {}): Recipe {
+  create(fields: Omit<Partial<Recipe>, 'id'> = {}): Recipe {
     const recipe = createRecipe(fields);
     this.c.recipes.upsert(recipe);
     return recipe;
@@ -40,16 +40,18 @@ export class RecipesRepository {
     return this.c.recipes.update(id, (r) => ({ ...r, ...patch, updatedAt: now() }));
   }
 
+  /** A new recipe with the same content: its own id, timestamps and history; the source is untouched. */
   duplicate(id: ID): Recipe | undefined {
     const source = this.get(id);
     if (!source) return undefined;
+    const { id: _id, createdAt: _created, updatedAt: _updated, lastCookedAt: _cooked, ...content } = JSON.parse(JSON.stringify(source)) as Recipe;
     const copy = createRecipe({
-      ...(JSON.parse(JSON.stringify(source)) as Recipe),
+      ...content,
+      ...withFreshIds(content),
       name: `${source.name} (copy)`,
       favorite: false,
       cookCount: 0,
     });
-    delete copy.lastCookedAt;
     this.c.recipes.upsert(copy);
     return copy;
   }
@@ -68,7 +70,8 @@ export class RecipesRepository {
   }
 
   markCooked(id: ID): void {
-    this.c.recipes.update(id, (r) => ({ ...r, lastCookedAt: now(), cookCount: r.cookCount + 1 }));
+    const stamp = now();
+    this.c.recipes.update(id, (r) => ({ ...r, lastCookedAt: stamp, cookCount: r.cookCount + 1, updatedAt: stamp }));
   }
 
   /** Deletes a recipe and everything that pointed at it. */
@@ -77,7 +80,8 @@ export class RecipesRepository {
     const planned = this.c.plan.all().filter((e) => e.recipeId === id);
     this.c.plan.remove(...planned.map((e) => e.id));
     const items = this.c.groceries.all().filter((g) => g.recipeIds.includes(id));
-    this.c.groceries.upsert(...items.map((g) => ({ ...g, recipeIds: g.recipeIds.filter((r) => r !== id) })));
+    const stamp = now();
+    this.c.groceries.upsert(...items.map((g) => ({ ...g, recipeIds: g.recipeIds.filter((r) => r !== id), updatedAt: stamp })));
   }
 
   /** Distinct tags in use, most used first. */

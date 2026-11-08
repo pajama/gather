@@ -4,7 +4,7 @@ import { Nunito_700Bold } from '@expo-google-fonts/nunito/700Bold';
 import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import { Nunito_900Black } from '@expo-google-fonts/nunito/900Black';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DatabaseProvider, useSettings } from '@/data/react';
 import { seedDatabase } from '@/features/onboarding/seed';
+import { ScreenError, StorageBanner, StorageErrorScreen } from '@/features/shell';
 import { registerSeedImages } from '@/features/onboarding/seed-images';
 import { TimersProvider } from '@/features/timers';
 import { ThemeProvider, useTheme } from '@/ui';
@@ -34,6 +35,7 @@ function AppStack() {
         <Stack.Screen name="recipe/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="import" options={{ presentation: 'modal' }} />
       </Stack>
+      <StorageBanner />
     </>
   );
 }
@@ -59,12 +61,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.fill}>
       <SafeAreaProvider>
-        <DatabaseProvider seed={seedDatabase}>
+        <DatabaseProvider seed={seedDatabase} renderError={(error, retry) => <StorageErrorScreen error={error} retry={retry} />}>
           <ThemedApp />
         </DatabaseProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/** A screen that throws shows this instead of taking the whole app down. */
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <ScreenError {...props} />;
 }
 
 const styles = StyleSheet.create({ fill: { flex: 1 } });

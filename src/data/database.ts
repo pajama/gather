@@ -1,42 +1,43 @@
 /**
- * The app's data model at runtime: one reactive collection per entity plus
- * the settings document. Domain operations live in the repositories; this
- * file only wires storage, migrations and first-run seeding.
+ * The app's data model at runtime: one reactive collection per entity (see
+ * schema.ts) plus the settings document. Domain operations live in the
+ * repositories; this file wires storage, migrations, first-run seeding,
+ * backups and storage health.
  */
 
-import { DEFAULT_AISLE_ORDER } from '@/core/grocery/aisles';
-import type { Feed, Folder, GroceryItem, GroceryList, MealPlanEntry, Recipe, Settings } from '@/core/model/types';
-import type { KitchenTimer } from '@/core/timers/timers';
+import type { Settings } from '@/core/model/types';
 
-import { Collection, Singleton } from './collection';
-import { migrateRecipe } from './migrations';
+import { BACKUP_FORMAT, BACKUP_VERSION, parseBackup, type Backup } from './backup';
+import { Collection, Singleton, type Identified } from './collection';
+import { migrateSettings } from './migrations';
 import { FeedsRepository } from './repositories/feeds';
 import { FoldersRepository } from './repositories/folders';
 import { GroceriesRepository } from './repositories/groceries';
 import { PlannerRepository } from './repositories/planner';
 import { RecipesRepository } from './repositories/recipes';
 import { TimersRepository } from './repositories/timers';
+import { BACKUP_COLLECTIONS, COLLECTION_NAMES, DEFAULT_SETTINGS, SCHEMA, type Docs } from './schema';
+import { Signal } from './signal';
 import type { DocumentStore } from './store/document-store';
 
-export const DEFAULT_SETTINGS: Settings = {
-  accent: 'sky',
-  theme: 'system',
-  units: 'original',
-  keepAwake: true,
-  plannerSlots: ['breakfast', 'lunch', 'dinner'],
-  aisleOrder: [...DEFAULT_AISLE_ORDER],
-};
+export { DEFAULT_SETTINGS } from './schema';
+export type { Backup } from './backup';
+export { BackupError } from './backup';
 
-export interface Collections {
-  recipes: Collection<Recipe>;
-  folders: Collection<Folder>;
-  plan: Collection<MealPlanEntry>;
-  groceries: Collection<GroceryItem>;
-  lists: Collection<GroceryList>;
-  feeds: Collection<Feed>;
-  timers: Collection<KitchenTimer>;
-  settings: Singleton<Settings>;
+export type Collections = { [K in keyof Docs]: Collection<Docs[K]> } & { settings: Singleton<Settings> };
+
+/** Whether what the user does is being saved. */
+export interface StorageHealth {
+  /** False when no durable storage is available (for example, a browser that blocks IndexedDB). */
+  persistent: boolean;
+  /** Message of the most recent failed write or load. */
+  lastError?: string;
+  /** Increments with every failure, so the UI can show a new one even after dismissing the last. */
+  failures: number;
 }
+
+/** Where the library is copied before a restore, so the restore can be undone. */
+const PRE_RESTORE_KEY = 'backup:before-restore';
 
 export class Database {
   readonly collections: Collections;
@@ -46,21 +47,20 @@ export class Database {
   readonly groceries: GroceriesRepository;
   readonly feeds: FeedsRepository;
   readonly timers: TimersRepository;
+  readonly health: Signal<StorageHealth>;
 
   private constructor(
     readonly store: DocumentStore,
-    onError: (error: unknown) => void,
+    private readonly onError: (error: unknown) => void,
   ) {
-    this.collections = {
-      recipes: new Collection<Recipe>(store, 'recipes', { migrate: migrateRecipe, onError }),
-      folders: new Collection<Folder>(store, 'folders', { onError }),
-      plan: new Collection<MealPlanEntry>(store, 'plan', { onError }),
-      groceries: new Collection<GroceryItem>(store, 'groceries', { onError }),
-      lists: new Collection<GroceryList>(store, 'lists', { onError }),
-      feeds: new Collection<Feed>(store, 'feeds', { onError }),
-      timers: new Collection<KitchenTimer>(store, 'timers', { onError }),
-      settings: new Singleton<Settings>(store, 'settings', DEFAULT_SETTINGS, onError),
-    };
+    this.health = new Signal<StorageHealth>({ persistent: store.kind !== 'memory', failures: 0 });
+    const report = (error: unknown) => this.reportError(error);
+    const collections: Record<string, unknown> = {};
+    for (const name of COLLECTION_NAMES) {
+      collections[name] = new Collection<Identified>(store, name, { migrate: SCHEMA[name].migrate as (raw: unknown) => Identified, onError: report });
+    }
+    collections.settings = new Singleton<Settings>(store, 'settings', DEFAULT_SETTINGS, report, (raw) => migrateSettings(raw, DEFAULT_SETTINGS));
+    this.collections = collections as Collections;
     this.recipes = new RecipesRepository(this.collections);
     this.folders = new FoldersRepository(this.collections);
     this.planner = new PlannerRepository(this.collections);
@@ -74,17 +74,7 @@ export class Database {
     options: { seed?: (db: Database) => void | Promise<void>; onError?: (error: unknown) => void } = {},
   ): Promise<Database> {
     const db = new Database(store, options.onError ?? ((e) => console.warn('[gather] storage error', e)));
-    const c = db.collections;
-    await Promise.all([
-      c.recipes.load(),
-      c.folders.load(),
-      c.plan.load(),
-      c.groceries.load(),
-      c.lists.load(),
-      c.feeds.load(),
-      c.timers.load(),
-      c.settings.load(),
-    ]);
+    await Promise.all([...COLLECTION_NAMES.map((name) => db.collections[name].load()), db.collections.settings.load()]);
     if ((await store.getMeta('seeded')) === null) {
       await options.seed?.(db);
       await store.setMeta('seeded', new Date().toISOString());
@@ -104,60 +94,59 @@ export class Database {
 
   /** Waits for all pending writes (tests, backups, app backgrounding). */
   async flush(): Promise<void> {
-    const c = this.collections;
-    await Promise.all([
-      c.recipes.flush(),
-      c.folders.flush(),
-      c.plan.flush(),
-      c.groceries.flush(),
-      c.lists.flush(),
-      c.feeds.flush(),
-      c.timers.flush(),
-      c.settings.flush(),
-    ]);
+    await Promise.all([...COLLECTION_NAMES.map((name) => this.collections[name].flush()), this.collections.settings.flush()]);
   }
 
-  /** Everything, as one JSON-serializable backup. */
+  /** Everything in the library, as one JSON-serializable backup. */
   exportBackup(): Backup {
-    const c = this.collections;
+    const collections = Object.fromEntries(BACKUP_COLLECTIONS.map((name) => [name, [...this.collections[name].all()]]));
     return {
-      format: 'gather-backup',
-      version: 1,
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
       exportedAt: new Date().toISOString(),
-      recipes: [...c.recipes.all()],
-      folders: [...c.folders.all()],
-      plan: [...c.plan.all()],
-      groceries: [...c.groceries.all()],
-      lists: [...c.lists.all()],
-      feeds: [...c.feeds.all()],
-      settings: c.settings.get(),
-    };
+      settings: this.collections.settings.get(),
+      ...collections,
+    } as Backup;
   }
 
-  restoreBackup(backup: Backup): void {
-    if (backup.format !== 'gather-backup') throw new Error('Not a Gather backup');
-    const c = this.collections;
-    c.recipes.replaceAll(backup.recipes.map(migrateRecipe));
-    c.folders.replaceAll(backup.folders);
-    c.plan.replaceAll(backup.plan);
-    c.groceries.replaceAll(backup.groceries);
-    c.lists.replaceAll(backup.lists);
-    c.feeds.replaceAll(backup.feeds ?? []);
-    c.settings.set(backup.settings);
+  /**
+   * Replaces the library with a backup. The file is validated first (throws
+   * BackupError and changes nothing if it can't be used), the current library
+   * is kept for undoRestore(), and storage is replaced in one transaction
+   * before the screens see the new data.
+   */
+  async restoreBackup(raw: unknown, options: { keepUndo?: boolean } = {}): Promise<{ recipes: number }> {
+    const backup = parseBackup(raw);
+    await this.flush();
+    if (options.keepUndo !== false) await this.store.setMeta(PRE_RESTORE_KEY, JSON.stringify(this.exportBackup()));
+    const contents = Object.fromEntries(
+      BACKUP_COLLECTIONS.map((name) => [name, (backup[name] as Identified[]).map((doc) => ({ id: doc.id, json: JSON.stringify(doc) }))]),
+    );
+    await this.store.replaceCollections(contents);
+    for (const name of BACKUP_COLLECTIONS) (this.collections[name] as Collection<Identified>).replaceLocal(backup[name] as Identified[]);
+    this.collections.settings.set(backup.settings);
     this.groceries.ensureDefaultList();
+    return { recipes: backup.recipes.length };
   }
-}
 
-export interface Backup {
-  format: 'gather-backup';
-  version: 1;
-  exportedAt: string;
-  recipes: Recipe[];
-  folders: Folder[];
-  plan: MealPlanEntry[];
-  groceries: GroceryItem[];
-  lists: GroceryList[];
-  /** Added after version 1 shipped; optional so older backups restore. */
-  feeds?: Feed[];
-  settings: Settings;
+  /** Whether a restore can be undone (the library from before it was kept). */
+  async canUndoRestore(): Promise<boolean> {
+    return !!(await this.store.getMeta(PRE_RESTORE_KEY));
+  }
+
+  /** Puts back the library from before the last restore. */
+  async undoRestore(): Promise<{ recipes: number }> {
+    const saved = await this.store.getMeta(PRE_RESTORE_KEY);
+    if (!saved) throw new Error('There is no restore to undo.');
+    const result = await this.restoreBackup(JSON.parse(saved), { keepUndo: false });
+    await this.store.setMeta(PRE_RESTORE_KEY, '');
+    return result;
+  }
+
+  /** Records a storage failure for the UI, and passes it on. */
+  reportError(error: unknown): void {
+    const current = this.health.get();
+    this.health.set({ ...current, failures: current.failures + 1, lastError: error instanceof Error ? error.message : String(error) });
+    this.onError(error);
+  }
 }

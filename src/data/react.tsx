@@ -9,7 +9,7 @@ import type { DayKey, Feed, Folder, GroceryItem, ID, MealPlanEntry, Recipe, Sett
 import type { KitchenTimer } from '@/core/timers/timers';
 
 import type { Collection, Identified, Singleton } from './collection';
-import { Database } from './database';
+import { Database, type StorageHealth } from './database';
 import { DEFAULT_LIST_ID } from './repositories/groceries';
 import { openStore } from './store/open-store';
 
@@ -19,15 +19,20 @@ export function DatabaseProvider({
   children,
   seed,
   fallback = null,
+  renderError,
   database,
 }: {
   children: ReactNode;
   seed?: (db: Database) => void | Promise<void>;
   fallback?: ReactNode;
+  /** Shown when storage cannot be opened; `retry` tries again. */
+  renderError?: (error: unknown, retry: () => void) => ReactNode;
   /** Inject a database (tests, previews). */
   database?: Database;
 }) {
   const [db, setDb] = useState<Database | null>(database ?? null);
+  const [failure, setFailure] = useState<{ error: unknown } | null>(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (database) return;
     let cancelled = false;
@@ -36,13 +41,32 @@ export function DatabaseProvider({
       .then((opened) => {
         if (!cancelled) setDb(opened);
       })
-      .catch((error: unknown) => console.error('[gather] could not open storage', error));
+      .catch((error: unknown) => {
+        console.error('[gather] could not open storage', error);
+        if (!cancelled) setFailure({ error });
+      });
     return () => {
       cancelled = true;
     };
-  }, [database, seed]);
+  }, [database, seed, attempt]);
+  if (!db && failure && renderError) {
+    return (
+      <>
+        {renderError(failure.error, () => {
+          setFailure(null);
+          setAttempt((n) => n + 1);
+        })}
+      </>
+    );
+  }
   if (!db) return <>{fallback}</>;
   return <DatabaseContext.Provider value={db}>{children}</DatabaseContext.Provider>;
+}
+
+/** Whether changes are being saved, and the last storage failure. */
+export function useStorageHealth(): StorageHealth {
+  const db = useDb();
+  return useSyncExternalStore(db.health.subscribe, db.health.get, db.health.get);
 }
 
 export function useDb(): Database {

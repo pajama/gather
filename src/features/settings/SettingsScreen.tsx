@@ -1,12 +1,12 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { crumbArchive } from '@/core/import/crumb';
 import { newId, recipeToDraft } from '@/core/model/recipe';
 import { MEAL_SLOTS, type MealSlot, type UnitPreference } from '@/core/model/types';
-import type { Backup } from '@/data/database';
+import { BackupError } from '@/data/database';
 import { useDb, useRecipes, useSettings } from '@/data/react';
 import { pickBackupFile, saveBackupFile } from '@/data/services/backup-file';
 import { shareBinaryFile } from '@/data/services/pick-file';
@@ -31,6 +31,17 @@ export function SettingsScreen() {
   const recipes = useRecipes();
   const { colors, space, radius, scheme } = useTheme();
   const [status, setStatus] = useState<string | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    db.canUndoRestore()
+      .then((value) => live && setCanUndo(value))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [db]);
 
   const exportBackup = async () => {
     const backup = db.exportBackup();
@@ -42,17 +53,40 @@ export function SettingsScreen() {
   const importBackup = async () => {
     const text = await pickBackupFile();
     if (!text) return;
-    let backup: Backup;
+    let parsed: unknown;
+    let count = 0;
     try {
-      backup = JSON.parse(text) as Backup;
-      if (backup.format !== 'gather-backup') throw new Error('format');
-    } catch {
-      setStatus('That file isn’t a Gather backup.');
+      parsed = JSON.parse(text);
+      count = Array.isArray((parsed as { recipes?: unknown }).recipes) ? (parsed as { recipes: unknown[] }).recipes.length : 0;
+      if ((parsed as { format?: unknown }).format !== 'gather-backup') throw new BackupError('That file isn’t a Gather backup.');
+    } catch (error) {
+      setStatus(error instanceof BackupError ? error.message : 'That file isn’t a Gather backup.');
       return;
     }
-    confirm('Replace everything?', `Restoring replaces your library with ${backup.recipes.length} recipes from the backup.`, () => {
-      db.restoreBackup(backup);
-      setStatus(`Restored ${backup.recipes.length} recipes`);
+    confirm(
+      'Replace everything?',
+      `Restoring replaces your library with ${count} recipes from the backup. Your current library is kept, so you can undo this.`,
+      () => {
+        db.restoreBackup(parsed)
+          .then((result) => {
+            setStatus(`Restored ${result.recipes} recipes`);
+            setCanUndo(true);
+          })
+          .catch((error: unknown) => {
+            setStatus(error instanceof BackupError ? error.message : `Restore failed, so nothing was changed. (${String(error)})`);
+          });
+      },
+    );
+  };
+
+  const undoRestore = () => {
+    confirm('Undo the restore?', 'Your library goes back to how it was before the last restore.', () => {
+      db.undoRestore()
+        .then((result) => {
+          setStatus(`Put back ${result.recipes} recipes from before the restore`);
+          setCanUndo(false);
+        })
+        .catch((error: unknown) => setStatus(`Couldn’t undo the restore. (${String(error)})`));
     });
   };
 
@@ -149,6 +183,7 @@ export function SettingsScreen() {
       <ListSection title="Your data" footer={status ?? `${recipes.length} recipes stored on this device.`}>
         <ListRow icon="upload" iconColor="#5E8BD6" title="Export a backup" subtitle="Everything, as one file" onPress={() => void exportBackup()} />
         <ListRow icon="download" iconColor="#2F9E5B" title="Restore from backup" onPress={() => void importBackup()} />
+        {canUndo ? <ListRow icon="undo" iconColor="#8E8E93" title="Undo last restore" subtitle="Put back the library from before it" onPress={undoRestore} /> : null}
       </ListSection>
 
       <ListSection title="Other apps" footer="Crouton opens .crumb files, so recipes can move between the two apps in either direction.">

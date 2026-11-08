@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseRecipeText } from '@/core/import/text';
 import { seededRandom, weekDays } from '@/core/planner/planner';
 
-import { Database } from './database';
+import { BackupError, Database } from './database';
 import { MemoryStore } from './store/document-store';
 
 const PANCAKES = `Pancakes
@@ -128,9 +128,123 @@ describe('Database', () => {
     db.recipes.createFromDraft(parseRecipeText(PANCAKES));
     db.updateSettings({ accent: 'sage' });
     const backup = JSON.parse(JSON.stringify(db.exportBackup()));
-    const { db: other } = await openDb();
-    other.restoreBackup(backup);
+    const { db: other, store } = await openDb();
+    await other.restoreBackup(backup);
     expect(other.recipes.all().map((r) => r.name)).toEqual(['Pancakes']);
     expect(other.settings.accent).toBe('sage');
+    await other.flush();
+    const reopened = await Database.open(store);
+    expect(reopened.recipes.all().map((r) => r.name)).toEqual(['Pancakes']);
+  });
+
+  it('duplicates a recipe without touching the original', async () => {
+    const { db } = await openDb();
+    const original = db.recipes.createFromDraft(parseRecipeText(PANCAKES));
+    db.recipes.toggleFavorite(original.id);
+    db.recipes.markCooked(original.id);
+    const copy = db.recipes.duplicate(original.id)!;
+    expect(copy.id).not.toBe(original.id);
+    expect(db.recipes.all()).toHaveLength(2);
+    const kept = db.recipes.get(original.id)!;
+    expect(kept.name).toBe('Pancakes');
+    expect(kept.favorite).toBe(true);
+    expect(kept.cookCount).toBe(1);
+    expect(copy.name).toBe('Pancakes (copy)');
+    expect(copy.cookCount).toBe(0);
+    expect(copy.lastCookedAt).toBeUndefined();
+    const ids = (r: typeof copy) => [...r.ingredients, ...r.steps].flatMap((s) => [s.id, ...s.items.map((i) => i.id)]);
+    expect(ids(copy).some((id) => ids(kept).includes(id))).toBe(false);
+    expect(copy.ingredients[0]?.items.map((i) => i.text)).toEqual(kept.ingredients[0]?.items.map((i) => i.text));
+  });
+
+  it('rejects a damaged backup and changes nothing', async () => {
+    const { db, store } = await openDb();
+    db.recipes.createFromDraft(parseRecipeText(PANCAKES));
+    db.groceries.addText('2 lemons');
+    const backup = JSON.parse(JSON.stringify(db.exportBackup()));
+    const { db: other } = await openDb();
+    other.recipes.createFromDraft(parseRecipeText(CREPES));
+    await other.flush();
+
+    const missingFolders = { ...backup };
+    delete missingFolders.folders;
+    await expect(other.restoreBackup(missingFolders)).rejects.toThrow(BackupError);
+    await expect(other.restoreBackup({ ...backup, plan: [{ slot: 'dinner' }] })).rejects.toThrow(/meal plan/);
+    await expect(other.restoreBackup({ ...backup, version: 99 })).rejects.toThrow(/newer version/);
+    await expect(other.restoreBackup({ hello: 'world' })).rejects.toThrow(/isn’t a Gather backup/);
+    expect(other.recipes.all().map((r) => r.name)).toEqual(['Crepes']);
+    expect(store).toBeDefined();
+  });
+
+  it('restores older backups and fills in missing fields', async () => {
+    const { db } = await openDb();
+    await db.restoreBackup({
+      format: 'gather-backup',
+      version: 1,
+      exportedAt: '2026-01-01T00:00:00Z',
+      recipes: [{ name: 'Old soup', ingredients: [{ items: [{ text: '1 onion' }] }] }],
+      folders: [],
+      plan: [],
+      groceries: [{ text: '2 lemons' }],
+      lists: [],
+      settings: { accent: 'tomato', units: 42 },
+    });
+    const [soup] = db.recipes.all();
+    expect(soup?.id).toMatch(/[0-9a-f-]{36}/);
+    expect(soup?.ingredients[0]?.items[0]?.id).toBeTruthy();
+    expect(soup?.tags).toEqual([]);
+    const [lemons] = db.groceries.items();
+    expect(lemons?.name).toBe('lemons');
+    expect(lemons?.listId).toBe('default');
+    expect(db.settings.accent).toBe('tomato');
+    expect(db.settings.units).toBe('original');
+  });
+
+  it('can undo a restore', async () => {
+    const { db } = await openDb();
+    db.recipes.createFromDraft(parseRecipeText(CREPES));
+    const { db: source } = await openDb();
+    source.recipes.createFromDraft(parseRecipeText(PANCAKES));
+    expect(await db.canUndoRestore()).toBe(false);
+    await db.restoreBackup(JSON.parse(JSON.stringify(source.exportBackup())));
+    expect(db.recipes.all().map((r) => r.name)).toEqual(['Pancakes']);
+    expect(await db.canUndoRestore()).toBe(true);
+    await db.undoRestore();
+    expect(db.recipes.all().map((r) => r.name)).toEqual(['Crepes']);
+    expect(await db.canUndoRestore()).toBe(false);
+  });
+
+  it('keeps the previous contents when an atomic replace fails', async () => {
+    const store = new MemoryStore();
+    const { db } = await openDb(store);
+    db.recipes.createFromDraft(parseRecipeText(CREPES));
+    await db.flush();
+    await expect(store.replaceCollections({ recipes: [{ id: 'ok', json: '{}' }], plan: [{ id: 7 as unknown as string, json: '{}' }] })).rejects.toThrow();
+    const reopened = await Database.open(store);
+    expect(reopened.recipes.all().map((r) => r.name)).toEqual(['Crepes']);
+  });
+
+  it('reports storage failures', async () => {
+    const store = new MemoryStore();
+    const db = await Database.open(store, { onError: () => undefined });
+    expect(db.health.get()).toEqual({ persistent: false, failures: 0 });
+    store.putMany = () => Promise.reject(new Error('disk full'));
+    db.recipes.createFromDraft(parseRecipeText(CREPES));
+    await db.flush();
+    expect(db.health.get().failures).toBe(1);
+    expect(db.health.get().lastError).toBe('disk full');
+  });
+
+  it('skips stored documents that cannot be read', async () => {
+    const store = new MemoryStore();
+    await store.putMany('plan', [
+      { id: 'a', json: JSON.stringify({ id: 'a', day: '2026-01-01', slot: 'dinner', title: 'Leftovers' }) },
+      { id: 'b', json: JSON.stringify({ id: 'b', slot: 'dinner' }) },
+      { id: 'c', json: 'not json' },
+    ]);
+    const errors: unknown[] = [];
+    const db = await Database.open(store, { onError: (e) => errors.push(e) });
+    expect(db.collections.plan.all().map((e) => e.id)).toEqual(['a']);
+    expect(errors).toHaveLength(2);
   });
 });

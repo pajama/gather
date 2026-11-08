@@ -62,6 +62,22 @@ export class SQLiteStore implements DocumentStore {
     await this.queue.run(() => this.db.runAsync('DELETE FROM documents WHERE collection = ?', collection));
   }
 
+  replaceCollections(contents: Record<string, StoredDocument[]>): Promise<void> {
+    return this.queue.run(() =>
+      this.db.withTransactionAsync(async () => {
+        const insert = await this.db.prepareAsync('INSERT INTO documents (collection, id, json) VALUES (?, ?, ?)');
+        try {
+          for (const [collection, docs] of Object.entries(contents)) {
+            await this.db.runAsync('DELETE FROM documents WHERE collection = ?', collection);
+            for (const doc of docs) await insert.executeAsync(collection, doc.id, doc.json);
+          }
+        } finally {
+          await insert.finalizeAsync();
+        }
+      }),
+    );
+  }
+
   getMeta(key: string): Promise<string | null> {
     return this.queue.run(async () => {
       const row = await this.db.getFirstAsync<{ value: string }>('SELECT value FROM meta WHERE key = ?', key);
