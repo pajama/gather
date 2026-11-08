@@ -1,3 +1,4 @@
+import { useBottomTabBarHeight } from 'expo-router/tabs';
 import { useMemo, useState } from 'react';
 import { Platform, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,7 +7,23 @@ import { AISLES, aisleById } from '@/core/grocery/aisles';
 import type { GroceryItem } from '@/core/model/types';
 import { parseIngredient, formatIngredient } from '@/core/recipe/ingredients';
 import { useDb, useGroceryItems, useRecipes, useSettings } from '@/data/react';
-import { Button, Checkbox, EmptyState, Field, haptic, IconButton, LargeHeader, ListRow, ListSection, Screen, Sheet, Tap, Text, useTheme } from '@/ui';
+import {
+  Button,
+  Checkbox,
+  EmptyState,
+  Field,
+  haptic,
+  IconButton,
+  LargeHeader,
+  ListRow,
+  ListSection,
+  Screen,
+  Sheet,
+  Tap,
+  Text,
+  useKeyboardHeight,
+  useTheme,
+} from '@/ui';
 
 import { AddItemPanel } from './AddItemPanel';
 
@@ -24,6 +41,8 @@ export function GroceriesScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<GroceryItem | null>(null);
+  const keyboard = useKeyboardHeight();
+  const tabBarHeight = useBottomTabBarHeight();
 
   const open = items.filter((i) => !i.checked);
   const checked = items.filter((i) => i.checked);
@@ -45,7 +64,11 @@ export function GroceriesScreen() {
     }
     return [...byRecipe.entries()]
       .sort((a, b) => (a[0] === 'other' ? 1 : b[0] === 'other' ? -1 : 0))
-      .map(([key, list]) => ({ key, title: key === 'other' ? 'Other items' : (recipes.find((r) => r.id === key)?.name ?? 'Recipe'), items: list }));
+      .map(([key, list]) => ({
+        key,
+        title: key === 'other' ? 'Other items' : (recipes.find((r) => r.id === key)?.name ?? 'Recipe'),
+        items: list,
+      }));
   }, [grouping, open, recipes, settings.aisleOrder]);
 
   const share = async () => {
@@ -63,11 +86,25 @@ export function GroceriesScreen() {
         header={
           <LargeHeader
             title="Groceries"
-            subtitle={items.length ? `${open.length} to buy${checked.length ? ` · ${checked.length} done` : ''}` : undefined}
+            subtitle={
+              items.length
+                ? `${open.length} to buy${checked.length ? ` · ${checked.length} done` : ''}`
+                : undefined
+            }
             right={
               <>
-                <IconButton icon="add" variant="tinted" onPress={() => setAdding(true)} accessibilityLabel="Add an item" />
-                <IconButton icon="more" variant="tinted" onPress={() => setMenuOpen(true)} accessibilityLabel="Grocery list options" />
+                <IconButton
+                  icon="add"
+                  variant="tinted"
+                  onPress={() => setAdding(true)}
+                  accessibilityLabel="Add an item"
+                />
+                <IconButton
+                  icon="more"
+                  variant="tinted"
+                  onPress={() => setMenuOpen(true)}
+                  accessibilityLabel="Grocery list options"
+                />
               </>
             }
           />
@@ -79,7 +116,9 @@ export function GroceriesScreen() {
             icon="basket"
             title="Your list is empty"
             message="Tap + to add an item, or open a recipe and tap the basket to add its ingredients."
-            action={<Button title="Add an item" icon="add" variant="tinted" onPress={() => setAdding(true)} />}
+            action={
+              <Button title="Add an item" icon="add" variant="tinted" onPress={() => setAdding(true)} />
+            }
           />
         ) : null}
 
@@ -127,7 +166,13 @@ export function GroceriesScreen() {
       </Screen>
 
       {adding ? (
-        <View style={[styles.panelWrap, { paddingHorizontal: space.md }]} pointerEvents="box-none">
+        <View
+          style={[
+            styles.panelWrap,
+            { paddingHorizontal: space.md, bottom: Math.max(0, keyboard - tabBarHeight) },
+          ]}
+          pointerEvents="box-none"
+        >
           <AddItemPanel
             onAdd={(text) => {
               db.groceries.addText(text);
@@ -147,16 +192,57 @@ export function GroceriesScreen() {
               ['recipe', 'Recipe'],
             ] as const
           ).map(([value, label]) => (
-            <ListRow key={value} title={label} accessory={grouping === value ? 'check' : 'none'} onPress={() => { setGrouping(value); setMenuOpen(false); }} />
+            <ListRow
+              key={value}
+              title={label}
+              accessory={grouping === value ? 'check' : 'none'}
+              onPress={() => {
+                setGrouping(value);
+                setMenuOpen(false);
+              }}
+            />
           ))}
         </ListSection>
         <ListSection>
-          <ListRow icon="share" iconColor="#5E5CE6" title="Share list" onPress={() => { setMenuOpen(false); void share(); }} />
-          <ListRow icon="refresh" iconColor="#3D8EF0" title="Uncheck everything" onPress={() => { db.groceries.uncheckAll(); setMenuOpen(false); }} />
-          <ListRow icon="checkCircle" iconColor="#34C759" title="Clear checked items" onPress={() => { db.groceries.clearChecked(); setMenuOpen(false); }} />
+          <ListRow
+            icon="share"
+            iconColor="#5E5CE6"
+            title="Share list"
+            onPress={() => {
+              setMenuOpen(false);
+              void share();
+            }}
+          />
+          <ListRow
+            icon="refresh"
+            iconColor="#3D8EF0"
+            title="Uncheck everything"
+            onPress={() => {
+              db.groceries.uncheckAll();
+              setMenuOpen(false);
+            }}
+          />
+          <ListRow
+            icon="checkCircle"
+            iconColor="#34C759"
+            title="Clear checked items"
+            onPress={() => {
+              db.groceries.clearChecked();
+              setMenuOpen(false);
+            }}
+          />
         </ListSection>
         <ListSection>
-          <ListRow icon="trash" iconColor={colors.danger} title="Clear the whole list" destructive onPress={() => { db.groceries.clearAll(); setMenuOpen(false); }} />
+          <ListRow
+            icon="trash"
+            iconColor={colors.danger}
+            title="Clear the whole list"
+            destructive
+            onPress={() => {
+              db.groceries.clearAll();
+              setMenuOpen(false);
+            }}
+          />
         </ListSection>
       </Sheet>
 
@@ -187,7 +273,16 @@ function GroceryCard({ item, onEdit }: { item: GroceryItem; onEdit: () => void }
       accessibilityRole="checkbox"
       accessibilityState={{ checked: item.checked }}
       accessibilityLabel={item.text}
-      style={[styles.card, { backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: space.md, gap: space.md, opacity: item.checked ? 0.55 : 1 }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderRadius: radius.lg,
+          paddingHorizontal: space.md,
+          gap: space.md,
+          opacity: item.checked ? 0.55 : 1,
+        },
+      ]}
     >
       <Checkbox checked={item.checked} size={28} />
       <View style={styles.flex}>
@@ -218,15 +313,47 @@ function ItemSheet({ item, onClose }: { item: GroceryItem | null; onClose: () =>
   return (
     <Sheet visible onClose={onClose} title="Edit item">
       <View style={{ gap: space.lg }}>
-        <Field value={text} onChangeText={setText} onSubmitEditing={() => { db.groceries.edit(item.id, text); onClose(); }} />
+        <Field
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={() => {
+            db.groceries.edit(item.id, text);
+            onClose();
+          }}
+        />
         <ListSection title="Aisle">
           {AISLES.map((aisle) => (
-            <ListRow key={aisle.id} title={aisle.name} accessory={item.aisle === aisle.id ? 'check' : 'none'} onPress={() => { db.groceries.setAisle(item.id, aisle.id); onClose(); }} />
+            <ListRow
+              key={aisle.id}
+              title={aisle.name}
+              accessory={item.aisle === aisle.id ? 'check' : 'none'}
+              onPress={() => {
+                db.groceries.setAisle(item.id, aisle.id);
+                onClose();
+              }}
+            />
           ))}
         </ListSection>
         <View style={[styles.sheetActions, { gap: space.sm }]}>
-          <Button title="Delete" variant="tinted" icon="trash" onPress={() => { db.groceries.remove(item.id); onClose(); }} style={styles.flex} />
-          <Button title="Save" onPress={() => { db.groceries.edit(item.id, text); onClose(); }} style={styles.flex} disabled={!text.trim()} />
+          <Button
+            title="Delete"
+            variant="tinted"
+            icon="trash"
+            onPress={() => {
+              db.groceries.remove(item.id);
+              onClose();
+            }}
+            style={styles.flex}
+          />
+          <Button
+            title="Save"
+            onPress={() => {
+              db.groceries.edit(item.id, text);
+              onClose();
+            }}
+            style={styles.flex}
+            disabled={!text.trim()}
+          />
         </View>
       </View>
     </Sheet>
@@ -239,7 +366,12 @@ const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', minHeight: 58, paddingVertical: 8 },
   strike: { textDecorationLine: 'line-through' },
   allDone: { alignItems: 'center', paddingVertical: 24 },
-  checkedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 },
+  checkedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 4,
+  },
   sheetActions: { flexDirection: 'row' },
   panelWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center' },
 });

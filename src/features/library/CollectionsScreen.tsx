@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { router, useNavigation } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { inFolder } from '@/core/model/library';
 import type { Folder } from '@/core/model/types';
@@ -69,6 +69,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const count = (n: number) => `${n} ${n === 1 ? 'recipe' : 'recipes'}`;
 
+/** Native cold starts land on Collections (the stack's root); open All Recipes on top once, like Crouton. */
+let openedAllRecipes = false;
+
 /** Folders and tags, like Crouton's Collections list and iPad sidebar. */
 export function CollectionsScreen() {
   const db = useDb();
@@ -80,6 +83,14 @@ export function CollectionsScreen() {
   const [editing, setEditing] = useState(false);
   const [folderSheet, setFolderSheet] = useState<{ folder?: Folder } | null>(null);
   const [colorTag, setColorTag] = useState<string | null>(null);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || openedAllRecipes) return;
+    openedAllRecipes = true;
+    const state = navigation.getState();
+    if (state?.routes.length === 1) router.push({ pathname: '/', params: { launch: '1' } });
+  }, [navigation]);
 
   const folderCounts = useMemo(() => {
     const map = new Map<string, number>();

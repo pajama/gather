@@ -1,10 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { Animated, Platform, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { useTheme } from '../theme/theme';
 import { Icon, type IconName } from './Icon';
 import { haptic, Tap } from './Tap';
 import { Text } from './Text';
+
+/** Browsers draw a focus ring around inputs; native has no such thing and rejects outlineStyle: 'none'. */
+export const noFocusRing = (Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) as object;
 
 export function SearchField({
   value,
@@ -261,8 +264,8 @@ export function EmptyState({
 
 const styles = StyleSheet.create({
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, height: 40 },
-  searchInput: { flex: 1, fontSize: 17, height: 40, outlineStyle: 'none' } as never,
-  field: { fontSize: 17, paddingHorizontal: 14, outlineStyle: 'none' } as never,
+  searchInput: { flex: 1, fontSize: 17, height: 40, ...noFocusRing },
+  field: { fontSize: 17, paddingHorizontal: 14, ...noFocusRing },
   segmented: { flexDirection: 'row', padding: 2, gap: 2 },
   segment: { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 4 },

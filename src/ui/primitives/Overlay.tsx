@@ -3,7 +3,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -18,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { resolveImage } from '../images';
 import { useTheme } from '../theme/theme';
+import { useKeyboardHeight } from '../useKeyboard';
 import { IconButton } from './Button';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
@@ -84,6 +84,7 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const wide = width >= 720;
+  const keyboard = useKeyboardHeight();
   const [progress] = useState(() => new Animated.Value(0));
 
   // The Modal fades the backdrop in and out; the sheet itself slides up on open.
@@ -100,7 +101,10 @@ export function Sheet({
 
   const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [wide ? 24 : height * 0.6, 0] });
   const body = scroll ? (
-    <ScrollView contentContainerStyle={{ padding: space.lg, paddingTop: 0 }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={{ padding: space.lg, paddingTop: 0 }}
+      keyboardShouldPersistTaps="handled"
+    >
       {children}
     </ScrollView>
   ) : (
@@ -109,11 +113,15 @@ export function Sheet({
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
+      <View style={styles.fill}>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
           <Pressable style={styles.fill} onPress={onClose} accessibilityLabel="Close" />
         </View>
-        <View style={[styles.fill, wide ? styles.centerWide : styles.bottom]} pointerEvents="box-none">
+        {/* The keyboard pushes the sheet up rather than covering its fields. */}
+        <View
+          style={[styles.fill, wide ? styles.centerWide : styles.bottom, { paddingBottom: keyboard }]}
+          pointerEvents="box-none"
+        >
           <Animated.View
             style={[
               {
@@ -122,9 +130,9 @@ export function Sheet({
                 borderTopRightRadius: radius.xl,
                 borderBottomLeftRadius: wide ? radius.xl : 0,
                 borderBottomRightRadius: wide ? radius.xl : 0,
-                maxHeight: wide ? height * 0.85 : height * 0.92,
+                maxHeight: Math.min(wide ? height * 0.85 : height * 0.92, height - keyboard - insets.top - 8),
                 width: wide ? Math.min(560, width - 48) : '100%',
-                paddingBottom: wide ? space.lg : Math.max(insets.bottom, space.lg),
+                paddingBottom: wide || keyboard ? space.lg : Math.max(insets.bottom, space.lg),
                 transform: [{ translateY }],
               },
             ]}
@@ -135,13 +143,21 @@ export function Sheet({
                 {title ?? ''}
               </Text>
               {headerRight}
-              <IconButton icon="close" variant="fill" size={30} onPress={onClose} accessibilityLabel="Close" />
+              <IconButton
+                icon="close"
+                variant="fill"
+                size={30}
+                onPress={onClose}
+                accessibilityLabel="Close"
+              />
             </View>
             {body}
-            {footer ? <View style={{ paddingHorizontal: space.lg, paddingTop: space.md }}>{footer}</View> : null}
+            {footer ? (
+              <View style={{ paddingHorizontal: space.lg, paddingTop: space.md }}>{footer}</View>
+            ) : null}
           </Animated.View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

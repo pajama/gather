@@ -1,9 +1,19 @@
-import { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useRef, useState, type ComponentRef } from 'react';
+import { Keyboard, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { parseQuantity } from '@/core/recipe/quantity';
-import { Button, IconButton, Tap, Text, tintColors, useTheme, type Tint } from '@/ui';
+import {
+  Button,
+  IconButton,
+  noFocusRing,
+  Tap,
+  Text,
+  tintColors,
+  useKeyboardHeight,
+  useTheme,
+  type Tint,
+} from '@/ui';
 
 const UNITS = [
   { id: '', label: 'Item' },
@@ -42,15 +52,31 @@ const UNIT_TEXT: Record<string, [string, string]> = {
 export function composeItem(amount: string, unit: string, name: string): string {
   const quantity = parseQuantity(amount.trim());
   const plural = quantity ? (quantity.max ?? quantity.value) > 1 : false;
-  const unitText = unit ? UNIT_TEXT[unit]?.[plural ? 1 : 0] ?? unit : '';
+  const unitText = unit ? (UNIT_TEXT[unit]?.[plural ? 1 : 0] ?? unit) : '';
   return [amount.trim(), unitText, name.trim()].filter(Boolean).join(' ');
 }
 
-function Key({ label, tint, onPress, wide }: { label: string; tint: Tint; onPress: () => void; wide?: boolean }) {
+function Key({
+  label,
+  tint,
+  onPress,
+  wide,
+}: {
+  label: string;
+  tint: Tint;
+  onPress: () => void;
+  wide?: boolean;
+}) {
   const { colors, radius } = useTheme();
   const { fg, bg } = tintColors(colors, tint);
   return (
-    <Tap haptic feedback="scale" onPress={onPress} style={[styles.key, { backgroundColor: bg, borderRadius: radius.md, flex: wide ? 2 : 1 }]} accessibilityLabel={label}>
+    <Tap
+      haptic
+      feedback="scale"
+      onPress={onPress}
+      style={[styles.key, { backgroundColor: bg, borderRadius: radius.md, flex: wide ? 2 : 1 }]}
+      accessibilityLabel={label}
+    >
       <Text variant="title3" weight="600" color={fg}>
         {label}
       </Text>
@@ -60,7 +86,9 @@ function Key({ label, tint, onPress, wide }: { label: string; tint: Tint; onPres
 
 /**
  * Crouton's grocery entry panel: the item name in large type, unit chips,
- * fraction keys and a number pad for the amount.
+ * fraction keys and a number pad for the amount. On a phone the system
+ * keyboard is up while the name is typed, so the panel shrinks to the name;
+ * Next (or hiding the keyboard) brings the number pad back for the amount.
  */
 export function AddItemPanel({ onAdd, onClose }: { onAdd: (text: string) => void; onClose: () => void }) {
   const { colors, radius, space } = useTheme();
@@ -68,6 +96,8 @@ export function AddItemPanel({ onAdd, onClose }: { onAdd: (text: string) => void
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [unit, setUnit] = useState('');
+  const nameInput = useRef<ComponentRef<typeof TextInput>>(null);
+  const typing = useKeyboardHeight() > 0;
   const preview = composeItem(amount, unit, name);
 
   const press = (key: string) => {
@@ -81,6 +111,7 @@ export function AddItemPanel({ onAdd, onClose }: { onAdd: (text: string) => void
     setName('');
     setAmount('');
     setUnit('');
+    nameInput.current?.focus(); // ready for the next item
   };
 
   return (
@@ -92,23 +123,39 @@ export function AddItemPanel({ onAdd, onClose }: { onAdd: (text: string) => void
           borderRadius: radius.xl + 6,
           padding: space.lg,
           gap: space.md,
-          marginBottom: Platform.OS === 'web' ? space.md : insets.bottom ? space.sm : space.md,
+          marginBottom: typing
+            ? space.sm
+            : Platform.OS === 'web'
+              ? space.md
+              : insets.bottom
+                ? space.sm
+                : space.md,
           boxShadow: `0 -6px 30px ${colors.shadow}, 0 10px 30px ${colors.shadow}`,
         },
       ]}
     >
       <View style={styles.panelHeader}>
         <Button title="Done" variant="tinted" size="sm" onPress={onClose} />
-        <IconButton icon="add" variant="tinted" tint="green" size={36} onPress={add} disabled={!name.trim()} accessibilityLabel="Add item" />
+        <IconButton
+          icon="add"
+          variant="tinted"
+          tint="green"
+          size={36}
+          onPress={add}
+          disabled={!name.trim()}
+          accessibilityLabel="Add item"
+        />
       </View>
       <TextInput
+        ref={nameInput}
         value={name}
         onChangeText={setName}
         placeholder="Item name"
         placeholderTextColor={colors.textTertiary}
         autoFocus
-        returnKeyType="done"
-        onSubmitEditing={add}
+        returnKeyType={Platform.OS === 'web' ? 'done' : 'next'}
+        submitBehavior={Platform.OS === 'web' ? 'submit' : 'blurAndSubmit'}
+        onSubmitEditing={Platform.OS === 'web' ? add : () => Keyboard.dismiss()}
         style={[styles.nameInput, { color: colors.text }]}
         accessibilityLabel="Item name"
       />
@@ -120,44 +167,63 @@ export function AddItemPanel({ onAdd, onClose }: { onAdd: (text: string) => void
           {name.trim()}
         </Text>
       ) : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-        {UNITS.map((u) => {
-          const selected = u.id === unit;
-          return (
-            <Tap
-              key={u.label}
-              haptic
-              onPress={() => setUnit(u.id)}
-              style={[styles.chip, { borderRadius: radius.pill, backgroundColor: selected ? colors.accent : colors.accentSoft }]}
-              accessibilityState={{ selected }}
-            >
-              <Text variant="subhead" rounded weight="700" color={selected ? colors.onAccent : colors.accent}>
-                {u.label}
-              </Text>
-            </Tap>
-          );
-        })}
-      </ScrollView>
-      <View style={[styles.keyRow, { gap: space.sm }]}>
-        {['¼', '⅓', '½', '⅔', '¾'].map((k) => (
-          <Key key={k} label={k} tint="purple" onPress={() => press(k)} />
-        ))}
-      </View>
-      {[
-        ['1', '2', '3', '/'],
-        ['4', '5', '6', '-'],
-        ['7', '8', '9', '.'],
-      ].map((row) => (
-        <View key={row.join('')} style={[styles.keyRow, { gap: space.sm }]}>
-          {row.map((k) => (
-            <Key key={k} label={k} tint={/\d/.test(k) ? 'green' : 'yellow'} onPress={() => press(k)} />
+      {typing ? null : (
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: space.sm }}
+          >
+            {UNITS.map((u) => {
+              const selected = u.id === unit;
+              return (
+                <Tap
+                  key={u.label}
+                  haptic
+                  onPress={() => setUnit(u.id)}
+                  style={[
+                    styles.chip,
+                    {
+                      borderRadius: radius.pill,
+                      backgroundColor: selected ? colors.accent : colors.accentSoft,
+                    },
+                  ]}
+                  accessibilityState={{ selected }}
+                >
+                  <Text
+                    variant="subhead"
+                    rounded
+                    weight="700"
+                    color={selected ? colors.onAccent : colors.accent}
+                  >
+                    {u.label}
+                  </Text>
+                </Tap>
+              );
+            })}
+          </ScrollView>
+          <View style={[styles.keyRow, { gap: space.sm }]}>
+            {['¼', '⅓', '½', '⅔', '¾'].map((k) => (
+              <Key key={k} label={k} tint="purple" onPress={() => press(k)} />
+            ))}
+          </View>
+          {[
+            ['1', '2', '3', '/'],
+            ['4', '5', '6', '-'],
+            ['7', '8', '9', '.'],
+          ].map((row) => (
+            <View key={row.join('')} style={[styles.keyRow, { gap: space.sm }]}>
+              {row.map((k) => (
+                <Key key={k} label={k} tint={/\d/.test(k) ? 'green' : 'yellow'} onPress={() => press(k)} />
+              ))}
+            </View>
           ))}
-        </View>
-      ))}
-      <View style={[styles.keyRow, { gap: space.sm }]}>
-        <Key label="0" tint="green" wide onPress={() => press('0')} />
-        <Key label="delete" tint="red" wide onPress={() => press('delete')} />
-      </View>
+          <View style={[styles.keyRow, { gap: space.sm }]}>
+            <Key label="0" tint="green" wide onPress={() => press('0')} />
+            <Key label="delete" tint="red" wide onPress={() => press('delete')} />
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -165,7 +231,13 @@ export function AddItemPanel({ onAdd, onClose }: { onAdd: (text: string) => void
 const styles = StyleSheet.create({
   panel: { alignSelf: 'stretch' },
   panelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  nameInput: { fontSize: 30, fontFamily: 'Nunito_800ExtraBold', textAlign: 'center', paddingVertical: 4, outlineStyle: 'none' } as never,
+  nameInput: {
+    fontSize: 30,
+    fontFamily: 'Nunito_800ExtraBold',
+    textAlign: 'center',
+    paddingVertical: 4,
+    ...noFocusRing,
+  },
   chip: { paddingHorizontal: 14, height: 34, alignItems: 'center', justifyContent: 'center' },
   keyRow: { flexDirection: 'row' },
   key: { height: 46, alignItems: 'center', justifyContent: 'center' },
