@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Scores REA's Swift type recovery against a project's source.
+Scores Swift type recovery (REA's, or swift_model.py's) against a project's source.
 
 REA's analyze_swift_types reports procedure symbols grouped by the kind of
 their outermost nominal type, but leaves the names mangled. This script
@@ -9,7 +9,11 @@ substitutions, file-private discriminators, legacy _Tt ObjC names) to list
 the types each symbol belongs to, then compares that list with the type
 declarations found in the source tree.
 
-    python3 score_swift_types.py swift.json ground-truth-by-target.json Salty SaltyCore
+    python3 swift_declarations.py src/App src/Core --json declared.json
+    python3 score_swift_types.py --declared declared.json --rea swift.json --model model.json --modules App Core
+
+Types are compared by fully qualified name (A.Row and B.Row are two types),
+with bare-name recall alongside for comparison.
 """
 import json
 import re
@@ -141,20 +145,14 @@ def selftest():
     assert nominal_chain('_$s10AppIntents12IntentDialogVMa') == ['AppIntents', ('struct', 'IntentDialog')]
 
 
-def main():
-    selftest()
-    swift_path, truth_path, *modules = sys.argv[1:]
+def rea_types(swift_path, modules):
+    """Qualified type names (with kinds) REA's analyze_swift_types symbols reveal in `modules`."""
     data = json.load(open(swift_path))
     sc = data.get('structuredContent') or json.loads(data['content'][0]['text'])
     result = sc['normalized_result']
-    symbols = []
-    for cat in result['categories'].values():
-        symbols += [it['name'] for it in cat['items']]
+    symbols = [it['name'] for cat in result['categories'].values() for it in cat['items']]
     symbols += [it['name'] for it in result.get('unclassified', [])]
-
-    recovered = {}  # name -> kind, for types in the project's modules
-    other_modules = {}
-    undecoded = 0
+    recovered, undecoded = {}, 0
     for sym in symbols:
         chain = nominal_chain(sym.split('::')[0])
         if not chain:
@@ -162,39 +160,59 @@ def main():
             continue
         module, *types = chain
         if module in modules:
-            for kind, name in types:
-                recovered.setdefault(name, kind)
-        else:
-            other_modules[module] = other_modules.get(module, 0) + 1
-
-    truth = json.load(open(truth_path))
+            for depth in range(1, len(types) + 1):
+                recovered.setdefault('.'.join(name for _kind, name in types[:depth]), types[depth - 1][0])
     print(f'{len(symbols)} symbols from REA; {undecoded} without a decodable nominal context')
-    print(f'types recovered in {modules}: {len(recovered)}')
-    print('symbols in other modules (top 8):', sorted(other_modules.items(), key=lambda kv: -kv[1])[:8])
+    return recovered
+
+
+def model_types(model_path, modules):
+    """Qualified type names (with kinds) from swift_model.py's JSON output."""
+    return {t['name']: t['kind'] for t in json.load(open(model_path)) if t['module'] in modules}
+
+
+def score(declared, recovered):
+    """Recall by fully qualified name, and by bare name (the last component) for comparison."""
+    found = sorted(n for n in declared if n in recovered)
+    right_kind = [n for n in found if recovered[n] == declared[n] or (declared[n] == 'actor' and recovered[n] == 'class')]
+    bare_declared = {n.rsplit('.', 1)[-1] for n in declared}
+    bare_recovered = {n.rsplit('.', 1)[-1] for n in recovered}
+    bare_found = bare_declared & bare_recovered
+    return {
+        'declared': len(declared),
+        'recovered': len(found),
+        'recall': round(len(found) / len(declared), 3) if declared else 0,
+        'kind_correct': len(right_kind),
+        'bare_declared': len(bare_declared),
+        'bare_recovered': len(bare_found),
+        'missed': sorted(set(declared) - set(found)),
+    }
+
+
+def main():
+    selftest()
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--declared', required=True, help='JSON from swift_declarations.py (qualified name -> kind)')
+    ap.add_argument('--rea', help="REA analyze_swift_types output (JSON)")
+    ap.add_argument('--model', help='swift_model.py --json output')
+    ap.add_argument('--modules', nargs='+', required=True, help='Swift module names that belong to the project')
+    ap.add_argument('--out', default='score.json')
+    args = ap.parse_args()
+    declared = json.load(open(args.declared))
     report = {}
-    for target, kinds in truth.items():
-        declared = {name: kind for kind in ('class', 'struct', 'enum', 'protocol', 'actor') for name in kinds.get(kind, [])}
-        if not declared:
+    for label, path, reader in (('rea', args.rea, rea_types), ('model', args.model, model_types)):
+        if not path:
             continue
-        found = {n for n in declared if n in recovered}
-        right_kind = {n for n in found if recovered[n] == declared[n] or (declared[n] == 'actor' and recovered[n] == 'class')}
-        by_kind = {}
-        for kind in ('class', 'struct', 'enum', 'protocol', 'actor'):
-            names = [n for n, k in declared.items() if k == kind]
-            if names:
-                by_kind[kind] = f'{sum(1 for n in names if n in recovered)}/{len(names)}'
-        report[target] = {
-            'declared': len(declared),
-            'recovered': len(found),
-            'recall': round(len(found) / len(declared), 3),
-            'kind_correct': len(right_kind),
-            'by_kind': by_kind,
-            'missed_sample': sorted(set(declared) - found)[:25],
-        }
-        print(f"{target}: {len(found)}/{len(declared)} declared types recovered ({100 * len(found) / len(declared):.0f}%), kind correct for {len(right_kind)}; {by_kind}")
-    extra = sorted(n for n in recovered if not any(n in set().union(*map(set, k.values())) for k in truth.values()))
-    print(f'recovered names not declared in source (nested/generated/false positives): {len(extra)}', extra[:20])
-    json.dump({'recovered': recovered, 'report': report, 'extra': extra}, open('score.json', 'w'), indent=1)
+        result = score(declared, reader(path, args.modules))
+        report[label] = result
+        print(
+            f"{label}: {result['recovered']}/{result['declared']} declared types by qualified name "
+            f"({100 * result['recall']:.0f}%), kind correct for {result['kind_correct']}; "
+            f"by bare name {result['bare_recovered']}/{result['bare_declared']}"
+        )
+    json.dump(report, open(args.out, 'w'), indent=1)
 
 
 if __name__ == '__main__':

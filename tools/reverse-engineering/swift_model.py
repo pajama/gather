@@ -16,6 +16,7 @@ Universal (fat) binaries are read for their arm64 slice.
 """
 import argparse
 import json
+import re
 import struct
 import sys
 
@@ -52,13 +53,20 @@ class MachO:
         self.sections = {}
         self.segments = []
         self.imports = []
+        self.pointer_formats = {}  # segment index -> DYLD_CHAINED_PTR_* format
         ncmds = struct.unpack_from('<I', data, 16)[0]
         off = 32
         for _ in range(ncmds):
             cmd, size = struct.unpack_from('<II', data, off)
-            if cmd == 0x80000034:  # LC_DYLD_CHAINED_FIXUPS: read the import names for bound pointers
+            if cmd == 0x80000034:  # LC_DYLD_CHAINED_FIXUPS: import names and each segment's pointer format
                 dataoff = struct.unpack_from('<I', data, off + 8)[0]
-                _ver, _starts, imp_off, sym_off, count, fmt = struct.unpack_from('<IIIIII', data, dataoff)
+                _ver, starts_off, imp_off, sym_off, count, fmt = struct.unpack_from('<IIIIII', data, dataoff)
+                seg_count = struct.unpack_from('<I', data, dataoff + starts_off)[0]
+                for seg in range(seg_count):
+                    info_off = struct.unpack_from('<I', data, dataoff + starts_off + 4 + 4 * seg)[0]
+                    if info_off:
+                        # dyld_chained_starts_in_segment: size u32, page_size u16, pointer_format u16, ...
+                        self.pointer_formats[seg] = struct.unpack_from('<H', data, dataoff + starts_off + info_off + 6)[0]
                 for k in range(count):
                     if fmt == 1:
                         raw = struct.unpack_from('<I', data, dataoff + imp_off + 4 * k)[0]
@@ -84,23 +92,33 @@ class MachO:
                     self.sections[(segname, sect)] = (addr, ssize, soff)
             off += size
 
-    def offset(self, vm):
-        for vmaddr, vmsize, fileoff, filesize in self.segments:
-            if vmaddr <= vm < vmaddr + min(vmsize, filesize or vmsize):
-                return fileoff + (vm - vmaddr)
+    def segment_index(self, vm):
+        for idx, (vmaddr, vmsize, _fileoff, _filesize) in enumerate(self.segments):
+            if vmaddr <= vm < vmaddr + vmsize:
+                return idx
         return None
 
+    def offset(self, vm, size=1):
+        """File offset of `size` bytes at address `vm`, or None when they aren't backed by the file."""
+        for vmaddr, vmsize, fileoff, filesize in self.segments:
+            # Segments with no file contents (__PAGEZERO, zero-fill) map nothing.
+            if filesize and vmaddr <= vm and vm + size <= vmaddr + min(vmsize, filesize):
+                o = fileoff + (vm - vmaddr)
+                return o if o + size <= len(self.data) else None
+        return None
+
+    def _read(self, fmt, vm):
+        o = self.offset(vm, struct.calcsize(fmt))
+        return None if o is None else struct.unpack_from(fmt, self.data, o)[0]
+
     def i32(self, vm):
-        o = self.offset(vm)
-        return None if o is None else struct.unpack_from('<i', self.data, o)[0]
+        return self._read('<i', vm)
 
     def u32(self, vm):
-        o = self.offset(vm)
-        return None if o is None else struct.unpack_from('<I', self.data, o)[0]
+        return self._read('<I', vm)
 
     def u16(self, vm):
-        o = self.offset(vm)
-        return None if o is None else struct.unpack_from('<H', self.data, o)[0]
+        return self._read('<H', vm)
 
     def rel(self, vm):
         v = self.i32(vm)
@@ -114,17 +132,32 @@ class MachO:
         return self.data[o:end].decode('utf-8', 'replace') if end >= 0 else None
 
     def pointer(self, vm):
-        """Follows a pointer slot: ('import', symbol) for a bound import, ('local', vm) for a rebase."""
-        o = self.offset(vm)
-        if o is None:
+        """
+        Follows a pointer slot: ('import', symbol) for a bound import, ('local', vm) for a rebase.
+        Decodes the chained-fixup format of the slot's segment (arm64e authenticated pointers included).
+        """
+        v = self._read('<Q', vm)
+        if v is None:
             return None
-        v = struct.unpack_from('<Q', self.data, o)[0]
-        if v >> 63:  # DYLD_CHAINED_PTR_64(_OFFSET) bind
-            ordinal = v & 0xFFFFFF
-            return ('import', self.imports[ordinal]) if ordinal < len(self.imports) else None
-        target = v & 0xFFFFFFFFF
+        seg = self.segment_index(vm)
+        fmt = self.pointer_formats.get(seg, 2)
         base = self.segments[1][0] if len(self.segments) > 1 and self.segments[0][0] == 0 else 0
-        return ('local', target if target >= base else base + target)
+        if fmt in (1, 9, 12):  # DYLD_CHAINED_PTR_ARM64E, _USERLAND, _USERLAND24
+            auth, bind = v >> 63, (v >> 62) & 1
+            if bind:
+                ordinal = v & (0xFFFFFF if fmt == 12 else 0xFFFF)
+                return ('import', self.imports[ordinal]) if ordinal < len(self.imports) else None
+            if auth:
+                return ('local', base + (v & 0xFFFFFFFF))
+            target = v & 0x7FFFFFFFFFF
+            return ('local', target if fmt == 1 else base + target)
+        if fmt in (2, 6):  # DYLD_CHAINED_PTR_64 (vmaddr), DYLD_CHAINED_PTR_64_OFFSET (offset from base)
+            if v >> 63:
+                ordinal = v & 0xFFFFFF
+                return ('import', self.imports[ordinal]) if ordinal < len(self.imports) else None
+            target = v & 0xFFFFFFFFF
+            return ('local', base + target if fmt == 6 or target < base else target)
+        return None  # 32-bit and kernel-cache formats are not used by iOS/macOS apps
 
     def section(self, seg, name):
         for (s, n), v in self.sections.items():
@@ -178,10 +211,40 @@ class Model:
                 module, ppath = self.qualified(cursor, depth + 1)
                 path = ppath.split('.') if ppath else []
                 break
-            cursor = pk[2]  # anonymous (file-private) or extension context: keep walking up
+            if pk[0] == 1:  # extension: nest under the extended type ("extension Recipe { enum CodingKeys }")
+                extended = self.extended_type(cursor, depth)
+                if extended:
+                    module = module or extended[0]
+                    path = extended[1].split('.') if extended[1] else []
+                    # The extension's own parent is the module that declares it.
+                    owner = self.context(pk[2]) if pk[2] else None
+                    if owner and owner[0] == 0:
+                        module = owner[1]
+                    break
+            cursor = pk[2]  # anonymous (file-private) context: keep walking up
         full = '.'.join([*path, name or '?'])
         self.names[vm] = (module, full)
         return module, full
+
+    def extended_type(self, ext_vm, depth=0):
+        """(module, qualified name) of the type an extension context extends, or None."""
+        name_ptr = self.m.rel(ext_vm + 8)
+        o = self.m.offset(name_ptr, 5) if name_ptr else None
+        if o is None:
+            return None
+        kind = self.m.data[o]
+        if kind in (1, 2):
+            rel = struct.unpack_from('<i', self.m.data, o + 1)[0]
+            target = name_ptr + 1 + rel
+            if kind == 1:
+                return self.qualified(target, depth + 1)
+            slot = self.m.pointer(target)
+            if slot and slot[0] == 'local':
+                return self.qualified(slot[1], depth + 1)
+            if slot and slot[0] == 'import':
+                return None, imported_type(slot[1])
+            return None
+        return None, demangle_type(self.m.cstring(name_ptr) or '')
 
     def type_name(self, vm):
         """Readable Swift type from a mangled type name with symbolic references."""
@@ -192,7 +255,7 @@ class Model:
             return '?'
         raw = self.m.data
         out, i = [], o
-        while raw[i] != 0 and i - o < 256:
+        while i < len(raw) and raw[i] != 0 and i - o < 256:
             b = raw[i]
             if b in (1, 2):  # symbolic reference: 1 direct, 2 indirect
                 rel = struct.unpack_from('<i', raw, i + 1)[0]
@@ -210,8 +273,11 @@ class Model:
                     else:
                         out.append('«external»')
                 i += 5
-            elif 0x01 <= b <= 0x17:
-                i += 5 if b <= 0x0B else 9
+            elif 0x01 <= b <= 0x17:  # other relative symbolic references: 1 byte + 4-byte offset
+                i += 5
+                out.append('«ref»')
+            elif 0x18 <= b <= 0x1F:  # absolute symbolic references: 1 byte + a pointer
+                i += 9
                 out.append('«ref»')
             else:
                 out.append(chr(b))
@@ -248,32 +314,89 @@ def imported_type(symbol):
     return '.'.join(parts) if parts else symbol
 
 
-def demangle_type(m):
-    """Small readable rendering of common field-type manglings."""
-    opt = 0
-    while m.endswith('Sg'):
-        m = m[:-2]
-        opt += 1
-    if m.startswith('Say') and m.endswith('G'):
-        base = f'[{demangle_type(m[3:-1])}]'
-    elif m.startswith('SDy') and m.endswith('G'):
-        inner = m[3:-1]
-        for split in range(1, len(inner)):
-            k, v = demangle_type(inner[:split]), demangle_type(inner[split:])
-            if '?' not in k and '?' not in v and not k.startswith('mangled') and not v.startswith('mangled'):
-                base = f'[{k}: {v}]'
+def _identifier(m, i):
+    """A length-prefixed identifier at `i` ('4Date') -> ('Date', next index), or None."""
+    n = re.match(r'\d+', m[i:])
+    if not n:
+        return None
+    start = i + len(n.group(0))
+    end = start + int(n.group(0))
+    return (m[start:end], end) if end <= len(m) else None
+
+
+def _nominal(m, i):
+    """
+    A nominal type at `i`: a module then one or more names, each followed by its kind
+    ('10Foundation4DateV', '7MyApp5OuterV5InnerO'), or an Objective-C import ('So8NSStringC').
+    Returns (dotted name without the module, next index), or None.
+    """
+    objc = m.startswith('So', i)
+    if objc:
+        i += 2
+    else:
+        module = _identifier(m, i)
+        if not module:
+            return None
+        i = module[1]
+    names = []
+    while True:
+        ident = _identifier(m, i)
+        if not ident or ident[1] >= len(m) or m[ident[1]] not in 'VCOa':
+            break
+        names.append(ident[0])
+        i = ident[1] + 1
+    return ('.'.join(names), i) if names else None
+
+
+def parse_type(m, i=0):
+    """
+    Reads one type from a field-type mangling at `i`; returns (readable, next index).
+    Recursive so generic arguments nest: 'SDySSSiSgG' is [String: Int?].
+    """
+    if m.startswith('«', i):
+        j = m.index('»', i)
+        text, i = m[i + 1:j], j + 1
+    elif m.startswith(('Say', 'Shy'), i):
+        array = m.startswith('Say', i)
+        inner, i = parse_type(m, i + 3)
+        if not m.startswith('G', i):
+            raise ValueError(m)
+        text, i = (f'[{inner}]' if array else f'Set<{inner}>'), i + 1
+    elif m.startswith('SDy', i):
+        key, i = parse_type(m, i + 3)
+        value, i = parse_type(m, i)
+        if not m.startswith('G', i):
+            raise ValueError(m)
+        text, i = f'[{key}: {value}]', i + 1
+    else:
+        for key in sorted(STD, key=len, reverse=True):
+            if m.startswith(key, i):
+                text, i = STD[key], i + len(key)
                 break
         else:
-            base = f'[{inner}]'
-    elif m.startswith('Shy') and m.endswith('G'):
-        base = f'Set<{demangle_type(m[3:-1])}>'
-    elif m in STD:
-        base = STD[m]
-    elif m.startswith('«') and m.endswith('»') and m.count('«') == 1:
-        base = m[1:-1]
-    else:
-        base = m if m else '?'
-    return base + '?' * opt
+            nominal = _nominal(m, i)
+            if not nominal:
+                raise ValueError(m)
+            text, i = nominal
+    while m.startswith('Sg', i):
+        text, i = text + '?', i + 2
+    return text, i
+
+
+def demangle_type(m):
+    """Readable rendering of a field-type mangling; the raw mangling (optionals marked) when not understood."""
+    if not m:
+        return '?'
+    try:
+        text, end = parse_type(m)
+        if end == len(m):
+            return text
+    except (ValueError, IndexError):
+        pass
+    opt = 0
+    while m.endswith('Sg') and len(m) > 2:
+        m, opt = m[:-2], opt + 1
+    return m + '?' * opt
 
 
 def build(path, module=None):
