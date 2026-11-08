@@ -27,8 +27,37 @@ interface DocRow {
 /** Browser storage: IndexedDB, which holds far more than localStorage (photos included). */
 export class IndexedDBStore implements DocumentStore {
   readonly kind = 'indexeddb';
+  // Other tabs of the same app share the database; each write tells them what changed.
+  private readonly channel: BroadcastChannel | null;
 
-  private constructor(private readonly db: IDBDatabase) {}
+  private constructor(
+    private readonly db: IDBDatabase,
+    name: string,
+  ) {
+    this.channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(`${name}-changes`);
+  }
+
+  private announce(collections: string[], meta: string[] = []): void {
+    try {
+      this.channel?.postMessage({ collections, meta });
+    } catch {
+      // A closed channel (page unloading) has no one left to tell.
+    }
+  }
+
+  onExternalChange(listener: (change: { collections: string[]; meta: string[] }) => void): () => void {
+    const channel = this.channel;
+    if (!channel) return () => undefined;
+    const handler = (event: MessageEvent) => {
+      const data = event.data as { collections?: unknown; meta?: unknown };
+      listener({
+        collections: Array.isArray(data?.collections) ? data.collections.filter((c): c is string => typeof c === 'string') : [],
+        meta: Array.isArray(data?.meta) ? data.meta.filter((m): m is string => typeof m === 'string') : [],
+      });
+    };
+    channel.addEventListener('message', handler);
+    return () => channel.removeEventListener('message', handler);
+  }
 
   static async open(name = 'gather'): Promise<IndexedDBStore> {
     const req = indexedDB.open(name, 1);
@@ -40,7 +69,7 @@ export class IndexedDBStore implements DocumentStore {
       }
       if (!db.objectStoreNames.contains(META)) db.createObjectStore(META);
     };
-    return new IndexedDBStore(await request(req));
+    return new IndexedDBStore(await request(req), name);
   }
 
   async loadAll(collection: string): Promise<StoredDocument[]> {
@@ -55,6 +84,7 @@ export class IndexedDBStore implements DocumentStore {
     const store = tx.objectStore(DOCS);
     for (const doc of docs) store.put({ collection, id: doc.id, json: doc.json } satisfies DocRow);
     await done(tx);
+    this.announce([collection]);
   }
 
   async deleteMany(collection: string, ids: string[]): Promise<void> {
@@ -63,6 +93,7 @@ export class IndexedDBStore implements DocumentStore {
     const store = tx.objectStore(DOCS);
     for (const id of ids) store.delete([collection, id]);
     await done(tx);
+    this.announce([collection]);
   }
 
   clear(collection: string): Promise<void> {
@@ -82,6 +113,7 @@ export class IndexedDBStore implements DocumentStore {
       };
     }
     await done(tx);
+    this.announce(Object.keys(contents));
   }
 
   async getMeta(key: string): Promise<string | null> {
@@ -94,9 +126,11 @@ export class IndexedDBStore implements DocumentStore {
     const tx = this.db.transaction(META, 'readwrite');
     tx.objectStore(META).put(value, key);
     await done(tx);
+    this.announce([], [key]);
   }
 
   async close(): Promise<void> {
+    this.channel?.close();
     this.db.close();
   }
 }

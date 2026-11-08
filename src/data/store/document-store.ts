@@ -22,6 +22,12 @@ export interface DocumentStore {
   replaceCollections(contents: Record<string, StoredDocument[]>): Promise<void>;
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;
+  /**
+   * Calls back when another process (another browser tab) changed stored
+   * collections or meta keys, so this one can reload them. Engines with a
+   * single writer (SQLite in the app, memory) don't implement it.
+   */
+  onExternalChange?(listener: (change: { collections: string[]; meta: string[] }) => void): () => void;
   close?(): Promise<void>;
 }
 

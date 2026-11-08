@@ -81,6 +81,13 @@ export class Database {
     }
     db.groceries.ensureDefaultList();
     db.timers.prune();
+    // Another browser tab wrote: reload what it changed, so the two don't overwrite each other.
+    store.onExternalChange?.(({ collections, meta }) => {
+      for (const name of collections) {
+        if ((COLLECTION_NAMES as string[]).includes(name)) void db.collections[name as keyof Docs].reload().catch((e: unknown) => db.reportError(e));
+      }
+      if (meta.includes('settings')) void db.collections.settings.reload().catch((e: unknown) => db.reportError(e));
+    });
     return db;
   }
 

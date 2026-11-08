@@ -52,3 +52,26 @@ describe('IndexedDBStore', () => {
     expect(await ids(store, 'plan')).toEqual(['p']);
   });
 });
+
+describe('two tabs', () => {
+  it('reloads what another tab changed', async () => {
+    const { Database } = await import('../database');
+    const name = `gather-tabs-${Date.now()}`;
+    const tabA = await Database.open(await IndexedDBStore.open(name));
+    const tabB = await Database.open(await IndexedDBStore.open(name));
+    const recipe = tabA.recipes.create({ name: 'From tab A' });
+    await tabA.flush();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(tabB.recipes.get(recipe.id)?.name).toBe('From tab A');
+
+    tabB.recipes.setRating(recipe.id, 4);
+    await tabB.flush();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(tabA.recipes.get(recipe.id)?.rating).toBe(4);
+
+    tabA.updateSettings({ accent: 'plum' });
+    await tabA.flush();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(tabB.settings.accent).toBe('plum');
+  });
+});

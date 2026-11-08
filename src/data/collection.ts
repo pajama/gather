@@ -47,6 +47,12 @@ export class Collection<T extends Identified> {
     this.emit();
   }
 
+  /** Reloads from storage after this collection's own pending writes (another tab changed it). */
+  async reload(): Promise<void> {
+    await this.queue;
+    await this.load();
+  }
+
   get isLoaded(): boolean {
     return this.loaded;
   }
@@ -167,6 +173,12 @@ export class Singleton<T extends object> {
 
   flush(): Promise<void> {
     return this.queue;
+  }
+
+  /** Reloads from storage after pending writes (another tab changed it). */
+  async reload(): Promise<void> {
+    await this.queue;
+    await this.load();
   }
 
   private emit(): void {
