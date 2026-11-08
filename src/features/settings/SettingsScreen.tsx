@@ -10,6 +10,7 @@ import { BackupError } from '@/data/database';
 import { useDb, useRecipes, useSettings } from '@/data/react';
 import { pickBackupFile, saveBackupFile } from '@/data/services/backup-file';
 import { shareBinaryFile } from '@/data/services/pick-file';
+import { exactAlertStatus, requestExactAlerts, type ExactAlertStatus } from '@/data/services/timer-alerts';
 import { inlineBackupPhotos, inlineRecipePhotos, storeBackupPhotos } from '@/data/services/photo-files';
 import { ACCENTS, Chip, haptic, Icon, LargeHeader, ListRow, ListSection, Screen, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
@@ -33,6 +34,15 @@ export function SettingsScreen() {
   const { colors, space, radius, scheme } = useTheme();
   const [status, setStatus] = useState<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
+  const [exactAlerts, setExactAlerts] = useState<ExactAlertStatus>('granted');
+
+  useEffect(() => {
+    let live = true;
+    void exactAlertStatus().then((status) => live && setExactAlerts(status));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -168,6 +178,15 @@ export function SettingsScreen() {
           switchValue={settings.keepAwake}
           onSwitch={(keepAwake) => db.updateSettings({ keepAwake })}
         />
+        {exactAlerts === 'denied' ? (
+          <ListRow
+            icon="timer"
+            iconColor="#F2A33A"
+            title="Alert on time while locked"
+            subtitle="Timers can ring late while the phone sleeps. Allow alarms to fix it."
+            onPress={() => void requestExactAlerts().then(setExactAlerts)}
+          />
+        ) : null}
       </ListSection>
 
       <ListSection title="Planner">

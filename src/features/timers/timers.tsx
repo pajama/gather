@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatClock } from '@/core/recipe/durations';
 import { timerRemaining, timerStatus, type KitchenTimer as StoredTimer, type TimerStatus } from '@/core/timers/timers';
 import { useDb, useKitchenTimers } from '@/data/react';
-import { cancelTimerAlert, scheduleTimerAlert, timerFinished } from '@/data/services/timer-alerts';
+import { cancelTimerAlert, reconcileTimerAlerts, scheduleTimerAlert, timerFinished } from '@/data/services/timer-alerts';
 import { haptic, IconButton, Tap, Text, useTheme } from '@/ui';
 
 /** A stored timer with its status worked out from the clock. */
@@ -21,18 +21,26 @@ export interface KitchenTimer extends Omit<StoredTimer, 'state'> {
   state: TimerStatus;
 }
 
-interface TimersApi {
+/** What changes every tick: the timers and the clock. */
+interface TimersState {
   timers: KitchenTimer[];
   now: number;
+  remaining: (timer: KitchenTimer) => number;
+}
+
+/** What never changes: starting and controlling timers. Screens that only start timers use this alone. */
+export interface TimerActions {
   start: (label: string, seconds: number, recipeId?: string) => string;
   pause: (id: string) => void;
   resume: (id: string) => void;
   cancel: (id: string) => void;
   addTime: (id: string, seconds: number) => void;
-  remaining: (timer: KitchenTimer) => number;
 }
 
-const TimersContext = createContext<TimersApi | null>(null);
+type TimersApi = TimersState & TimerActions;
+
+const TimersStateContext = createContext<TimersState | null>(null);
+const TimerActionsContext = createContext<TimerActions | null>(null);
 
 function asStored(timer: KitchenTimer): StoredTimer {
   return { ...timer, state: timer.state === 'paused' ? 'paused' : 'running' };
@@ -51,6 +59,16 @@ export function TimersProvider({ children }: { children: ReactNode }) {
     latest.current = stored;
   }, [stored]);
 
+  // After a launch, line scheduled alerts up with the stored timers (alerts for removed timers go,
+  // missing ones are scheduled again).
+  useEffect(() => {
+    const running = db.timers
+      .all()
+      .filter((t) => t.state === 'running' && t.endsAt !== undefined)
+      .map((t) => ({ id: t.id, label: t.label, endsAt: t.endsAt! }));
+    void reconcileTimerAlerts(running);
+  }, [db]);
+
   useEffect(() => {
     if (!anyRunning) return;
     const handle = setInterval(() => {
@@ -61,7 +79,7 @@ export function TimersProvider({ children }: { children: ReactNode }) {
         notified.current.add(t.id);
         // Timers that ended while the app was closed were already announced by the system notification.
         if ((t.endsAt ?? 0) > mountedAt) {
-          timerFinished(t.id);
+          timerFinished(t.id, t.label);
           alerted = true;
         }
       }
@@ -72,16 +90,14 @@ export function TimersProvider({ children }: { children: ReactNode }) {
   }, [anyRunning, mountedAt]);
 
   const remaining = useCallback((t: KitchenTimer) => timerRemaining(asStored(t), now), [now]);
+  const state = useMemo<TimersState>(() => ({ timers, now, remaining }), [timers, now, remaining]);
 
-  const api = useMemo<TimersApi>(
+  const actions = useMemo<TimerActions>(
     () => ({
-      timers,
-      now,
-      remaining,
       start: (label, seconds, recipeId) => {
         haptic('medium');
         const timer = db.timers.start(label, seconds, recipeId);
-        void scheduleTimerAlert(timer.id, label, timer.totalSeconds);
+        if (timer.endsAt) void scheduleTimerAlert(timer.id, label, timer.endsAt);
         setNow(Date.now());
         return timer.id;
       },
@@ -91,7 +107,7 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       },
       resume: (id) => {
         const timer = db.timers.resume(id);
-        if (timer?.endsAt) void scheduleTimerAlert(id, timer.label, (timer.endsAt - Date.now()) / 1000);
+        if (timer?.endsAt) void scheduleTimerAlert(id, timer.label, timer.endsAt);
         setNow(Date.now());
       },
       cancel: (id) => {
@@ -101,27 +117,38 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       addTime: (id, seconds) => {
         notified.current.delete(id);
         const timer = db.timers.addTime(id, seconds);
-        if (timer?.state === 'running' && timer.endsAt) void scheduleTimerAlert(id, timer.label, (timer.endsAt - Date.now()) / 1000);
+        if (timer?.state === 'running' && timer.endsAt) void scheduleTimerAlert(id, timer.label, timer.endsAt);
         setNow(Date.now());
       },
     }),
-    [timers, now, remaining, db],
+    [db],
   );
 
   return (
-    <TimersContext.Provider value={api}>
-      <View style={styles.fill}>
-        {children}
-        <TimerHud />
-      </View>
-    </TimersContext.Provider>
+    <TimerActionsContext.Provider value={actions}>
+      <TimersStateContext.Provider value={state}>
+        <View style={styles.fill}>
+          {children}
+          <TimerHud />
+        </View>
+      </TimersStateContext.Provider>
+    </TimerActionsContext.Provider>
   );
 }
 
+/** Starting and controlling timers. Stable: using it does not re-render on every tick. */
+export function useTimerActions(): TimerActions {
+  const actions = useContext(TimerActionsContext);
+  if (!actions) throw new Error('useTimerActions must be used inside <TimersProvider>');
+  return actions;
+}
+
+/** Timers with their live state; re-renders four times a second while one runs. */
 export function useTimers(): TimersApi {
-  const api = useContext(TimersContext);
-  if (!api) throw new Error('useTimers must be used inside <TimersProvider>');
-  return api;
+  const state = useContext(TimersStateContext);
+  const actions = useContext(TimerActionsContext);
+  if (!state || !actions) throw new Error('useTimers must be used inside <TimersProvider>');
+  return useMemo(() => ({ ...state, ...actions }), [state, actions]);
 }
 
 /** "Butter Chicken: step 3" -> { title: "Step 3", subtitle: "Butter Chicken" }. */

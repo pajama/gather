@@ -1,2 +1,2 @@
 export { TimerSheet } from './TimerSheet';
-export { splitTimerLabel, TimersProvider, useTimers, type KitchenTimer } from './timers';
+export { splitTimerLabel, TimersProvider, useTimerActions, useTimers, type KitchenTimer, type TimerActions } from './timers';

@@ -8,7 +8,7 @@ import type { Recipe } from '@/core/model/types';
 import { findDurations, formatDuration } from '@/core/recipe/durations';
 import { useDb, useRecipe } from '@/data/react';
 import { IngredientCallout, IngredientLine, StepText, useIngredientViews, type IngredientView } from '@/features/recipe';
-import { TimerSheet, useTimers } from '@/features/timers';
+import { TimerSheet, useTimerActions } from '@/features/timers';
 import { Button, haptic, Icon, IconButton, Sheet, Text, useTheme } from '@/ui';
 
 import { speak, stopSpeaking, useVoiceCommands, voiceCommandsSupported, type VoiceCommand } from './voice';
@@ -29,7 +29,7 @@ export function CookScreen() {
 /** Step-by-step mode, after Crouton's: one step per page, tappable ingredients and timers, arrows and dots. */
 function CookMode({ recipe }: { recipe: Recipe }) {
   const db = useDb();
-  const timers = useTimers();
+  const timers = useTimerActions();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();

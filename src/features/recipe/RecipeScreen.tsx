@@ -18,7 +18,7 @@ import { shareTextFile } from '@/data/services/pick-file';
 import { inlineRecipePhotos } from '@/data/services/photo-files';
 import { photoDataUrl } from '@/data/services/photos';
 import { printHtml, shareHtmlAsPdf } from '@/data/services/print-recipe';
-import { TimerSheet, useTimers } from '@/features/timers';
+import { TimerSheet, useTimerActions } from '@/features/timers';
 import {
   Button,
   Card,
@@ -71,7 +71,7 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
   const db = useDb();
   const settings = useSettings();
   const folders = useFolders();
-  const timers = useTimers();
+  const timers = useTimerActions();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const [scrollY] = useState(() => new Animated.Value(0));

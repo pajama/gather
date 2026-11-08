@@ -30,7 +30,7 @@ function chime(): void {
 
 const labels = new Map<string, string>();
 
-export async function scheduleTimerAlert(timerId: string, label: string): Promise<void> {
+export async function scheduleTimerAlert(timerId: string, label: string, _endsAt?: number): Promise<void> {
   labels.set(timerId, label);
   // Starting a timer is a user gesture: a good moment to unlock audio and ask once for notifications.
   try {
@@ -46,11 +46,27 @@ export async function cancelTimerAlert(timerId: string): Promise<void> {
   labels.delete(timerId);
 }
 
-export function timerFinished(timerId: string): void {
-  const label = labels.get(timerId) ?? 'Your timer is done';
+export function timerFinished(timerId: string, fallbackLabel?: string): void {
+  const label = labels.get(timerId) ?? fallbackLabel ?? 'Your timer is done';
   labels.delete(timerId);
   chime();
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.visibilityState === 'hidden') {
     new Notification('Timer done', { body: label });
   }
+}
+
+/** After a reload: remember the running timers' labels (the page itself alerts when they end). */
+export async function reconcileTimerAlerts(running: { id: string; label: string; endsAt: number }[]): Promise<void> {
+  for (const timer of running) labels.set(timer.id, timer.label);
+}
+
+export type ExactAlertStatus = 'granted' | 'denied' | 'unavailable';
+
+/** Browsers have no exact-alarm permission: the open page alerts on time. */
+export async function exactAlertStatus(): Promise<ExactAlertStatus> {
+  return 'granted';
+}
+
+export async function requestExactAlerts(): Promise<ExactAlertStatus> {
+  return 'granted';
 }
