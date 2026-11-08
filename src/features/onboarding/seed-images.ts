@@ -1,5 +1,5 @@
  
-import { setImageResolver } from '@/ui/images';
+import { addImageResolver } from '@/ui';
 
 const SEED_IMAGES: Record<string, number> = {
   'roast-chicken': require('../../../assets/seed/roast-chicken.jpg'),
@@ -13,7 +13,7 @@ const SEED_IMAGES: Record<string, number> = {
 };
 
 export function registerSeedImages(): void {
-  setImageResolver((uri) => {
+  addImageResolver((uri) => {
     const match = /^asset:\/\/seed\/(.+)$/.exec(uri);
     return match ? SEED_IMAGES[match[1]!] : undefined;
   });

@@ -118,7 +118,7 @@ Recipe **ratings and difficulty** went in like this, and most features follow th
 ## Platform notes
 
 - **Web import proxy.** Browsers cannot read most recipe sites (CORS). `scripts/import-proxy.mjs` is a tiny proxy for development; set `EXPO_PUBLIC_IMPORT_PROXY` when building the web app. On iOS and Android, pages are fetched directly.
-- **Images.** Imported recipes keep the source's image URL; photos added in the editor are stored as files (device) or data URLs (web). Sample photos ship in `assets/seed` and are referenced as `asset://seed/<name>`.
+- **Images.** Imported recipes keep the source's image URL. On device, photos added in the editor and photos embedded in imported files are copied into the app's documents folder and referenced as `photo://<name>` (`data/services/photos.ts`): the image picker writes to a cache the OS may clear, and absolute paths change on reinstall. Unused photo files are swept at startup. Backups and shared files embed the photos as data URLs, and restoring or importing stores them as files again. The web keeps data URLs inside recipes. Sample photos ship in `assets/seed` as `asset://seed/<name>`; `ui/images.ts` resolves both app schemes through resolvers registered at startup.
 - **Keep awake** uses `expo-keep-awake` on device; the web has no equivalent.
 - **Fonts.** Nunito (the rounded display face) is bundled through `@expo-google-fonts/nunito` and loaded before the splash screen hides.
 - **SQLite writes are serialized.** expo-sqlite's `withTransactionAsync` is not exclusive, so collections writing at the same time would interleave `BEGIN`/`COMMIT` on the shared connection and lose writes. `SQLiteStore` runs every operation through one `SerialQueue` (`data/store/serial.ts`).

@@ -164,6 +164,13 @@ export function coverImage(recipe: Pick<Recipe, 'images'>): string | undefined {
   return recipe.images[0]?.uri;
 }
 
+/** The recipe with each image URI replaced by `fn(uri)` (for moving photos in and out of storage). */
+export async function mapRecipeImages<R extends Pick<Recipe, 'images'>>(recipe: R, fn: (uri: string) => Promise<string>): Promise<R> {
+  if (recipe.images.length === 0) return recipe;
+  const images = await Promise.all(recipe.images.map(async (image) => ({ ...image, uri: await fn(image.uri) })));
+  return { ...recipe, images };
+}
+
 export function allIngredients(recipe: Pick<Recipe, 'ingredients'>): Ingredient[] {
   return recipe.ingredients.flatMap((s) => s.items);
 }

@@ -10,6 +10,7 @@ import { BackupError } from '@/data/database';
 import { useDb, useRecipes, useSettings } from '@/data/react';
 import { pickBackupFile, saveBackupFile } from '@/data/services/backup-file';
 import { shareBinaryFile } from '@/data/services/pick-file';
+import { inlineBackupPhotos, inlineRecipePhotos, storeBackupPhotos } from '@/data/services/photo-files';
 import { ACCENTS, Chip, haptic, Icon, LargeHeader, ListRow, ListSection, Screen, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
 const SLOT_LABELS: Record<MealSlot, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
@@ -44,7 +45,8 @@ export function SettingsScreen() {
   }, [db]);
 
   const exportBackup = async () => {
-    const backup = db.exportBackup();
+    // Backups carry their photos, so restoring on another device keeps them.
+    const backup = await inlineBackupPhotos(db.exportBackup());
     const stamp = new Date().toISOString().slice(0, 10);
     await saveBackupFile(`gather-backup-${stamp}.json`, JSON.stringify(backup, null, 2));
     setStatus(`Exported ${backup.recipes.length} recipes`);
@@ -67,7 +69,8 @@ export function SettingsScreen() {
       'Replace everything?',
       `Restoring replaces your library with ${count} recipes from the backup. Your current library is kept, so you can undo this.`,
       () => {
-        db.restoreBackup(parsed)
+        storeBackupPhotos(parsed)
+          .then((withFiles) => db.restoreBackup(withFiles))
           .then((result) => {
             setStatus(`Restored ${result.recipes} recipes`);
             setCanUndo(true);
@@ -200,9 +203,11 @@ export function SettingsScreen() {
           title="Export for Crouton"
           subtitle="Every recipe as a .crumb file, in one zip"
           onPress={() => {
-            const zip = crumbArchive(recipes.map(recipeToDraft), () => newId().toUpperCase());
-            void shareBinaryFile('Gather recipes.zip', zip);
-            setStatus(`Exported ${recipes.length} recipes for Crouton`);
+            void Promise.all(recipes.map(inlineRecipePhotos)).then(async (full) => {
+              const zip = crumbArchive(full.map(recipeToDraft), () => newId().toUpperCase());
+              await shareBinaryFile('Gather recipes.zip', zip);
+              setStatus(`Exported ${recipes.length} recipes for Crouton`);
+            });
           }}
         />
       </ListSection>

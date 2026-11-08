@@ -15,6 +15,7 @@ import {
 import { createRecipe, newId } from '@/core/model/recipe';
 import type { Difficulty, Recipe } from '@/core/model/types';
 import { useDb, useFolders, useRecipe } from '@/data/react';
+import { storePhoto } from '@/data/services/photos';
 import { RatingStars } from '@/features/recipe';
 import { Button, Chip, CONTENT_MAX_WIDTH, Field, Icon, IconButton, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
@@ -95,9 +96,19 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8, allowsEditing: true, aspect: [4, 3], base64: Platform.OS === 'web' });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    // On the web the picked file is a short-lived blob URL; keep a data URL instead.
-    const uri = Platform.OS === 'web' && asset.base64 ? `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}` : asset.uri;
-    setImages([{ id: newId(), uri, width: asset.width, height: asset.height }, ...images]);
+    // On the web the picked file is a short-lived blob URL, so keep a data URL. On device the
+    // picker writes into a cache folder the OS may clear, so copy the photo into app storage.
+    let uri = asset.uri;
+    if (Platform.OS === 'web') {
+      if (asset.base64) uri = `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`;
+    } else {
+      try {
+        uri = await storePhoto(asset.uri);
+      } catch (error) {
+        console.warn('[gather] could not store photo', error);
+      }
+    }
+    setImages((current) => [{ id: newId(), uri, width: asset.width, height: asset.height }, ...current]);
   };
 
   return (

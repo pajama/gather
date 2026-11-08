@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { inFolder, queryLibrary } from './library';
-import { createRecipe } from './recipe';
+import { createRecipe, mapRecipeImages } from './recipe';
 
 const recipes = [
   createRecipe({ name: 'Banana Bread', createdAt: '2026-01-03T00:00:00Z', tags: ['Baking'], prepSeconds: 900, cookSeconds: 3600 }),
@@ -72,5 +72,23 @@ describe('recipe drafts', () => {
     const manual = { ...tagged[2]!, folderIds: ['smart'] };
     expect(inFolder(manual, all)).toBe(true);
     expect(queryLibrary([...tagged.slice(0, 2), manual], { folder: all, sort: 'name' }).length).toBe(2);
+  });
+});
+
+describe('mapRecipeImages', () => {
+  it('maps every image URI and leaves the rest of the recipe alone', async () => {
+    const recipe = createRecipe({ name: 'Soup', images: [{ id: 'a', uri: 'photo://a.jpg' }, { id: 'b', uri: 'https://x/b.jpg' }] });
+    const mapped = await mapRecipeImages(recipe, async (uri) => (uri.startsWith('photo://') ? 'data:image/jpeg;base64,AAAA' : uri));
+    expect(mapped.images.map((i) => i.uri)).toEqual(['data:image/jpeg;base64,AAAA', 'https://x/b.jpg']);
+    expect(mapped.images.map((i) => i.id)).toEqual(['a', 'b']);
+    expect(mapped.name).toBe('Soup');
+    expect(recipe.images[0]?.uri).toBe('photo://a.jpg');
+  });
+});
+
+describe('createRecipe', () => {
+  it('always mints a new id, even when given one', () => {
+    const fields = { id: 'existing', name: 'Copy' } as unknown as Parameters<typeof createRecipe>[0];
+    expect(createRecipe(fields).id).not.toBe('existing');
   });
 });

@@ -143,6 +143,22 @@ export class Database {
     return result;
   }
 
+  /** Every image URI the library refers to, including the library kept for undoing a restore. */
+  async imageReferences(): Promise<Set<string>> {
+    const uris = new Set<string>();
+    for (const recipe of this.collections.recipes.all()) for (const image of recipe.images) uris.add(image.uri);
+    const saved = await this.store.getMeta(PRE_RESTORE_KEY);
+    if (saved) {
+      try {
+        const backup = JSON.parse(saved) as { recipes?: { images?: { uri?: unknown }[] }[] };
+        for (const recipe of backup.recipes ?? []) for (const image of recipe.images ?? []) if (typeof image.uri === 'string') uris.add(image.uri);
+      } catch {
+        // An unreadable saved library has nothing worth keeping photos for.
+      }
+    }
+    return uris;
+  }
+
   /** Records a storage failure for the UI, and passes it on. */
   reportError(error: unknown): void {
     const current = this.health.get();

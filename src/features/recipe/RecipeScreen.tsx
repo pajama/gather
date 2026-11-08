@@ -15,6 +15,8 @@ import { formatDuration } from '@/core/recipe/durations';
 import { formatNumber } from '@/core/recipe/quantity';
 import { useDb, useFolders, useRecipe, useSettings } from '@/data/react';
 import { shareTextFile } from '@/data/services/pick-file';
+import { inlineRecipePhotos } from '@/data/services/photo-files';
+import { photoDataUrl } from '@/data/services/photos';
 import { printHtml, shareHtmlAsPdf } from '@/data/services/print-recipe';
 import { TimerSheet, useTimers } from '@/features/timers';
 import {
@@ -128,8 +130,10 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
     }
   };
 
-  const printable = () => {
-    const cover = coverImage(recipe);
+  const printable = async () => {
+    // Stored photos are files; the print view gets them embedded.
+    const stored = coverImage(recipe);
+    const cover = stored ? await photoDataUrl(stored) : undefined;
     return recipeToHtml(recipe, {
       scale,
       units,
@@ -536,9 +540,9 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
       <Sheet visible={sheet === 'share'} onClose={() => setSheet(null)} title="Share">
         <ListSection>
           <ListRow icon="share" iconColor="#7C6FD6" title="Share as text" onPress={() => { setSheet(null); void share(); }} />
-          <ListRow icon="print" iconColor="#5E8BD6" title="Print" onPress={() => { setSheet(null); void printHtml(printable()); }} />
+          <ListRow icon="print" iconColor="#5E8BD6" title="Print" onPress={() => { setSheet(null); void printable().then(printHtml); }} />
           {Platform.OS !== 'web' ? (
-            <ListRow icon="download" iconColor="#D98B00" title="Share as PDF" onPress={() => { setSheet(null); void shareHtmlAsPdf(printable(), recipe.name); }} />
+            <ListRow icon="download" iconColor="#D98B00" title="Share as PDF" onPress={() => { setSheet(null); void printable().then((html) => shareHtmlAsPdf(html, recipe.name)); }} />
           ) : null}
           <ListRow
             icon="upload"
@@ -548,7 +552,9 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
             onPress={() => {
               setSheet(null);
               const slug = recipe.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'recipe';
-              void shareTextFile(`${slug}.gather`, JSON.stringify(toGatherFile([recipeToDraft(recipe)]), null, 2));
+              void inlineRecipePhotos(recipe).then((full) =>
+                shareTextFile(`${slug}.gather`, JSON.stringify(toGatherFile([recipeToDraft(full)]), null, 2)),
+              );
             }}
           />
           <ListRow
@@ -559,8 +565,10 @@ export function RecipeDetail({ recipe, embedded = false, backLabel = 'Recipes' }
             onPress={() => {
               setSheet(null);
               const slug = recipe.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'recipe';
-              const crumb = crumbFromDraft(recipeToDraft(recipe), () => newId().toUpperCase());
-              void shareTextFile(`${slug}.crumb`, JSON.stringify(crumb), 'application/json');
+              void inlineRecipePhotos(recipe).then((full) => {
+                const crumb = crumbFromDraft(recipeToDraft(full), () => newId().toUpperCase());
+                return shareTextFile(`${slug}.crumb`, JSON.stringify(crumb), 'application/json');
+              });
             }}
           />
         </ListSection>

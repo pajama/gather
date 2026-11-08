@@ -13,13 +13,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DatabaseProvider, useSettings } from '@/data/react';
+import { isStoredPhoto, photoDisplayUri } from '@/data/services/photos';
 import { seedDatabase } from '@/features/onboarding/seed';
 import { ScreenError, StorageBanner, StorageErrorScreen } from '@/features/shell';
 import { registerSeedImages } from '@/features/onboarding/seed-images';
 import { TimersProvider } from '@/features/timers';
-import { ThemeProvider, useTheme } from '@/ui';
+import { addImageResolver, ThemeProvider, useTheme } from '@/ui';
 
 registerSeedImages();
+addImageResolver((uri) => (isStoredPhoto(uri) ? { uri: photoDisplayUri(uri) } : undefined));
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function AppStack() {

@@ -11,6 +11,7 @@ import type { KitchenTimer } from '@/core/timers/timers';
 import type { Collection, Identified, Singleton } from './collection';
 import { Database, type StorageHealth } from './database';
 import { DEFAULT_LIST_ID } from './repositories/groceries';
+import { sweepUnusedPhotos } from './services/photo-files';
 import { openStore } from './store/open-store';
 
 const DatabaseContext = createContext<Database | null>(null);
@@ -40,6 +41,7 @@ export function DatabaseProvider({
       .then((store) => Database.open(store, seed ? { seed } : {}))
       .then((opened) => {
         if (!cancelled) setDb(opened);
+        void sweepUnusedPhotos(opened);
       })
       .catch((error: unknown) => {
         console.error('[gather] could not open storage', error);

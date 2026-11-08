@@ -14,6 +14,7 @@ import { useDb } from '@/data/react';
 import { PageFetchError } from '@/data/services/fetch-page';
 import { fetchPage } from '@/data/services/page-fetcher';
 import { pickFile } from '@/data/services/pick-file';
+import { storeDraftPhotos } from '@/data/services/photo-files';
 import { recognizeText, scanSupported } from '@/data/services/scan-text';
 import { Button, Card, CONTENT_MAX_WIDTH, Field, Icon, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
@@ -79,9 +80,9 @@ export function ImportScreen() {
     };
   }, [params.url]);
 
-  const save = (edit: boolean) => {
+  const save = async (edit: boolean) => {
     if (!draft) return;
-    const recipe = db.recipes.createFromDraft(draft);
+    const recipe = db.recipes.createFromDraft(await storeDraftPhotos(draft));
     router.dismissAll?.();
     router.push(edit ? `/recipe/${recipe.id}/edit` : `/recipe/${recipe.id}`);
   };
@@ -230,7 +231,7 @@ export function ImportScreen() {
           </Card>
         ) : null}
 
-        {draft ? <DraftPreview draft={draft} onSave={() => save(false)} onEdit={() => save(true)} radius={radius.lg} /> : null}
+        {draft ? <DraftPreview draft={draft} onSave={() => void save(false)} onEdit={() => void save(true)} radius={radius.lg} /> : null}
 
         {batch ? (
           <Card style={{ gap: space.md }}>
@@ -255,8 +256,9 @@ export function ImportScreen() {
             <Button
               title={`Import ${batch.drafts.length} ${batch.drafts.length === 1 ? 'recipe' : 'recipes'}`}
               icon="download"
-              onPress={() => {
-                for (const d of batch.drafts) db.recipes.createFromDraft(d);
+              onPress={async () => {
+                const drafts = await Promise.all(batch.drafts.map(storeDraftPhotos));
+                for (const d of drafts) db.recipes.createFromDraft(d);
                 router.dismissAll?.();
                 router.replace('/');
               }}

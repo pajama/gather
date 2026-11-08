@@ -17,5 +17,5 @@ export { haptic, Tap, type TapProps } from './primitives/Tap';
 export { Text, type TextProps, type TextTone } from './primitives/Text';
 export { buildTheme, ThemeProvider, useTheme, type Theme } from './theme/theme';
 export { ACCENTS, accentById, type AccentDef } from './theme/tokens';
-export { resolveImage, setImageResolver } from './images';
+export { addImageResolver, resolveImage } from './images';
 export { useKeyboardHeight } from './useKeyboard';
