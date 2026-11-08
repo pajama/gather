@@ -4,7 +4,8 @@
  * on first use, so they cost nothing until someone scans.
  */
 
-export const scanSupported = true;
+/** The single-file preview cannot download the model (no network), so it turns scanning off. */
+export const scanSupported = process.env.EXPO_PUBLIC_SINGLE_FILE !== '1';
 
 export async function recognizeText(image: string, onProgress?: (fraction: number) => void): Promise<string> {
   const { createWorker } = await import('tesseract.js');

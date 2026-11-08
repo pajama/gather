@@ -34,6 +34,8 @@ npm run proxy      # localhost:8787; Gather on localhost uses it automatically
 
 For a hosted web build, set `EXPO_PUBLIC_IMPORT_PROXY` to your own proxy.
 
+`npm run build:single` packs the whole web app into one HTML file (`dist-single/gather.html`, about 5 MB) that runs offline from anywhere, sandboxed preview frames included. Without storage or network it keeps data for the session only, and website import and scanning are off.
+
 ## Checks
 
 ```sh

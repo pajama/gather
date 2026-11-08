@@ -13,7 +13,7 @@ const layer = (files, forbidden, message) => ({
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', 'screenshots/*', '.expo/*'],
+    ignores: ['dist/*', 'dist-single/*', 'screenshots/*', '.expo/*'],
   },
   layer(
     ['src/core/**'],

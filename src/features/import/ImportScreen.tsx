@@ -166,7 +166,9 @@ export function ImportScreen() {
             <Text variant="footnote" tone="secondary">
               {scanSupported
                 ? 'Works best with one recipe per photo, shot straight on in good light. Text recognition runs in your browser.'
-                : 'Scanning works in Gather on the web for now. On iPhone and iPad, Live Text does the same job: open the photo, press and hold the text, choose Select All and Copy, then paste it under Text.'}
+                : Platform.OS === 'web'
+                  ? 'Scanning needs the full web app: it downloads a text-recognition model, which this preview cannot.'
+                  : 'Scanning works in Gather on the web for now. On iPhone and iPad, Live Text does the same job: open the photo, press and hold the text, choose Select All and Copy, then paste it under Text.'}
             </Text>
           </View>
         ) : mode === 'file' ? (
