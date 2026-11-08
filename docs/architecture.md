@@ -120,4 +120,5 @@ Recipe **ratings and difficulty** went in like this, and most features follow th
 
 - `npm test`: Vitest unit tests for `core` and `data` (storage runs on `MemoryStore`).
 - `npm run typecheck`, `npm run lint`.
+- `npm run bundle:native`: builds the iOS and Android JavaScript bundles, which catches native-only import and resolution errors without a simulator.
 - `npm run build:web && npm run screenshots`: renders key screens in light, dark and desktop sizes with headless Chromium and fails on console errors. With the import proxy running, `IMPORT_URL=… FEED_URL=…` also exercises live import and feeds.

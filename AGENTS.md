@@ -22,6 +22,7 @@ npm run typecheck   # tsc --noEmit
 npm run lint        # expo lint
 npm run web         # dev server for the web
 npm run build:web   # static web export to dist/
+npm run bundle:native  # iOS + Android JS bundles (catches native-only resolution errors)
 ```
 
 Run tests and typecheck before calling work done.
