@@ -65,7 +65,8 @@ A `.crumb` file is one recipe as JSON: the fields above plus `ingredients[{ orde
 | --- | --- |
 | Import from websites, copied-link prompt | Yes (schema.org JSON-LD and microdata; the web build needs a small proxy because browsers block cross-site reads) |
 | Import from Paprika and other apps | Paprika, Crouton `.crumb`, Gather files, saved pages, pasted text |
-| Scan a cookbook page (OCR), AI import | Not yet |
+| Scan a cookbook page (OCR) | On the web: Tesseract runs in the browser and the text goes through the pasted-text parser for review. iOS and Android need a native text-recognition module (a development build) |
+| AI import | Not yet |
 | Scaling, unit conversion | Yes (servings or multiplier; as written, US, metric) |
 | Timers from steps, floating timer card | Yes (notifications on device, chime on the web) |
 | Step-by-step mode | Yes |

@@ -1,3 +1,4 @@
+import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -5,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { draftLineCount, type RecipeDraft } from '@/core/import/draft';
 import { readRecipeFile } from '@/core/import/files';
+import { cleanScannedText } from '@/core/import/scan';
 import { parseRecipeText } from '@/core/import/text';
 import { extractRecipesFromHtml } from '@/core/import/web';
 import { formatDuration } from '@/core/recipe/durations';
@@ -12,9 +14,10 @@ import { useDb } from '@/data/react';
 import { PageFetchError } from '@/data/services/fetch-page';
 import { fetchPage } from '@/data/services/page-fetcher';
 import { pickFile } from '@/data/services/pick-file';
+import { recognizeText, scanSupported } from '@/data/services/scan-text';
 import { Button, Card, CONTENT_MAX_WIDTH, Field, Icon, Photo, SegmentedControl, Tap, Text, useTheme } from '@/ui';
 
-type Mode = 'url' | 'text' | 'file';
+type Mode = 'url' | 'text' | 'scan' | 'file';
 
 type ImportResult = { draft: RecipeDraft } | { error: string };
 
@@ -37,7 +40,9 @@ export function ImportScreen() {
   const db = useDb();
   const { colors, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<Mode>(params.mode === 'text' ? 'text' : params.mode === 'file' ? 'file' : 'url');
+  const [mode, setMode] = useState<Mode>(params.mode === 'text' || params.mode === 'file' || params.mode === 'scan' ? params.mode : 'url');
+  const [scanProgress, setScanProgress] = useState<number | null>(null);
+  const [scanned, setScanned] = useState(false);
   const [batch, setBatch] = useState<{ format: string; drafts: RecipeDraft[]; skipped: string[] } | null>(null);
   const [url, setUrl] = useState(params.url ?? '');
   const [text, setText] = useState('');
@@ -97,6 +102,7 @@ export function ImportScreen() {
           options={[
             { value: 'url', label: 'Website', icon: 'globe' },
             { value: 'text', label: 'Text', icon: 'text' },
+            { value: 'scan', label: 'Scan', icon: 'camera' },
             { value: 'file', label: 'File', icon: 'download' },
           ]}
           value={mode}
@@ -124,6 +130,43 @@ export function ImportScreen() {
             <Button title="Find recipe" icon="search" onPress={() => void fetchUrl()} loading={loading} disabled={!url.trim()} full />
             <Text variant="footnote" tone="secondary">
               Works with most recipe sites. Gather keeps the recipe and leaves the life story behind.
+            </Text>
+          </View>
+        ) : mode === 'scan' ? (
+          <View style={{ gap: space.md }}>
+            <Text variant="body">Take or choose a photo of a cookbook page. Gather reads the text, then you check it before saving.</Text>
+            <Button
+              title={scanProgress !== null ? `Reading the page… ${Math.round(scanProgress * 100)}%` : 'Choose a photo'}
+              icon="image"
+              full
+              disabled={!scanSupported || scanProgress !== null}
+              onPress={async () => {
+                setError(null);
+                const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, base64: true });
+                const asset = picked.canceled ? undefined : picked.assets[0];
+                if (!asset) return;
+                const image = asset.base64 ? `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}` : asset.uri;
+                setScanProgress(0);
+                try {
+                  const raw = await recognizeText(image, setScanProgress);
+                  const cleaned = cleanScannedText(raw);
+                  if (!cleaned.trim()) setError('No text found in that photo. Try a sharper, straight-on photo in good light.');
+                  else {
+                    setText(cleaned);
+                    setScanned(true);
+                    setMode('text');
+                  }
+                } catch {
+                  setError('Gather couldn’t read that photo.');
+                } finally {
+                  setScanProgress(null);
+                }
+              }}
+            />
+            <Text variant="footnote" tone="secondary">
+              {scanSupported
+                ? 'Works best with one recipe per photo, shot straight on in good light. Text recognition runs in your browser.'
+                : 'Scanning works in Gather on the web for now. On iPhone and iPad, Live Text does the same job: open the photo, press and hold the text, choose Select All and Copy, then paste it under Text.'}
             </Text>
           </View>
         ) : mode === 'file' ? (
@@ -154,12 +197,20 @@ export function ImportScreen() {
           </View>
         ) : (
           <View style={{ gap: space.md }}>
+            {scanned ? (
+              <Card style={[styles.errorCard, { gap: space.md, backgroundColor: colors.greenSoft }]}>
+                <Icon name="checkCircle" color={colors.green} />
+                <Text variant="subhead" style={styles.flex}>
+                  Page scanned. Check the text below, fix anything misread, then tap Read recipe.
+                </Text>
+              </Card>
+            ) : null}
             <Field
               value={text}
               onChangeText={setText}
               placeholder={'Paste a recipe: the title on the first line, then the ingredients and the method.'}
               multiline
-              style={{ minHeight: 220 }}
+              minInputHeight={scanned ? 360 : 240}
               autoFocus
             />
             <Button title="Read recipe" icon="sparkles" onPress={() => setDraft(parseRecipeText(text))} disabled={!text.trim()} full />

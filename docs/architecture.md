@@ -43,6 +43,8 @@ Dependencies point down only: `app → features → (ui, data) → core`. ESLint
 | `import/feed.ts` | RSS/Atom parsing and feed discovery |
 | `import/files.ts` | Recipe files: Paprika exports, Gather files, saved pages, text, and Crouton files via `import/crumb.ts` |
 | `import/crumb.ts` | Crouton `.crumb` JSON in both directions (quantity types, `SECTION` headings, section steps, nutrition lines) |
+| `import/scan.ts` | Cleans text recognized from a cookbook photo (hyphenation, reflow, misread amounts) for the text parser |
+| `timers/timers.ts` | Kitchen timers as plain data: start, pause, resume, add time, status from the clock |
 | `grocery/*` | Aisle lookup and merging (`1 cup milk + ½ cup milk → 1½ cups milk`) |
 | `planner/planner.ts` | Day keys, week ranges, automatic meal-plan generation |
 | `model/*` | Entity types, factories, library search/sort, editor text round-trip |
@@ -67,7 +69,7 @@ React bindings (react.tsx)     <DatabaseProvider>, useRecipes(), useRecipe(id), 
 - **Documents, not tables.** Each entity is a JSON document keyed by `(collection, id)`. Adding a field never needs a schema migration; `migrations.ts` fills defaults when older documents load.
 - **Reads are synchronous.** Collections load fully at startup (recipe libraries are small), so screens render from memory with no loading states. Writes update memory first, notify subscribers, then persist in order.
 - **Engines are swappable.** `open-store.ts` / `open-store.web.ts` pick SQLite or IndexedDB. Metro resolves the platform file; tests use `MemoryStore`.
-- **Services** hold side effects that are not storage: `page-fetcher(.web).ts` (the web build goes through an import proxy because browsers block cross-site reads), `feeds.ts`, `backup-file(.web).ts`.
+- **Services** hold side effects that are not storage: `page-fetcher(.web).ts` (the web build goes through an import proxy because browsers block cross-site reads), `feeds.ts`, `backup-file(.web).ts`, `scan-text(.web).ts` (text recognition with Tesseract in the browser, loaded on first use), `timer-alerts(.web).ts`, `print-recipe(.web).ts`.
 - **Sync-ready.** Every document carries `createdAt`/`updatedAt` and stable ids, which is what a sync engine (iCloud-style or a server) needs. Sync would be another layer over `DocumentStore`; screens would not change.
 
 ### ui: the design system
@@ -88,7 +90,7 @@ Screens never hard-code colors or font sizes; they read tokens. Changing the loo
 | `cook` | `/recipe/[id]/cook` | Step-by-step: one large step per page, arrows and page dots, hands-free (read aloud + voice commands) |
 | `timers` | (overlay) | `TimersProvider` above navigation, the floating timer card, the timer sheet for custom timers |
 | `editor` | `/recipe/new`, `/recipe/[id]/edit` | Text-first editing (one line per ingredient/step, `Heading:` sections), photos, rating, difficulty |
-| `import` | `/import` | Website (schema.org), pasted text, files (Crouton, Paprika, Gather, saved pages) |
+| `import` | `/import` | Website (schema.org), pasted text, cookbook scan (web), files (Crouton, Paprika, Gather, saved pages) |
 | `feeds` | `/discover` | Follow blogs; new posts become one-tap imports |
 | `planner` | `/plan` | A card per day with + and … buttons, slots, recipe picker, plan dinners automatically, shop for the week |
 | `groceries` | `/groceries` | One card per item, merged amounts, optional grouping by aisle or recipe, Crouton-style entry panel (unit chips, fractions, number pad) |

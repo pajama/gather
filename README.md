@@ -8,7 +8,7 @@ Gather started as a study: how close can a team get to [Crouton](https://crouton
 
 ## What it does
 
-- **Save recipes from anywhere:** websites (schema.org), pasted text, Crouton `.crumb` files, Paprika exports, Gather files, saved pages. A copied link prompts an import.
+- **Save recipes from anywhere:** websites (schema.org), pasted text, a photo of a cookbook page (text recognition, on the web for now), Crouton `.crumb` files, Paprika exports, Gather files, saved pages. A copied link prompts an import.
 - **Recipes:** scaling by servings or multiplier, US/metric conversion, ingredient check-off, tappable timers in steps, ingredient callouts, ratings, difficulty, notes, nutrition, print and PDF.
 - **Step-by-step cooking** with hands-free mode (read aloud, voice commands) and floating timers.
 - **Meal plan:** a card per day, automatic dinner planning from your recipes, one tap to shop for the week.

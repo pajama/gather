@@ -49,7 +49,12 @@ await new Promise((r) => server.listen(0, r));
 const base = `http://localhost:${server.address().port}`;
 
 await mkdir(OUT, { recursive: true });
-const browser = await chromium.launch({ executablePath: findChromium(), args: ['--no-sandbox'] });
+// CHROMIUM_PROXY lets the scan check reach the OCR model's CDN from behind a proxy.
+const browser = await chromium.launch({
+  executablePath: findChromium(),
+  args: ['--no-sandbox'],
+  ...(process.env.CHROMIUM_PROXY ? { proxy: { server: process.env.CHROMIUM_PROXY, bypass: 'localhost,127.0.0.1' } } : {}),
+});
 const errors = [];
 
 async function session({ width, height, scheme = 'light', scale = 2 }) {
@@ -160,6 +165,20 @@ if (process.env.IMPORT_URL || process.env.FEED_URL) {
     await page.waitForTimeout(1500);
     await shot(page, '17-discover');
   }
+  await context.close();
+}
+
+// Cookbook scan (OCR): SCAN_IMAGE=path/to/photo.png. Needs network access to load the OCR model.
+if (process.env.SCAN_IMAGE) {
+  const { context, page } = await session({ width: 390, height: 844 });
+  const chooser = new Promise((resolve) => page.on('filechooser', resolve));
+  await page.goto(base + '/import?mode=scan');
+  await page.getByRole('button', { name: 'Choose a photo' }).first().click();
+  await (await chooser).setFiles(process.env.SCAN_IMAGE);
+  await page.getByText('Page scanned.', { exact: false }).first().waitFor({ timeout: 180000 });
+  await page.getByRole('button', { name: 'Read recipe' }).first().click();
+  await page.getByText('Save recipe').first().waitFor({ timeout: 10000 });
+  await shot(page, '18-scan-preview');
   await context.close();
 }
 

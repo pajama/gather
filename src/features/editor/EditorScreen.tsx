@@ -168,18 +168,18 @@ function Editor({ initial, isNew }: { initial: Recipe; isNew: boolean }) {
         </View>
 
         <View style={{ gap: space.xs }}>
-          <Field label="Ingredients" value={ingredients} onChangeText={setIngredients} placeholder={'2 cups flour\n1 tsp salt\n\nFor the glaze:\n1 cup icing sugar'} multiline />
+          <Field label="Ingredients" value={ingredients} onChangeText={setIngredients} placeholder={'2 cups flour\n1 tsp salt\n\nFor the glaze:\n1 cup icing sugar'} multiline minInputHeight={200} />
           <Text variant="footnote" tone="secondary">
             One per line. End a line with a colon to start a section.
           </Text>
         </View>
         <View style={{ gap: space.xs }}>
-          <Field label="Method" value={steps} onChangeText={setSteps} placeholder={'Heat the oven to 350°F.\nMix the dry ingredients.\nBake for 25 minutes.'} multiline />
+          <Field label="Method" value={steps} onChangeText={setSteps} placeholder={'Heat the oven to 350°F.\nMix the dry ingredients.\nBake for 25 minutes.'} multiline minInputHeight={240} />
           <Text variant="footnote" tone="secondary">
             One step per line. Times like “25 minutes” become timers.
           </Text>
         </View>
-        <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Tips, substitutions, what you'd change next time" multiline />
+        <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Tips, substitutions, what you'd change next time" multiline minInputHeight={120} />
 
         <View style={[styles.row, { gap: space.md }]}>
           <Field label="Source" value={sourceName} onChangeText={setSourceName} placeholder="Website or cookbook" style={styles.flex} />

@@ -45,7 +45,13 @@ export function SearchField({
   );
 }
 
-export function Field({ label, style, multiline, ...props }: TextInputProps & { label?: string; style?: StyleProp<ViewStyle> }) {
+export function Field({
+  label,
+  style,
+  multiline,
+  minInputHeight,
+  ...props
+}: TextInputProps & { label?: string; style?: StyleProp<ViewStyle>; /** Height of a multiline field before it scrolls. */ minInputHeight?: number }) {
   const { colors, radius, space } = useTheme();
   return (
     <View style={[{ gap: space.xs }, style]}>
@@ -64,7 +70,7 @@ export function Field({ label, style, multiline, ...props }: TextInputProps & { 
             color: colors.text,
             backgroundColor: colors.surface,
             borderRadius: radius.md,
-            minHeight: multiline ? 96 : 46,
+            minHeight: multiline ? (minInputHeight ?? 96) : 46,
             textAlignVertical: multiline ? 'top' : 'center',
             paddingTop: multiline ? 12 : 0,
           },
